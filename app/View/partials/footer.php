@@ -1,3 +1,3 @@
 <footer class="site-footer">
-    <p>&copy; <?= date('Y') ?> - Tempest</p>  
+    <p>&copy; <?= date('Y') ?></p>  
 </footer>

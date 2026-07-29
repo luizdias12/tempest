@@ -1,3 +1,4 @@
 <header class="site-header">
-    <h1>火</h1>
+    <button class="header-toggle-btn" id="headerToggleBtn" aria-label="Abrir ou fechar menu">&#9776;</button>
+    <h1>嵐</h1>
 </header>

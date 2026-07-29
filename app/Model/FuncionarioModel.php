@@ -136,15 +136,15 @@ class FuncionarioModel extends DB
             ->orderBy('f.nome', 'ASC');
 
         if (!empty($codfilial)) {
-            $query->where('f.codfilial', '=', $codfilial);
+            $query->where('f.codfilial', $codfilial);
         }
 
         if (!empty($secao)) {
-            $query->where('f.codsecao', '=', $secao);
+            $query->where('f.codsecao', $secao);
         }
 
         if (!empty($situacao)) {
-            $query->where('f.codsituacao', '=', $situacao);
+            $query->where('f.codsituacao', $situacao);
         }
 
         if (!empty($nome)) {
@@ -187,8 +187,8 @@ class FuncionarioModel extends DB
             ->join('gfilial g', 'f.codfilial', '=', 'g.codfilial')
             ->join('pcodsituacao cs', 'f.codsituacao', '=', 'cs.codinterno')
             ->leftJoin('pfhstsal hs', 'hs.chapa', '=', 'f.chapa')
-            ->where('s.descricao', 'LIKE', '%TECNOLOGIA%')
-            ->where('f.codsituacao', '<>', 'D')
+            ->whereStartsWith('s.descricao', 'TECNOLOGIA')
+            ->whereNotIn('f.codsituacao', ['D','L'])
             ->orderBy('f.nome', 'ASC');
         return $query->paginate($page, $limit);
         // return $query->toSql();
