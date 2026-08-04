@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Model\FuncionarioModel;
+use App\Model\Oracle\FuncionarioModel;
 use App\Core\ApiException;
 
 class FuncionarioService

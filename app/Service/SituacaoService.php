@@ -2,8 +2,7 @@
 
 namespace App\Service;
 
-use App\Model\SituacaoModel;
-use App\Core\ApiException;
+use App\Model\Oracle\SituacaoModel;
 
 class SituacaoService
 {

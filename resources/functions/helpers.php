@@ -97,17 +97,27 @@ if (!function_exists('view')) {
 }
 
 if (!function_exists('component')) {
-    function component(string $name, array $data = []): void
+    function component(string $component, array $data = []): void
     {
-        extract($data);
-        require basePath("app/View/components/{$name}.php");
+        extract($data, EXTR_SKIP);
+        require basePath("app/View/components/{$component}.php");
+    }
+}
+
+if (!function_exists('partial')) {
+    function partial(string $partial, array $data = []): void
+    {
+        extract($data, EXTR_SKIP);
+        require basePath("app/View/partials/{$partial}.php");
     }
 }
 
 if (!function_exists('asset')) {
     function asset(string $path): string
     {
-        return '/' . ltrim($path, '/');
+        $file = basePath("public/" . ltrim($path, '/'));
+        $v = file_exists($file) ? '?v=' . filemtime($file) : '';
+        return '/' . ltrim($path, '/') . $v;
     }
 }
 

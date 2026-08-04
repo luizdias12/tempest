@@ -2,12 +2,9 @@
 use App\Service\FilialService;
 use App\Service\FuncionarioService;
 use App\Service\SituacaoService;
-?>
+use App\Core\Logger;
 
-<div class="header">
-    <h1>Lista de Funcionários Cadastrados</h1>
-    <p>Tabela com os funcionários cadastrados no sistema.</p>
-</div>
+?>
 
 <div class="filter-bar">
     <form method="GET" class="filter-form">
@@ -98,6 +95,8 @@ use App\Service\SituacaoService;
                             try {
                                 $feriasData = FuncionarioService::dataFerias($usuario['chapa']);
                             } catch (\Throwable $e) {
+                                Logger::exception($e);
+
                                 $feriasData = null;
                             }
                             $periodo = $feriasData

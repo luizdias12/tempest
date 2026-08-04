@@ -4,10 +4,12 @@ namespace App\Core;
 
 use PDO;
 use PDOException;
+use Exception;
 
 class DB
 {
     private static ?PDO $conn = null;
+    private static array $connections = [];
 
     // ------- Connection -------
 
@@ -16,35 +18,58 @@ class DB
         return getenv($key) ?: ($_ENV[$key] ?? $default);
     }
 
-    public static function connect(): PDO
+    public static function connect(string $name = 'oracle'): PDO
     {
-        if (self::$conn !== null) {
-            return self::$conn;
+        if (isset(self::$connections[$name])) {
+            return self::$connections[$name];
         }
 
-        $host = self::env('DB_HOST');
-        $port = self::env('DB_PORT', '1521');
-        $servicename = self::env('DB_SERVICENAME');
-        $user = self::env('DB_USER');
-        $pass = self::env('DB_PASSWORD');
-        $charset = self::env('DB_CHARSET', 'AL32UTF8');
+        if ($name === 'mysql') {
+            $host   = self::env('MYSQL_HOST');
+            $port   = self::env('MYSQL_PORT', '3306');
+            $db     = self::env('MYSQL_DBNAME');
+            $user   = self::env('MYSQL_USER');
+            $pass   = self::env('MYSQL_PASSWORD');
 
-        try {
-            self::$conn = new PDO(
-                "oci:dbname=//{$host}:{$port}/{$servicename};charset={$charset}",
-                $user,
-                $pass,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_CASE => PDO::CASE_LOWER,
-                ]
-            );
+            try {
+                self::$connections[$name] = new PDO(
+                    "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4",
+                    $user,
+                    $pass,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]
+                );
+            } catch (PDOException $e) {
+                throw new Exception('Erro ao conectar ao MySQL: ' . $e->getMessage());
+            }
+        } else {
+            // conexão Oracle (default)
+            $host      = self::env('DB_HOST');
+            $port      = self::env('DB_PORT', '1521');
+            $service   = self::env('DB_SERVICENAME');
+            $user      = self::env('DB_USER');
+            $pass      = self::env('DB_PASSWORD');
+            $charset   = self::env('DB_CHARSET', 'AL32UTF8');
 
-            return self::$conn;
-        } catch (PDOException $e) {
-            throw new \Exception('Erro ao conectar ao banco: ' . $e->getMessage());
+            try {
+                self::$connections[$name] = new PDO(
+                    "oci:dbname=//{$host}:{$port}/{$service};charset={$charset}",
+                    $user,
+                    $pass,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_CASE => PDO::CASE_LOWER,
+                    ]
+                );
+            } catch (PDOException $e) {
+                throw new Exception('Erro ao conectar ao Oracle: ' . $e->getMessage());
+            }
         }
+
+        return self::$connections[$name];
     }
 
     // ------- Validation -------
@@ -52,7 +77,7 @@ class DB
     private static function validateIdentifier(string $name, string $label = 'Identificador'): void
     {
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-            throw new \Exception("{$label} inválido: {$name}");
+            throw new Exception("{$label} inválido: {$name}");
         }
     }
 
@@ -100,21 +125,21 @@ class DB
 
     // ------- CRUD -------
 
-    public static function select(string $sql, array $params = []): array
+    public static function select(string $sql, array $params = [], string $connection = 'oracle'): array
     {
-        $stmt = self::connect()->prepare($sql);
+        $stmt = self::connect($connection)->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
-    public static function first(string $sql, array $params = []): ?array
+    public static function first(string $sql, array $params = [], string $connection = 'oracle'): ?array
     {
-        $stmt = self::connect()->prepare($sql);
+        $stmt = self::connect($connection)->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetch() ?: null;
     }
 
-    public static function insert(string $table, array $data): ?int
+    public static function insert(string $table, array $data, string $connection = 'oracle'): ?int
     {
         if (empty($data)) {
             return null;
@@ -130,10 +155,11 @@ class DB
         $placeholders = ':' . implode(', :', array_keys($data));
 
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
-        $stmt = self::connect()->prepare($sql);
+        $conn = self::connect($connection);
+        $stmt = $conn->prepare($sql);
         $stmt->execute($data);
 
-        return (int) self::connect()->lastInsertId();
+        return (int) $conn->lastInsertId();
     }
 
     public static function update(string $table, string $keyColumn, $keyValue, array $data): bool
@@ -263,7 +289,8 @@ class DB
         int $page = 1,
         int $limit = 10,
         array $conditions = [],
-        array $options = []
+        array $options = [],
+        string $connection = 'oracle'
     ): array {
         self::validateTable($table);
 
@@ -276,12 +303,17 @@ class DB
         $orderClause = self::buildOrderClause($options);
 
         $countSql = "SELECT COUNT(*) as total FROM {$table}{$whereClause}";
-        $countStmt = self::connect()->prepare($countSql);
+        $countConn = self::connect($connection);
+        $countStmt = $countConn->prepare($countSql);
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        $sql = "SELECT * FROM {$table}{$whereClause}{$orderClause} OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
-        $stmt = self::connect()->prepare($sql);
+        if ($connection === 'mysql') {
+            $sql = "SELECT * FROM {$table}{$whereClause}{$orderClause} LIMIT :limit OFFSET :offset";
+        } else {
+            $sql = "SELECT * FROM {$table}{$whereClause}{$orderClause} OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY";
+        }
+        $stmt = self::connect($connection)->prepare($sql);
 
         foreach ($params as $key => $value) {
             $stmt->bindValue(":{$key}", $value);
@@ -319,7 +351,7 @@ class DB
                 $direction = strtoupper($order['direction'] ?? 'ASC');
 
                 if (!$column) {
-                    throw new \Exception('OrderBy inválido: coluna não definida');
+                    throw new Exception('OrderBy inválido: coluna não definida');
                 }
 
                 self::validateIdentifier($column, 'OrderBy');

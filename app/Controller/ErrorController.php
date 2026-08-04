@@ -8,7 +8,8 @@ class ErrorController
     {
         view('error', [
             'errorCode' => $statusCode,
-            'errorMessage' => $message
+            'errorMessage' => $message,
+            'title' => 'Erro HTTP',
         ]);
     }
 }

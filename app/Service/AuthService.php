@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Core\Facades\JWT;
 use App\Service\FuncionarioService;
 use Throwable;
 use App\Core\Logger;
@@ -59,13 +60,83 @@ class AuthService
                     'name' => $entries[0]['cn'][0] ?? $username,
                     'email' => $entries[0]['mail'][0] ?? '',
                     'logged_in_at' => date('Y-m-d H:i:s'),
+                    'chapa' => $func['chapa'] ?? null,
                     'codfuncao' => $func['codfuncao'] ?? null,
+                    'funcao' => $func['funcao'] ?? null,
                 ];
             }
         }
 
         ldap_close($ldapConn);
         return true;
+    }
+
+    public static function loginJwt(string $username, string $password): ?string
+    {
+        $userData = self::authenticate($username, $password);
+
+        if ($userData === null) {
+            return null;
+        }
+
+        return JWT::encode($userData);
+    }
+
+    protected static function authenticate(string $username, string $password): ?array
+    {
+        if (empty($username) || empty($password)) {
+            return null;
+        }
+
+        $ldapUrl = $_ENV['LDAP_URL'] ?? '';
+        $domain = $_ENV['LDAP_DOMAIN'] ?? '';
+        $searchBase = $_ENV['LDAP_SEARCHBASE'] ?? '';
+        $nameAttr = $_ENV['LDAP_NAMEATTR'] ?? 'sAMAccountName';
+
+        if (empty($ldapUrl) || empty($domain)) {
+            return null;
+        }
+
+        $ldapConn = @ldap_connect($ldapUrl);
+        if (!$ldapConn) {
+            return null;
+        }
+
+        ldap_set_option($ldapConn, LDAP_OPT_PROTOCOL_VERSION, 3);
+        ldap_set_option($ldapConn, LDAP_OPT_REFERRALS, 0);
+
+        $userDn = "$username@$domain";
+        if (!@ldap_bind($ldapConn, $userDn, $password)) {
+            ldap_close($ldapConn);
+            return null;
+        }
+
+        $search = @ldap_search($ldapConn, $searchBase, "($nameAttr=$username)", ['cn', 'mail', $nameAttr]);
+        $userData = null;
+
+        if ($search) {
+            $entries = ldap_get_entries($ldapConn, $search);
+            if ($entries['count'] > 0) {
+                try {
+                    $func = FuncionarioService::findByNome($entries[0]['cn'][0]);
+                } catch (Throwable $e) {
+                    Logger::exception($e);
+                    ldap_close($ldapConn);
+                    return null;
+                }
+
+                $userData = [
+                    'sub' => $username,
+                    'name' => $entries[0]['cn'][0] ?? $username,
+                    'email' => $entries[0]['mail'][0] ?? '',
+                    'chapa' => $func['chapa'] ?? null,
+                    'codfuncao' => $func['codfuncao'] ?? null,
+                ];
+            }
+        }
+
+        ldap_close($ldapConn);
+        return $userData;
     }
 
     public static function logout(): void

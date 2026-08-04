@@ -2,6 +2,8 @@
 
 namespace App\Middleware;
 
+use App\Core\Auth\Exceptions\JwtException;
+use App\Core\Facades\JWT;
 use App\Core\Request;
 use App\Core\Response;
 
@@ -20,7 +22,17 @@ class ApiMiddleware
             return false;
         }
 
-        // Validar JWT ou token de acesso aqui.
+        try {
+            $payload = JWT::decode($token);
+            $request->setAttribute('user', $payload);
+        } catch (JwtException $e) {
+            Response::json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 401);
+
+            return false;
+        }
 
         return true;
     }

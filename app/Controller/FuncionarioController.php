@@ -30,7 +30,7 @@ class FuncionarioController extends BaseController
         });
     }
 
-    public function show(Request $request, string $chapa): array
+    public function findByChapa(Request $request, string $chapa): array
     {
         return $this->handle(
             fn() => $this->success(
@@ -70,7 +70,8 @@ class FuncionarioController extends BaseController
                 'filial' => $codfilial,
                 'secao' => $secao,
                 'situacao' => $situacao,
-                'nome' => $nome
+                'nome' => $nome,
+                'title' => 'Funcionarios'
             ]);
         } catch (Throwable $e) {
             Logger::exception($e);
@@ -81,7 +82,7 @@ class FuncionarioController extends BaseController
 
     public function listaView(Request $request): void
     {
-        $permitidos = ['405','0310'];
+        $permitidos = ['405',''];
 
         try {
 
@@ -153,6 +154,7 @@ class FuncionarioController extends BaseController
             exit;
         } catch (Throwable $e) {
             Logger::exception($e);
+
             ErrorHandler::handle(500, $e->getMessage());
         }
     }

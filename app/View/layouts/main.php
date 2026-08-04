@@ -9,14 +9,21 @@
 </head>
 <body>
 
-    <?php require basePath('app/View/partials/sidebar.php'); ?>
-    <?php require basePath('app/View/partials/header.php'); ?>
+    <?php partial('sidebar'); ?>
+    <?php partial('header', ['title' => $title ?? '嵐']); ?>
 
     <main class="container">
         <?= $content ?>
     </main>
 
-    <?php require basePath('app/View/partials/footer.php'); ?>
+    <?php partial('footer'); ?>
     <script src="<?= asset('js/app.js') ?>"></script>
+
+    <?php
+    $alerts = \App\Core\Alerts\AlertManager::get();
+    if (!empty($alerts)):
+        component('alert', ['alerts' => $alerts]);
+    endif;
+    ?>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Model\FilialModel;
+use App\Model\Oracle\FilialModel;
 
 class FilialService
 {

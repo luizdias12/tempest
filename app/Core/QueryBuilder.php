@@ -4,6 +4,7 @@ namespace App\Core;
 
 class QueryBuilder
 {
+    protected string $connection = 'oracle';
     protected string $table = '';
     protected array $selects = ['*'];
     protected array $joins = [];
@@ -17,11 +18,18 @@ class QueryBuilder
 
     // ── Factory ──
 
-    public static function table(string $table): self
+    public static function table(string $table, string $connection = 'oracle'): self
     {
         $instance = new self();
         $instance->table = $table;
+        $instance->connection = $connection;
         return $instance;
+    }
+
+    public function connection(string $name): self
+    {
+        $this->connection = $name;
+        return $this;
     }
 
     // ── SELECT ──
@@ -45,6 +53,20 @@ class QueryBuilder
     public function leftJoin(string $table, string $first, string $operator, string $second): self
     {
         return $this->join($table, $first, $operator, $second, 'LEFT');
+    }
+
+    public function joinOn(string $table, callable $on, string $type = 'INNER'): self
+    {
+        $clause = new JoinClause($table, $type);
+        $on($clause);
+        $this->joins[] = $clause->toSql();
+        $this->params = array_merge($this->params, $clause->getParams());
+        return $this;
+    }
+
+    public function leftJoinOn(string $table, callable $on): self
+    {
+        return $this->joinOn($table, $on, 'LEFT');
     }
 
     // ── WHERE ──
@@ -166,6 +188,18 @@ class QueryBuilder
         return $this->whereRaw($sql, $params, 'OR');
     }
 
+    // ── CONDICIONAL ──
+
+    public function when($condition, callable $callback, ?callable $default = null): self
+    {
+        if ($condition) {
+            $callback($this);
+        } elseif ($default !== null) {
+            $default($this);
+        }
+        return $this;
+    }
+
     // ── ORDER BY / GROUP BY / HAVING ──
 
     public function orderBy(string $column, string $direction = 'ASC'): self
@@ -210,13 +244,13 @@ class QueryBuilder
 
     public function get(): array
     {
-        return DB::select($this->toSql(), $this->params);
+        return DB::select($this->toSql(), $this->params, $this->connection);
     }
 
     public function first(): ?array
     {
         $this->limit(1);
-        return DB::first($this->toSql(), $this->params);
+        return DB::first($this->toSql(), $this->params, $this->connection);
     }
 
     public function firstOrFail(string $message = 'Registro não encontrado.', int $statusCode = 404, array $details = []): array
@@ -234,7 +268,7 @@ class QueryBuilder
         $limit = max(1, $limit);
 
         $countSql = $this->toCountSql();
-        $total = (int) DB::first($countSql, $this->params)['total'];
+        $total = (int) DB::first($countSql, $this->params, $this->connection)['total'];
 
         $this->limit($limit)->offset(($page - 1) * $limit);
 
@@ -278,10 +312,17 @@ class QueryBuilder
         }
 
         if ($this->limitValue !== null) {
-            if ($this->offsetValue !== null) {
-                $sql .= ' OFFSET ' . $this->offsetValue . ' ROWS FETCH NEXT ' . $this->limitValue . ' ROWS ONLY';
+            if ($this->connection === 'mysql') {
+                $sql .= ' LIMIT ' . $this->limitValue;
+                if ($this->offsetValue !== null) {
+                    $sql .= ' OFFSET ' . $this->offsetValue;
+                }
             } else {
-                $sql .= ' FETCH NEXT ' . $this->limitValue . ' ROWS ONLY';
+                if ($this->offsetValue !== null) {
+                    $sql .= ' OFFSET ' . $this->offsetValue . ' ROWS FETCH NEXT ' . $this->limitValue . ' ROWS ONLY';
+                } else {
+                    $sql .= ' FETCH NEXT ' . $this->limitValue . ' ROWS ONLY';
+                }
             }
         }
 

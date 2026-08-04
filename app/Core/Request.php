@@ -7,6 +7,7 @@ class Request
     private array $routeParams = [];
     private ?array $jsonData = null;
     private bool $isApi = false;
+    private array $attributes = [];
 
     public function input(string $key, $default = null)
     {
@@ -91,6 +92,16 @@ class Request
     public function isApi(): bool
     {
         return $this->isApi;
+    }
+
+    public function setAttribute(string $key, mixed $value): void
+    {
+        $this->attributes[$key] = $value;
+    }
+
+    public function getAttribute(string $key, mixed $default = null): mixed
+    {
+        return $this->attributes[$key] ?? $default;
     }
 
     public function bearerToken(): ?string

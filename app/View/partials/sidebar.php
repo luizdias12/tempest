@@ -5,11 +5,18 @@
     </div>
     <nav class="sidebar-nav">
         <a href="/">Início</a>
+        <a href="/helpdesk/index">Helpdesk</a>
         <a href="/funcionarios/index">Funcionários</a>
         <div class="sidebar-dropdown">
             <a href="#" class="sidebar-dropdown-toggle">TI</a>
             <div class="sidebar-dropdown-menu">
                 <a href="/ti/lista">Lista TI</a>
+            </div>
+        </div>
+        <div class="sidebar-dropdown">
+            <a href="#" class="sidebar-dropdown-toggle">Financeiro</a>
+            <div class="sidebar-dropdown-menu">
+                <a href="/financ/holerite">Holerite</a>
             </div>
         </div>
     </nav>
