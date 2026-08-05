@@ -7,8 +7,9 @@ $selected = $selected ?? '';
 $valueKey = $valueKey ?? 'value';
 $labelKey = $labelKey ?? 'label';
 $class = $class ?? '';
+$attrs = $attrs ?? '';
 ?>
-<select id="<?= htmlspecialchars($id) ?>" name="<?= htmlspecialchars($name) ?>"<?= $class !== '' ? ' class="' . htmlspecialchars($class) . '"' : '' ?>>
+<select id="<?= htmlspecialchars($id) ?>" name="<?= htmlspecialchars($name) ?>"<?= $class !== '' ? ' class="' . htmlspecialchars($class) . '"' : '' ?><?= $attrs !== '' ? ' ' . $attrs : '' ?>>
     <?php if ($placeholder !== ''): ?>
         <option value=""><?= htmlspecialchars($placeholder) ?></option>
     <?php endif; ?>

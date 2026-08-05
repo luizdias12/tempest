@@ -116,6 +116,7 @@ class FuncionarioModel extends DB
     ): ?array {
         $query = QueryBuilder::table('pfunc f')
             ->select(
+                'f.codpessoa',
                 'f.chapa',
                 'f.nome',
                 'f.codfilial',
@@ -128,7 +129,7 @@ class FuncionarioModel extends DB
                 'f.datademissao',
                 'f.tipodemissao',
                 'f.codsituacao',
-                'cs.descricao as situacao'
+                "CASE WHEN f.tipodemissao = '5' THEN 'Transferido' ELSE cs.descricao END situacao"
             )
             ->join('pfuncao fu', 'f.codfuncao', '=', 'fu.codigo')
             ->join('psecao s', 'f.codsecao', '=', 's.codigo')

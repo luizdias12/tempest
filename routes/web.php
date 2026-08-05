@@ -35,7 +35,13 @@ $router->get('/ti/lista/download', [FuncionarioController::class, 'listaDownload
 
 //HelpdeskController
 $router->get('/helpdesk/index', [HelpdeskController::class, 'indexView'], ['auth']);
+$router->get('/helpdesk/historico/{id}', [HelpdeskController::class, 'historicoJson'], ['auth']);
 
 /*----------------------------------- ROTAS POST -----------------------------------*/
 
 $router->post('/login', [AuthController::class, 'login']);
+
+//HelpdeskController
+$router->post('/helpdesk/update', [HelpdeskController::class, 'update'], ['auth']);
+$router->post('/helpdesk/novo', [HelpdeskController::class, 'store'], ['auth']);
+$router->post('/helpdesk/interacao', [HelpdeskController::class, 'interacao'], ['auth']);

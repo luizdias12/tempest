@@ -71,7 +71,7 @@ class FuncionarioController extends BaseController
                 'secao' => $secao,
                 'situacao' => $situacao,
                 'nome' => $nome,
-                'title' => 'Funcionarios'
+                'title' => 'Funcionários'
             ]);
         } catch (Throwable $e) {
             Logger::exception($e);

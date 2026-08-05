@@ -46,7 +46,7 @@ $endItem = min($page * $limit, $total);
         ?>
 
         <?php if ($start > 1): ?>
-            <a href="<?= (1) ?>" class="pagination-link">1</a>
+            <a href="<?= $url(1) ?>" class="pagination-link">1</a>
 
             <?php if ($start > 2): ?>
                 <span class="pagination-dots">…</span>

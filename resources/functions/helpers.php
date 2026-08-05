@@ -104,6 +104,16 @@ if (!function_exists('component')) {
     }
 }
 
+if (!function_exists('renderComponent')) {
+    function renderComponent(string $component, array $data = []): string
+    {
+        extract($data, EXTR_SKIP);
+        ob_start();
+        require basePath("app/View/components/{$component}.php");
+        return ob_get_clean();
+    }
+}
+
 if (!function_exists('partial')) {
     function partial(string $partial, array $data = []): void
     {
@@ -143,6 +153,7 @@ if (!function_exists('buildPaginationUrl')) {
 
         // remove page antigo
         unset($currentQuery['page']);
+        unset($currentQuery['open']);
 
         // monta nova query
         $query = array_merge($currentQuery, $extraQuery, [
@@ -170,19 +181,40 @@ if (!function_exists('pagination')) {
 
 if (!function_exists('initcap')) {
     function initcap(string $value): string
-{
-    $words = explode(' ', $value);
-    $lowercase = ['de', 'da', 'do', 'das', 'dos', 'e'];
+    {
+        $words = explode(' ', $value);
+        $lowercase = ['de', 'da', 'do', 'das', 'dos', 'e'];
 
-    foreach ($words as $i => $word) {
-        $lower = mb_strtolower($word);
-        if ($i === 0 || $i === count($words) - 1 || !in_array($lower, $lowercase)) {
-            $words[$i] = mb_convert_case($lower, MB_CASE_TITLE);
-        } else {
-            $words[$i] = $lower;
+        foreach ($words as $i => $word) {
+            $lower = mb_strtolower($word);
+            if ($i === 0 || $i === count($words) - 1 || !in_array($lower, $lowercase)) {
+                $words[$i] = mb_convert_case($lower, MB_CASE_TITLE);
+            } else {
+                $words[$i] = $lower;
+            }
         }
-    }
 
-    return implode(' ', $words);
+        return implode(' ', $words);
+    }
 }
+
+if (!function_exists('removeAccents')) {
+    function removeAccents(string $string): string
+    {
+        $unwantedArray = [
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A',
+            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a',
+            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+            'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+            'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'Ç' => 'C', 'ç' => 'c',
+        ];
+
+        return str_replace(array_keys($unwantedArray), array_values($unwantedArray), $string);
+    }
 }

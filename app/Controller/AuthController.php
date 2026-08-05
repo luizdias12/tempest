@@ -18,7 +18,11 @@ class AuthController extends BaseController
         }
 
         $error = $request->query('error', '');
-        view('auth/login', ['error' => $error]);
+        view('auth/login', [
+            'error' => $error,
+            'title' => 'Login',
+            ]
+        );
     }
 
     public function login(Request $request): void

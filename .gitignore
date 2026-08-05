@@ -1,3 +1,5 @@
 /vendor
 .env
 /logs
+/public/files/helpdesk
+opencode.json

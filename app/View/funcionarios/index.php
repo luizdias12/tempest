@@ -51,20 +51,22 @@ use App\Core\Logger;
     <table>
         <thead>
             <tr>
-                <th>Chapa</th>
-                <th>Nome</th>
-                <th>Filial</th>
-                <th>Seçao</th>
-                <th>Funçao</th>
-                <th>Data Admissao</th>
-                <th>Data Demissao</th>
-                <th>Situaçao</th>
+                <th scope="col">Pessoa</th>
+                <th scope="col">Chapa</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Filial</th>
+                <th scope="col">Seçao</th>
+                <th scope="col">Funçao</th>
+                <th scope="col">Data Admissao</th>
+                <th scope="col">Data Demissao</th>
+                <th scope="col">Situaçao</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($data as $usuario): ?>
 
                 <tr>
+                    <td><?= $usuario['codpessoa'] ?></td>
                     <td><?= $usuario['chapa'] ?></td>
                     <td><?= (initcap($usuario['nome'])) ?></td>
                     <td><?= ($usuario['codfilial'] . " - " . initcap($usuario['filial'])) ?></td>
@@ -107,7 +109,14 @@ use App\Core\Logger;
                                 <span class="status ferias popover-trigger" style="cursor:pointer" data-texto="Férias: <?= htmlspecialchars($periodo, ENT_QUOTES) ?>"><?= $usuario['situacao'] ?></span>
                             </div>
                         <?php else: ?>
-                            <span class="status <?= $usuario['codsituacao'] == 'A' ? 'ativo' : ($usuario['codsituacao'] == 'D' ? 'demitido' : 'afastado') ?>"><?= $usuario['situacao'] ?></span>
+                            <span class="status <?= $usuario['codsituacao'] == 'A' 
+                            ? 'ativo' 
+                            : (($usuario['codsituacao'] == 'D' && $usuario['tipodemissao'] == '5') 
+                            ? 'transferido'
+                            : (($usuario['codsituacao'] == 'D' && $usuario['tipodemissao'] != '5')
+                            ? 'demitido'
+                            : 'afastado')) ?>"><?= $usuario['situacao'] ?>
+                            </span>
                         <?php endif; ?>
                     </td>
                 </tr>

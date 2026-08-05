@@ -162,7 +162,7 @@ class DB
         return (int) $conn->lastInsertId();
     }
 
-    public static function update(string $table, string $keyColumn, $keyValue, array $data): bool
+    public static function update(string $table, string $keyColumn, $keyValue, array $data, string $connection = 'oracle'): bool
     {
         if (empty($data)) {
             return false;
@@ -175,7 +175,7 @@ class DB
         $params['keyfield'] = $keyValue;
 
         $sql = "UPDATE {$table} SET {$setClause} WHERE {$keyColumn} = :keyfield";
-        $stmt = self::connect()->prepare($sql);
+        $stmt = self::connect($connection)->prepare($sql);
         $stmt->execute($params);
 
         return $stmt->rowCount() > 0;

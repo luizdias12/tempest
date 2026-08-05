@@ -52,6 +52,15 @@ class Request
         return $_POST[$key] ?? $default;
     }
 
+    public function file(?string $key = null)
+    {
+        if ($key === null) {
+            return $_FILES;
+        }
+
+        return $_FILES[$key] ?? null;
+    }
+
     public function method(): string
     {
         return $_SERVER['REQUEST_METHOD'] ?? 'GET';

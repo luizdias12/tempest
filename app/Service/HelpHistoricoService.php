@@ -20,4 +20,24 @@ class HelpHistoricoService
     {
         return HelpHistoricoModel::visualizacoesPendentes($helpIds);
     }
+
+    public static function contagemHistoricos(array $helpIds): array
+    {
+        return HelpHistoricoModel::contagemHistoricos($helpIds);
+    }
+
+    public static function registrarInteracao(int $helpId, string $historico, string $idUsu, string $status, string $fileStr = ''): ?int
+    {
+        return HelpHistoricoModel::registrarInteracao($helpId, $historico, $idUsu, $status, $fileStr);
+    }
+
+    public static function atualizarFileStr(int $idHist, string $fileStr): bool
+    {
+        return HelpHistoricoModel::atualizarFileStr($idHist, $fileStr);
+    }
+
+    public static function anexosAbertura(array $helpIds): array
+    {
+        return HelpHistoricoModel::anexosAbertura($helpIds);
+    }
 }

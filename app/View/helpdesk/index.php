@@ -4,8 +4,8 @@ use App\Service\GenericService;
 use App\Service\HelpHistoricoService;
 ?>
 
-<div class="header">
-    <h1>Lista de Chamados</h1>
+<div class="header-bar">
+    <a href="#" class="btn-novo" data-modal-open="modal-novo-chamado"><i data-lucide="plus"></i> Novo chamado</a>
 </div>
 
 <div class="filter-bar">
@@ -38,10 +38,14 @@ use App\Service\HelpHistoricoService;
                 'selected' => $local,
             ]); ?>
         <?php endif; ?>
+        <label for="meus" class="filter-toggle">
+            <input type="checkbox" id="meus" name="meus" value="1" <?= !empty($meus) ? 'checked' : '' ?>>
+            Atribuídos a mim
+        </label>
         <button type="submit">Filtrar</button>
 
         <?php
-        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local)): ?>
+        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local) || !empty($meus)): ?>
             <a href="?" class="btn-clear">Limpar filtro</a>
         <?php endif; ?>
     </form>
@@ -79,7 +83,10 @@ use App\Service\HelpHistoricoService;
                     data-dt-abertura="<?= htmlspecialchars(!empty($chamado['dt_abertura']) ? date('d-m-Y H:i:s', strtotime($chamado['dt_abertura'])) : '-') ?>"
                     data-dt-solucao="<?= htmlspecialchars(!empty($chamado['dt_solucao']) ? date('d-m-Y H:i:s', strtotime($chamado['dt_solucao'])) : '-') ?>"
                     data-sla="<?= htmlspecialchars($chamado['sla'] ?? '-') ?>"
-                    data-status="<?= htmlspecialchars($chamado['status_desc'] ?? '-') ?>"
+                    data-status="<?= htmlspecialchars($chamado['status'] ?? '') ?>"
+                    data-idgrupo="<?= htmlspecialchars($chamado['idgrupo'] ?? '') ?>"
+                    data-idsubgrupo="<?= htmlspecialchars($chamado['idsubgrupo'] ?? '') ?>"
+                    data-id-resp="<?= htmlspecialchars($chamado['id_resp'] ?? '') ?>"
                     data-grupo="<?= htmlspecialchars($chamado['grupo'] ?? '-') ?>"
                     data-subgrupo="<?= htmlspecialchars($chamado['subgrupo'] ?? '-') ?>"
                     data-cab-problema="<?= htmlspecialchars($chamado['cab_problema'] ?? '-') ?>"
@@ -89,10 +96,15 @@ use App\Service\HelpHistoricoService;
                     data-grupo-subgrupo="<?= htmlspecialchars($chamado['grupo'] . ' > ' . $chamado['subgrupo']) ?>"
                     data-ramal="<?= htmlspecialchars($chamado['ramal'] ?? '-') ?>"
                     data-email="<?= htmlspecialchars($chamado['email'] ?? '-') ?>"
-                    data-cpf-ab="<?= htmlspecialchars($chamado['cpf_ab'] ?? '-') ?>"
+                    data-cpf-ab="<?= htmlspecialchars($chamado['cpf_ab'] ?? '') ?>"
+                    data-file-abertura="<?= htmlspecialchars($anexosAbertura[$chamado['id']] ?? '') ?>"
                 >
 
-                    <td><span class="badge badge-new"><?= $new ?? '' ?></span></td>
+                    <td><span class="mini-badge badge-new"><?= $new ?></span>
+                        <?php if (!empty($contagemHistoricos[$chamado['id']])): ?>
+                            <span class="mini-badge badge-historico"><?= $contagemHistoricos[$chamado['id']] ?></span>
+                        <?php endif; ?>
+                    </td>
                     <td><a href="#" class="chamado-id" data-modal-open="modal-chamado"><?= $chamado['id'] ?></a></td>
                     <td></td>
                     <td><?= (initcap($chamado['nome'])) ?></td>
@@ -108,26 +120,46 @@ use App\Service\HelpHistoricoService;
             <?php endforeach; ?>
         </tbody>
     </table>
-    <?= pagination($meta, null, array_filter(['id' => $id ?? '', 'emitente' => $emitente ?? '', 'status' => $status ?? '', 'local' => $local ?? ''])) ?>
+    <?= pagination($meta, null, array_filter(['id' => $id ?? '', 'emitente' => $emitente ?? '', 'status' => $status ?? '', 'local' => $local ?? '', 'meus' => $meus ?? ''])) ?>
 </div>
 
 <?php 
-   $content = 
-   '    <span hidden data-field="cpf-ab"></span>
+   $filtrosUrl = http_build_query(array_filter([
+        'page' => $meta['page'] ?? '',
+        'id' => $id ?? '',
+        'emitente' => $emitente ?? '',
+        'status' => $status ?? '',
+        'local' => $local ?? '',
+        'meus' => $meus ?? '',
+   ], fn($v) => $v !== ''));
+
+   ob_start();
+?>
+        <span hidden data-field="cpf-ab"></span>
         <div class="chamado-details">
-            <h2 style="border: 1px solid #ccc; padding: 0.5rem; border-radius: 0.25rem;">Tópico</h2>
+            <div class="chamado-top">
+                <h3>Tópico</h3>
+            </div>
             <p><span data-field="cab-problema"></span></p>
-            <h4 style="border: 1px solid #ccc; padding: 0.5rem; border-radius: 0.25rem;">Descrição</h4>
-            <p><pre><span data-field="desc-problema"></span></pre></p>
+            <div class="chamado-top">
+                <h4>Descrição</h4>
+            </div>
+            <p><span data-field="desc-problema"></span></p>
+            <p hidden data-file-abertura-wrap>
+                <strong>Anexo da abertura:</strong>
+                <a href="#" class="anexo-link" data-file-abertura-link download><i data-lucide="paperclip"></i> baixar</a>
+            </p>
             <table style="margin: 1rem 0;">
                 <thead>
-                    <th scope="col">Data Abertura</th>
-                    <th scope="col">Chapa</th>
-                    <th scope="col">Nome</th>
-                    <th scope="col">Função</th>
-                    <th scope="col">Ramal</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Local</th>
+                    <tr>
+                        <th scope="col">Data Abertura</th>
+                        <th scope="col">Chapa</th>
+                        <th scope="col">Nome</th>
+                        <th scope="col">Função</th>
+                        <th scope="col">Ramal</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Local</th>
+                    </tr>
                 </thead>
                 <tbody>
                     <tr>
@@ -141,12 +173,80 @@ use App\Service\HelpHistoricoService;
                     </tr>
                 </tbody>
             </table>
-            <p><strong>SLA:</strong> <span data-field="sla"></span></p>
-            <p><strong>Status:</strong> <span data-field="status"></span></p>
-            <p><strong>Responsável:</strong> <span data-field="responsavel"></span></p>
+            <form method="POST" action="/helpdesk/update<?= $filtrosUrl !== '' ? '?' . $filtrosUrl : '' ?>" class="chamado-form">
+                <input type="hidden" name="id" data-field="id">
+                <div class="chamado-form-row">
+                    <label>Status:
+                        <?php component('select', [
+                            'name' => 'status',
+                            'placeholder' => 'Selecione o status',
+                            'options' => StatusService::all(),
+                            'valueKey' => 'status',
+                            'labelKey' => 'descricao',
+                            'attrs' => 'data-field="status"',
+                        ]); ?>
+                    </label>
+                    <label>Grupo:
+                        <select name="idgrupo" data-field="idgrupo">
+                            <option value="">Selecione o grupo</option>
+                            <?php foreach ($grupos as $grupo): ?>
+                                <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label>Sub-Grupo:
+                        <select name="idsubgrupo" data-field="idsubgrupo">
+                            <option value="">Selecione o sub-grupo</option>
+                            <?php foreach ($subgrupos as $sg): ?>
+                                <option value="<?= htmlspecialchars($sg['id']) ?>" data-idgrupo="<?= htmlspecialchars($sg['idgrupo']) ?>"><?= htmlspecialchars($sg['descricao']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label>Responsável:
+                        <?php component('select', [
+                            'name' => 'id_resp',
+                            'placeholder' => 'Sem responsável',
+                            'options' => $responsaveis,
+                            'valueKey' => 'cpf',
+                            'labelKey' => 'nome',
+                            'attrs' => 'data-field="id-resp"',
+                        ]); ?>
+                    </label>
+                    <button type="submit" class="btn">Salvar alterações</button>
+                </div>
+            </form>
+
+            <div class="chamado-top">
+                <h4>Histórico</h4>
+            </div>
+            <form method="POST" action="/helpdesk/interacao<?= $filtrosUrl !== '' ? '?' . $filtrosUrl : '' ?>" class="chamado-form" enctype="multipart/form-data">
+                <input type="hidden" name="id" data-field="id">
+                <textarea name="mensagem" rows="3" placeholder="Escreva uma interação no chamado..." required></textarea>
+                <label>Anexo (máx. 2 MB):
+                    <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
+                </label>
+                <button type="submit" class="btn">Registrar histórico</button>
+            </form>
+            <div class="historico-list">
+                <?php if (empty($hist)): ?>
+                    <p class="historico-empty">Nenhum histórico registrado.</p>
+                <?php else: ?>
+                    <?php foreach ($hist as $item): ?>
+                        <div class="historico-item <?= !empty($openCpf) && !empty($item['id_usu']) && $item['id_usu'] === $openCpf ? 'historico-item--own' : 'historico-item--other' ?>">
+                            <div class="historico-meta">
+                                <strong><?= htmlspecialchars(initcap($item['nome'] ?? 'Sistema')) ?></strong>
+                                <span><?= date('d-m-Y H:i', strtotime($item['data_hist'])) ?></span>
+                            </div>
+                            <p><?= htmlspecialchars($item['historico']) ?></p>
+                            <?php if (!empty($item['file_str'])): ?>
+                                <p><a href="/<?= htmlspecialchars($item['file_str']) ?>" class="anexo-link" download><i data-lucide="paperclip"></i> Anexo</a></p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
-    ';
-?>
+<?php $content = ob_get_clean(); ?>
 
 <?php component('modal', [
     'id' => 'modal-chamado',
@@ -154,3 +254,278 @@ use App\Service\HelpHistoricoService;
     'title' => 'Chamado - Nº <span data-field="id"></span> | <span data-field="grupo-subgrupo"></span>',
     'content' => $content,
 ]); ?>
+
+<?php
+ob_start();
+?>
+    <form method="POST" action="/helpdesk/novo" class="chamado-form" enctype="multipart/form-data">
+        <div class="chamado-form-row">
+            <label>Grupo:
+                <select name="idgrupo" id="novo-idgrupo" required>
+                    <option value="">Selecione o grupo</option>
+                    <?php foreach ($grupos as $grupo): ?>
+                        <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Sub-Grupo:
+                <select name="idsubgrupo" id="novo-idsubgrupo" required>
+                    <option value="">Selecione o sub-grupo</option>
+                    <?php foreach ($subgrupos as $sg): ?>
+                        <option value="<?= htmlspecialchars($sg['id']) ?>" data-idgrupo="<?= htmlspecialchars($sg['idgrupo']) ?>"><?= htmlspecialchars($sg['descricao']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+        </div>
+        <div class="chamado-form-row">
+            <label>Tópico:
+                <input type="text" name="cab_problema" maxlength="100" required placeholder="Resumo do problema">
+            </label>
+        </div>
+        <label>Descrição:
+            <textarea name="desc_problema" rows="4" maxlength="3000" required placeholder="Descreva o problema..."></textarea>
+        </label>
+        <label>Anexo (opcional, máx. 2 MB):
+            <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
+        </label>
+        <button type="submit" class="btn">Abrir chamado</button>
+    </form>
+<?php $content = ob_get_clean(); ?>
+
+<?php component('modal', [
+    'id' => 'modal-novo-chamado',
+    'title' => 'Novo chamado',
+    'content' => $content,
+]); ?>
+
+<?php
+ob_start();
+?>
+    <div class="anexo-preview" data-anexo-preview>
+        <p class="anexo-preview-empty">Selecione um anexo para visualizar.</p>
+    </div>
+<?php $content = ob_get_clean(); ?>
+
+<?php component('modal', [
+    'id' => 'modal-anexo',
+    'size' => 'large',
+    'title' => 'Anexo',
+    'content' => $content,
+    'footer' => '<a href="#" class="btn-download" id="anexo-download-btn" download><i data-lucide="download"></i> Baixar arquivo</a>',
+]); ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var openId = <?= json_encode((int) ($open ?? 0)) ?>;
+    if (openId) {
+        var row = document.querySelector('tr[data-id="' + openId + '"]');
+        if (row) {
+            var trigger = row.querySelector('[data-modal-open]');
+            if (trigger) {
+                setTimeout(function() { trigger.click(); }, 0);
+            }
+        }
+    }
+
+    var pares = [];
+    function vincularFiltroSubgrupos(modalId) {
+        var modal = document.getElementById(modalId);
+        if (!modal) return;
+        var grupoSel = modal.querySelector('select[name="idgrupo"]');
+        var subSel = modal.querySelector('select[name="idsubgrupo"]');
+        if (!grupoSel || !subSel) return;
+
+        function filtrarSubgrupos() {
+            var grupo = grupoSel.value;
+            var atual = subSel.value;
+            var options = subSel.querySelectorAll('option[data-idgrupo]');
+            var valido = false;
+            for (var i = 0; i < options.length; i++) {
+                if (options[i].getAttribute('data-idgrupo') === grupo) {
+                    options[i].style.display = '';
+                    if (options[i].value === atual) valido = true;
+                } else {
+                    options[i].style.display = 'none';
+                }
+            }
+            if (!valido) subSel.value = '';
+        }
+
+        grupoSel.addEventListener('change', filtrarSubgrupos);
+        pares.push([modal, filtrarSubgrupos]);
+    }
+
+    vincularFiltroSubgrupos('modal-chamado');
+    vincularFiltroSubgrupos('modal-novo-chamado');
+
+    if (pares.length) {
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('[data-modal-open]')) {
+                setTimeout(function() {
+                    for (var i = 0; i < pares.length; i++) {
+                        if (pares[i][0].style.display === 'flex') {
+                            pares[i][1]();
+                        }
+                    }
+                }, 0);
+            }
+        });
+    }
+});
+
+function mostrarMensagemHistorico(list, msg) {
+    list.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'historico-empty';
+    p.textContent = msg;
+    list.appendChild(p);
+}
+
+function renderHistorico(list, items, cpfAb) {
+    list.innerHTML = '';
+    if (!items || items.length === 0) {
+        mostrarMensagemHistorico(list, 'Nenhum histórico registrado.');
+        return;
+    }
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var div = document.createElement('div');
+        var ehUsuario = !!cpfAb && !!item.id_usu && item.id_usu === cpfAb;
+        div.className = ehUsuario ? 'historico-item historico-item--own' : 'historico-item historico-item--other';
+
+        var meta = document.createElement('div');
+        meta.className = 'historico-meta';
+
+        var strong = document.createElement('strong');
+        strong.textContent = item.nome || 'Sistema';
+        meta.appendChild(strong);
+
+        var span = document.createElement('span');
+        span.textContent = item.data_hist || '';
+        meta.appendChild(span);
+
+        div.appendChild(meta);
+
+        var p = document.createElement('p');
+        p.textContent = item.historico || '';
+        div.appendChild(p);
+
+        if (item.file_str) {
+            var pa = document.createElement('p');
+            var a = document.createElement('a');
+            a.href = '/' + item.file_str;
+            a.className = 'anexo-link';
+            a.textContent = ' Anexo';
+            a.setAttribute('download', '');
+            var icone = document.createElement('i');
+            icone.setAttribute('data-lucide', 'paperclip');
+            a.prepend(icone);
+            pa.appendChild(a);
+            div.appendChild(pa);
+        }
+
+        list.appendChild(div);
+    }
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+document.addEventListener('click', function(e) {
+    var link = e.target.closest('.anexo-link');
+    if (!link) return;
+
+    var href = link.getAttribute('href') || '';
+    if (!href) return;
+
+    var ext = (href.split('.').pop() || '').toLowerCase();
+    var imagens = ['jpg', 'jpeg', 'png', 'bmp'];
+    var pdf = ext === 'pdf';
+
+    if (imagens.indexOf(ext) === -1 && !pdf) {
+        e.preventDefault();
+        var a = document.createElement('a');
+        a.href = href;
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+    }
+
+    e.preventDefault();
+
+    var modal = document.getElementById('modal-anexo');
+    if (!modal) return;
+
+    var nome = href.split('/').pop();
+    var titulo = modal.querySelector('.modal-header h2');
+    if (titulo) titulo.textContent = nome;
+
+    var box = modal.querySelector('[data-anexo-preview]');
+    if (pdf) {
+        box.innerHTML = '<iframe class="anexo-preview-pdf" src="' + href + '"></iframe>';
+    } else {
+        box.innerHTML = '<img class="anexo-preview-img" src="' + href + '" alt="' + nome + '">';
+    }
+
+    var downloadBtn = document.getElementById('anexo-download-btn');
+    if (downloadBtn) downloadBtn.href = href;
+
+    modal.style.display = 'flex';
+});
+
+document.addEventListener('click', function(e) {
+    var trigger = e.target.closest('[data-modal-open]');
+    if (!trigger) return;
+    var row = trigger.closest('[data-row]');
+    if (!row) return;
+    var id = row.getAttribute('data-id');
+    if (!id) return;
+    var cpfAb = row.getAttribute('data-cpf-ab');
+    var modal = document.getElementById(trigger.getAttribute('data-modal-open'));
+    if (!modal) return;
+
+    var anexoWrap = modal.querySelector('[data-file-abertura-wrap]');
+    if (anexoWrap) {
+        var anexoFile = row.getAttribute('data-file-abertura');
+        if (anexoFile) {
+            anexoWrap.hidden = false;
+            var anexoLink = modal.querySelector('[data-file-abertura-link]');
+            if (anexoLink) anexoLink.href = '/' + anexoFile;
+        } else {
+            anexoWrap.hidden = true;
+        }
+    }
+
+    var list = modal.querySelector('.historico-list');
+    if (!list) return;
+
+    mostrarMensagemHistorico(list, 'Carregando histórico...');
+
+    fetch('/helpdesk/historico/' + encodeURIComponent(id))
+        .then(function(res) {
+            return res.json();
+        })
+        .then(function(data) {
+            if (data.error) {
+                mostrarMensagemHistorico(list, data.error);
+                return;
+            }
+            renderHistorico(list, data.hist, cpfAb);
+        })
+        .catch(function() {
+            mostrarMensagemHistorico(list, 'Erro ao carregar histórico.');
+        });
+});
+
+setInterval(function() {
+    if (document.hidden) return;
+    var modaisAbertos = document.querySelectorAll('.modal');
+    for (var i = 0; i < modaisAbertos.length; i++) {
+        if (modaisAbertos[i].style.display === 'flex') return;
+    }
+    window.location.reload();
+}, 30000);
+</script>

@@ -28,6 +28,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Link ativo do sidebar
+    var currentPath = window.location.pathname;
+    document.querySelectorAll('.sidebar-nav a').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href || href === '#') return;
+
+        if (href === '/') {
+            if (currentPath === '/') link.classList.add('active');
+            return;
+        }
+
+        if (currentPath.indexOf(href) === 0) {
+            link.classList.add('active');
+            var dropdown = link.closest('.sidebar-dropdown');
+            if (dropdown) dropdown.classList.add('open');
+        }
+    });
+
     // Toast
     document.querySelectorAll('.toast').forEach(function(toast) {
         var closeBtn = toast.querySelector('.toast-close');
@@ -70,8 +88,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (var i = 0; i < source.attributes.length; i++) {
                     var attr = source.attributes[i];
                     if (attr.name.indexOf('data-') !== 0 || attr.name === 'data-row') continue;
-                    var field = modal.querySelector('[data-field="' + attr.name.slice(5) + '"]');
-                    if (field) field.textContent = attr.value;
+                    var fields = modal.querySelectorAll('[data-field="' + attr.name.slice(5) + '"]');
+                    for (var j = 0; j < fields.length; j++) {
+                        var field = fields[j];
+                        if (field.tagName === 'SELECT' || field.tagName === 'INPUT') {
+                            field.value = attr.value;
+                            if (field.tagName === 'SELECT') field.dispatchEvent(new Event('change'));
+                        } else {
+                            field.textContent = attr.value;
+                        }
+                    }
                 }
             }
             modal.style.display = 'flex';
@@ -95,19 +121,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (closeBtn) {
             var modal = closeBtn.closest('.modal');
             if (modal) modal.style.display = 'none';
+            var url = new URL(window.location.href);
+            if (url.searchParams.has('open')) {
+                url.searchParams.delete('open');
+                history.replaceState(null, '', url.toString());
+            }
             return;
-        }
-
-        if (e.target.classList.contains('modal')) {
-            e.target.style.display = 'none';
-        }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal').forEach(function(m) {
-                if (m.style.display === 'flex') m.style.display = 'none';
-            });
         }
     });
 });

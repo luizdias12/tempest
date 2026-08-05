@@ -1,4 +1,4 @@
-<div id="<?= htmlspecialchars($id ?? 'modal') ?>" class="modal">
+<div id="<?= htmlspecialchars($id ?? 'modal') ?>" class="modal <?= htmlspecialchars($size ?? '') ?>">
     <div class="modal-content <?= htmlspecialchars($size ?? '') ?>">
         <div class="modal-header">
             <h2><?= $title ?? '' ?></h2>
