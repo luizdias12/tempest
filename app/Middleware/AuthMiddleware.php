@@ -2,12 +2,11 @@
 
 namespace App\Middleware;
 
-use App\Core\Request;
 use App\Service\AuthService;
 
 class AuthMiddleware
 {
-    public function handle(Request $request): bool
+    public function handle(): bool
     {
         if (!AuthService::isAuthenticated()) {
             redirect('/login');

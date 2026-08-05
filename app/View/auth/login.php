@@ -10,7 +10,7 @@
             <label for="password">Senha</label>
             <input type="password" id="password" name="password" placeholder="Sua senha" required>
 
-            <button type="submit"><i data-lucide="log-in"></i> Entrar</button>
+            <button type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar</button>
         </form>
     </div>
 </div>

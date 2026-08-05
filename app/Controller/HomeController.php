@@ -11,7 +11,7 @@ class HomeController
         $user = AuthService::getUserName();
         view('home', [
             'title' => 'Home',
-            'data' => 'Bem Vindo! ' . '<br>' . htmlspecialchars(initcap($user) ?? 'Visitante'),
+            'data' => 'Olá, ' . htmlspecialchars(initcap($user ?? 'Visitante')),
         ]);
     }
 }

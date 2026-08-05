@@ -5,7 +5,7 @@ use App\Service\HelpHistoricoService;
 ?>
 
 <div class="header-bar">
-    <a href="#" class="btn-novo" data-modal-open="modal-novo-chamado"><i data-lucide="plus"></i> Novo chamado</a>
+    <a href="#" class="btn-novo" data-modal-open="modal-novo-chamado"><i class="fa-solid fa-plus"></i> Novo chamado</a>
 </div>
 
 <div class="filter-bar">
@@ -147,7 +147,7 @@ use App\Service\HelpHistoricoService;
             <p><span data-field="desc-problema"></span></p>
             <p hidden data-file-abertura-wrap>
                 <strong>Anexo da abertura:</strong>
-                <a href="#" class="anexo-link" data-file-abertura-link download><i data-lucide="paperclip"></i> baixar</a>
+                <a href="#" class="anexo-link" data-file-abertura-link download><i class="fa-solid fa-paperclip"></i> baixar</a>
             </p>
             <table style="margin: 1rem 0;">
                 <thead>
@@ -239,7 +239,7 @@ use App\Service\HelpHistoricoService;
                             </div>
                             <p><?= htmlspecialchars($item['historico']) ?></p>
                             <?php if (!empty($item['file_str'])): ?>
-                                <p><a href="/<?= htmlspecialchars($item['file_str']) ?>" class="anexo-link" download><i data-lucide="paperclip"></i> Anexo</a></p>
+                                <p><a href="/<?= htmlspecialchars($item['file_str']) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> Anexo</a></p>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -311,7 +311,7 @@ ob_start();
     'size' => 'large',
     'title' => 'Anexo',
     'content' => $content,
-    'footer' => '<a href="#" class="btn-download" id="anexo-download-btn" download><i data-lucide="download"></i> Baixar arquivo</a>',
+    'footer' => '<a href="#" class="btn-download" id="anexo-download-btn" download><i class="fa-solid fa-download"></i> Baixar arquivo</a>',
 ]); ?>
 
 <script>
@@ -418,17 +418,13 @@ function renderHistorico(list, items, cpfAb) {
             a.textContent = ' Anexo';
             a.setAttribute('download', '');
             var icone = document.createElement('i');
-            icone.setAttribute('data-lucide', 'paperclip');
+            icone.className = 'fa-solid fa-paperclip';
             a.prepend(icone);
             pa.appendChild(a);
             div.appendChild(pa);
         }
 
         list.appendChild(div);
-    }
-
-    if (window.lucide) {
-        lucide.createIcons();
     }
 }
 

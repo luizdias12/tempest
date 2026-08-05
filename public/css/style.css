@@ -561,10 +561,9 @@ td.valor {
     transition: background 0.2s ease;
 }
 
-.anexo-link svg,
-.btn-download svg {
-    width: 14px;
-    height: 14px;
+.anexo-link .fa-solid,
+.btn-download .fa-solid {
+    font-size: 14px;
 }
 
 .anexo-link:hover {
@@ -832,9 +831,8 @@ td.valor {
     white-space: nowrap;
 }
 
-.btn-novo svg {
-    width: 16px;
-    height: 16px;
+.btn-novo .fa-solid {
+    font-size: 16px;
 }
 
 .btn-novo:hover {
@@ -1040,9 +1038,8 @@ td.valor {
     color: #f1f1f1;
 }
 
-.login-form button svg {
-    width: 15px;
-    height: 15px;
+.login-form button .fa-solid {
+    font-size: 15px;
     margin-right: 6px;
 }
 
@@ -1143,9 +1140,8 @@ td.valor {
     align-items: center;
 }
 
-.sidebar-toggle svg {
-    width: 22px;
-    height: 22px;
+.sidebar-toggle .fa-solid {
+    font-size: 22px;
 }
 
 .sidebar-toggle:hover {
@@ -1171,9 +1167,8 @@ td.valor {
     border-left: 3px solid transparent;
 }
 
-.sidebar-nav a svg {
-    width: 16px;
-    height: 16px;
+.sidebar-nav a .fa-solid {
+    font-size: 16px;
     flex-shrink: 0;
 }
 
@@ -1204,8 +1199,7 @@ td.valor {
 }
 
 .sidebar-dropdown-chevron {
-    width: 14px;
-    height: 14px;
+    font-size: 14px;
     flex-shrink: 0;
     transition: transform 0.2s ease;
 }
@@ -1229,9 +1223,8 @@ td.valor {
     gap: 8px;
 }
 
-.sidebar-dropdown-menu a svg {
-    width: 14px;
-    height: 14px;
+.sidebar-dropdown-menu a .fa-solid {
+    font-size: 14px;
 }
 
 .sidebar-footer {
@@ -1242,23 +1235,64 @@ td.valor {
     gap: 8px;
 }
 
+.sidebar-user {
+    padding: 16px 20px 8px;
+}
+
+.sidebar-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(131, 230, 230, 0.08);
+    border: 1px solid rgba(131, 230, 230, 0.2);
+    border-radius: 12px;
+    min-width: 0;
+}
+
+.sidebar-user-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(131, 230, 230, 0.15);
+    border-radius: 50%;
+    border: 1px solid rgba(131, 230, 230, 0.35);
+    box-shadow: 0 0 12px rgba(131, 230, 230, 0.25);
+    color: #83e6e6;
+}
+
+.sidebar-user-avatar .fa-solid {
+    font-size: 20px;
+}
+
+.sidebar-user-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .sidebar-user-name {
     color: #e2e8f0;
     font-size: 14px;
     font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.sidebar-user-name svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
+.sidebar-user-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #83e6e6;
+}
+
+.sidebar-user-badge .fa-solid {
+    font-size: 7px;
 }
 
 .sidebar-login,
@@ -1277,10 +1311,9 @@ td.valor {
     transition: background 0.2s ease;
 }
 
-.sidebar-login svg,
-.sidebar-logout svg {
-    width: 14px;
-    height: 14px;
+.sidebar-login .fa-solid,
+.sidebar-logout .fa-solid {
+    font-size: 14px;
 }
 
 .sidebar-login:hover,
@@ -1302,6 +1335,13 @@ td.valor {
 
 .sidebar-overlay.show {
     display: block;
+}
+
+.sidebar-area-protegida {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 /* toggle button na header */

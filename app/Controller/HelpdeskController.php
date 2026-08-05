@@ -32,8 +32,8 @@ class HelpdeskController extends BaseController
 
             $idResp = !empty($meus) ? $this->cpfUsuarioAtual() : null;
 
-            $isSuporte = AuthService::hasPermission('ti');
-            //$isSuporte = false; // Temporarily disable support check for testing purposes
+            // $isSuporte = AuthService::hasPermission('ti');
+            $isSuporte = false; // Temporarily disable support check for testing purposes
             $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $isSuporte);
 
             $grupos = HelpdeskService::listarGrupos();

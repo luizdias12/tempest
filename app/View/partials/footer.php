@@ -1,3 +1,3 @@
 <footer class="site-footer">
-    <p>&copy; <?= date('Y') ?></p>  
+    <p><i class="fa-regular fa-copyright"></i> <?= date('Y') ?></p>  
 </footer>

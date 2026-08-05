@@ -6,7 +6,7 @@
     <title><?= $title ?? '嵐' ?></title>
 
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
-    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
 
@@ -19,11 +19,6 @@
 
     <?php partial('footer'); ?>
     <script src="<?= asset('js/app.js') ?>"></script>
-    <script>
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    </script>
 
     <?php
     use App\Core\Alerts\AlertManager;
