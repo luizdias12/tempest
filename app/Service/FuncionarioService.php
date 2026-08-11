@@ -29,7 +29,7 @@ class FuncionarioService
         return FuncionarioModel::ativos($page, $limit, $codfilial, $secao, $situacao, $nome);
     }
 
-    public static function findByChapa(string $chapa): array
+    public static function findByChapa(string $chapa): array|null
     {
         $result = FuncionarioModel::findByChapa($chapa);
 
@@ -40,9 +40,14 @@ class FuncionarioService
         return $result;
     }
 
-    public static function findByNome(string $nome): array
+    public static function findByNome(string $nome): array|null
     {
         return FuncionarioModel::findByNome($nome);
+    }
+
+    public static function findByCpfDados(string $cpf): array|null
+    {
+        return FuncionarioModel::findByCpfDados($cpf);
     }
 
     public static function dataFerias(string $chapa): ?array

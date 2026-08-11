@@ -21,6 +21,11 @@ class HelpHistoricoService
         return HelpHistoricoModel::visualizacoesPendentes($helpIds);
     }
 
+    public static function chamadosAtualizados(array $helpIds): array
+    {
+        return HelpHistoricoModel::chamadosAtualizados($helpIds);
+    }
+
     public static function contagemHistoricos(array $helpIds): array
     {
         return HelpHistoricoModel::contagemHistoricos($helpIds);
@@ -36,8 +41,18 @@ class HelpHistoricoService
         return HelpHistoricoModel::atualizarFileStr($idHist, $fileStr);
     }
 
+    public static function marcarVisualizado(int $helpId, string $idUsu): bool
+    {
+        return HelpHistoricoModel::marcarVisualizado($helpId, $idUsu);
+    }
+
     public static function anexosAbertura(array $helpIds): array
     {
         return HelpHistoricoModel::anexosAbertura($helpIds);
+    }
+
+    public static function possuiAnexo(array $helpIds): array
+    {
+        return HelpHistoricoModel::possuiAnexo($helpIds);
     }
 }

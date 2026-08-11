@@ -55,7 +55,7 @@ use App\Service\HelpHistoricoService;
     <table>
         <thead>
             <tr>
-                <th></th>
+                <th><i class="fa-solid fa-clipboard-list"></i></th>
                 <th>Nº</th>
                 <th></th>
                 <th>Usuário</th>
@@ -70,9 +70,17 @@ use App\Service\HelpHistoricoService;
             </tr>
         </thead>
         <tbody>
-            <?php $pendentes = HelpHistoricoService::visualizacoesPendentes(array_column($chamados, 'id')); ?>
+            <?php 
+                $pendentes = HelpHistoricoService::visualizacoesPendentes(array_column($chamados, 'id'));
+                $atualizados = HelpHistoricoService::chamadosAtualizados(array_column($chamados, 'id'));
+                $anexosAbertura = HelpHistoricoService::anexosAbertura(array_column($chamados, 'id'));
+                $possuiAnexo = HelpHistoricoService::possuiAnexo(array_column($chamados, 'id'));
+                // dd($possuiAnexo);
+            ?>
             <?php foreach ($chamados as $chamado): 
                $new = in_array($chamado['id'], $pendentes, true) ? 'Novo' : '';
+               $updated = in_array($chamado['id'], $atualizados, true) ? 'Atualizado' : '';
+               $file = in_array($chamado['id'], $possuiAnexo, true) ? '<i class="fa-solid fa-paperclip"></i>' : '';
             ?>
 
                 <tr data-row
@@ -80,9 +88,10 @@ use App\Service\HelpHistoricoService;
                     data-nome="<?= htmlspecialchars($chamado['nome']) ?>"
                     data-funcao="<?= htmlspecialchars($chamado['funcao']) ?>"
                     data-chapa="<?= htmlspecialchars($chamado['chapa']) ?>"
-                    data-dt-abertura="<?= htmlspecialchars(!empty($chamado['dt_abertura']) ? date('d-m-Y H:i:s', strtotime($chamado['dt_abertura'])) : '-') ?>"
-                    data-dt-solucao="<?= htmlspecialchars(!empty($chamado['dt_solucao']) ? date('d-m-Y H:i:s', strtotime($chamado['dt_solucao'])) : '-') ?>"
+                    data-dt-abertura="<?= htmlspecialchars(!empty($chamado['dt_abertura']) ? date('d-m-Y H:i', strtotime($chamado['dt_abertura'])) : '-') ?>"
+                    data-dt-solucao="<?= htmlspecialchars(!empty($chamado['dt_solucao']) ? date('d-m-Y H:i', strtotime($chamado['dt_solucao'])) : '-') ?>"
                     data-sla="<?= htmlspecialchars($chamado['sla'] ?? '-') ?>"
+                    data-motivo-canc="<?= htmlspecialchars($chamado['codmotivo'] ?? '') ?>"
                     data-status="<?= htmlspecialchars($chamado['status'] ?? '') ?>"
                     data-idgrupo="<?= htmlspecialchars($chamado['idgrupo'] ?? '') ?>"
                     data-idsubgrupo="<?= htmlspecialchars($chamado['idsubgrupo'] ?? '') ?>"
@@ -94,23 +103,32 @@ use App\Service\HelpHistoricoService;
                     data-local="<?= htmlspecialchars($chamado['local'] ?? '-') ?>"
                     data-responsavel="<?= htmlspecialchars($chamado['responsavel'] ?? '-') ?>"
                     data-grupo-subgrupo="<?= htmlspecialchars($chamado['grupo'] . ' > ' . $chamado['subgrupo']) ?>"
-                    data-ramal="<?= htmlspecialchars($chamado['ramal'] ?? '-') ?>"
-                    data-email="<?= htmlspecialchars($chamado['email'] ?? '-') ?>"
+                    data-ramal="<?= $chamado['ramal'] !== '' ? htmlspecialchars($chamado['ramal']) : '-' ?>"
+                    data-email="<?= $chamado['email'] !== '' ? htmlspecialchars($chamado['email']) : '-' ?>"
                     data-cpf-ab="<?= htmlspecialchars($chamado['cpf_ab'] ?? '') ?>"
                     data-file-abertura="<?= htmlspecialchars($anexosAbertura[$chamado['id']] ?? '') ?>"
+                    data-dtview="<?= htmlspecialchars(!empty($chamado['dtview']) ? date('d-m-Y H:i', strtotime($chamado['dtview'])) : '-') ?>"
                 >
 
-                    <td><span class="mini-badge badge-new"><?= $new ?></span>
-                        <?php if (!empty($contagemHistoricos[$chamado['id']])): ?>
-                            <span class="mini-badge badge-historico"><?= $contagemHistoricos[$chamado['id']] ?></span>
+                    <td>
+                        <?php if (!empty($contagemHistoricos[$chamado['id']]) || $file !== ''): ?>
+                            <span class="mini-badge badge-historico"><?= $file ?><?= $contagemHistoricos[$chamado['id']] ?></span>
                         <?php endif; ?>
                     </td>
                     <td><a href="#" class="chamado-id" data-modal-open="modal-chamado"><?= $chamado['id'] ?></a></td>
-                    <td></td>
+                    <td><span class="mini-badge badge-new"><?= $new !== '' ? $new : $updated ?></span></td>
                     <td><?= (initcap($chamado['nome'])) ?></td>
-                    <td><?= !empty($chamado['dt_abertura']) ? date('d-m-Y H:i:s', strtotime($chamado['dt_abertura'])) : '-' ?></td>
-                    <td><?= !empty($chamado['dt_solucao']) ? date('d-m-Y H:i:s', strtotime($chamado['dt_solucao'])) : '-' ?></td>
-                    <td></td>
+                    <td><?= !empty($chamado['dt_abertura']) ? date('d-m-Y H:i', strtotime($chamado['dt_abertura'])) : '-' ?></td>
+                    <td><?= !empty($chamado['dt_solucao']) ? date('d-m-Y H:i', strtotime($chamado['dt_solucao'])) : '-' ?></td>
+                    <td>
+                        <?php if (!empty($andamentos[$chamado['id']])): ?>
+                            <?php $andamento = $andamentos[$chamado['id']]; ?>
+                            <div class="sla-progress" title="<?= htmlspecialchars($andamento['label']) ?> (SLA <?= $andamento['pct'] ?>%)">
+                                <div class="sla-progress-bar <?= $andamento['pct'] >= 100 ? 'sla-past' : ($andamento['pct'] >= 80 ? 'sla-warn' : ($andamento['pct'] >= 50 ? 'sla-mid' : 'sla-ok')) ?>" style="width: <?= $andamento['pct'] ?>%"></div>
+                            </div>
+                            <span class="sla-label"><?= htmlspecialchars($andamento['label']) ?></span>
+                        <?php endif; ?>
+                    </td>
                     <td><?= $chamado['grupo'] ?></td>
                     <td><?= $chamado['subgrupo'] ?></td>
                     <td><?= $chamado['cab_problema'] ?></td>
@@ -136,6 +154,9 @@ use App\Service\HelpHistoricoService;
    ob_start();
 ?>
         <span hidden data-field="cpf-ab"></span>
+        <div class="chamado-view">
+            <i class="fa-solid fa-check-double"></i> <span data-field="dtview"></span>
+        </div>
         <div class="chamado-details">
             <div class="chamado-top">
                 <h3>Tópico</h3>
@@ -144,7 +165,7 @@ use App\Service\HelpHistoricoService;
             <div class="chamado-top">
                 <h4>Descrição</h4>
             </div>
-            <p><span data-field="desc-problema"></span></p>
+            <pre data-field="desc-problema"></pre>
             <p hidden data-file-abertura-wrap>
                 <strong>Anexo da abertura:</strong>
                 <a href="#" class="anexo-link" data-file-abertura-link download><i class="fa-solid fa-paperclip"></i> baixar</a>
@@ -183,11 +204,19 @@ use App\Service\HelpHistoricoService;
                             'options' => StatusService::all(),
                             'valueKey' => 'status',
                             'labelKey' => 'descricao',
-                            'attrs' => 'data-field="status"',
+                            'attrs' => 'data-field="status"' . ($isSuporte ? '' : ' disabled'),
                         ]); ?>
                     </label>
+                    <label class="motivo-cancelamento" data-motivo-cancelamento style="display:none;">Motivo do cancelamento:
+                        <select class="motivo-cancelamento" data-field="motivo-canc" name="motivo" id="motivo-cancelamento" <?= !$isSuporte ? "disabled" : "" ?>>
+                            <option value="">Selecione o motivo</option>
+                            <?php foreach ($motivosCancelamento as $motivoCanc): ?>
+                                <option value="<?= htmlspecialchars($motivoCanc['id']) ?>"><?= htmlspecialchars($motivoCanc['motivo']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
                     <label>Grupo:
-                        <select name="idgrupo" data-field="idgrupo">
+                        <select name="idgrupo" data-field="idgrupo" <?= !$isSuporte ? "disabled" : "" ?>>
                             <option value="">Selecione o grupo</option>
                             <?php foreach ($grupos as $grupo): ?>
                                 <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
@@ -195,7 +224,7 @@ use App\Service\HelpHistoricoService;
                         </select>
                     </label>
                     <label>Sub-Grupo:
-                        <select name="idsubgrupo" data-field="idsubgrupo">
+                        <select name="idsubgrupo" data-field="idsubgrupo" <?= !$isSuporte ? "disabled" : "" ?>>
                             <option value="">Selecione o sub-grupo</option>
                             <?php foreach ($subgrupos as $sg): ?>
                                 <option value="<?= htmlspecialchars($sg['id']) ?>" data-idgrupo="<?= htmlspecialchars($sg['idgrupo']) ?>"><?= htmlspecialchars($sg['descricao']) ?></option>
@@ -209,10 +238,10 @@ use App\Service\HelpHistoricoService;
                             'options' => $responsaveis,
                             'valueKey' => 'cpf',
                             'labelKey' => 'nome',
-                            'attrs' => 'data-field="id-resp"',
+                            'attrs' => 'data-field="id-resp"' . ($isSuporte ? '' : ' disabled'),
                         ]); ?>
                     </label>
-                    <button type="submit" class="btn">Salvar alterações</button>
+                    <button type="submit" class="btn" <?= !$isSuporte ? "disabled" : "" ?>>Salvar alterações</button>
                 </div>
             </form>
 
@@ -222,7 +251,7 @@ use App\Service\HelpHistoricoService;
             <form method="POST" action="/helpdesk/interacao<?= $filtrosUrl !== '' ? '?' . $filtrosUrl : '' ?>" class="chamado-form" enctype="multipart/form-data">
                 <input type="hidden" name="id" data-field="id">
                 <textarea name="mensagem" rows="3" placeholder="Escreva uma interação no chamado..." required></textarea>
-                <label>Anexo (máx. 2 MB):
+                <label>Anexo (máx. 5 MB):
                     <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
                 </label>
                 <button type="submit" class="btn">Registrar histórico</button>
@@ -240,6 +269,9 @@ use App\Service\HelpHistoricoService;
                             <p><?= htmlspecialchars($item['historico']) ?></p>
                             <?php if (!empty($item['file_str'])): ?>
                                 <p><a href="/<?= htmlspecialchars($item['file_str']) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> Anexo</a></p>
+                            <?php endif; ?>
+                            <?php if (!empty($item['dtview'])): ?>
+                                <span class="historico-viewed">Visualizado em <?= date('d-m-Y H:i', strtotime($item['dtview'])) ?></span>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -285,7 +317,7 @@ ob_start();
         <label>Descrição:
             <textarea name="desc_problema" rows="4" maxlength="3000" required placeholder="Descreva o problema..."></textarea>
         </label>
-        <label>Anexo (opcional, máx. 2 MB):
+        <label>Anexo (opcional, máx. 5 MB):
             <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
         </label>
         <button type="submit" class="btn">Abrir chamado</button>
@@ -371,6 +403,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    var sincronizarMotivos = [];
+
+    function vincularMotivoCancelamento(modalId) {
+        var modal = document.getElementById(modalId);
+        if (!modal) return;
+        var statusSel = modal.querySelector('select[name="status"]');
+        var wrap = modal.querySelector('[data-motivo-cancelamento]');
+        if (!statusSel || !wrap) return;
+        var motivoSel = wrap.querySelector('select');
+
+        function sincronizarMotivo() {
+            var mostrar = statusSel.value === 'C';
+            wrap.style.display = mostrar ? '' : 'none';
+            motivoSel.required = mostrar;
+        }
+
+        statusSel.addEventListener('change', sincronizarMotivo);
+        sincronizarMotivos.push([modal, sincronizarMotivo]);
+    }
+
+    vincularMotivoCancelamento('modal-chamado');
+
+    if (sincronizarMotivos.length) {
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('[data-modal-open]')) {
+                setTimeout(function() {
+                    for (var i = 0; i < sincronizarMotivos.length; i++) {
+                        if (sincronizarMotivos[i][0].style.display === 'flex') {
+                            sincronizarMotivos[i][1]();
+                        }
+                    }
+                }, 0);
+            }
+        });
+    }
 });
 
 function mostrarMensagemHistorico(list, msg) {
@@ -424,9 +492,99 @@ function renderHistorico(list, items, cpfAb) {
             div.appendChild(pa);
         }
 
+        if (item.dtview) {
+            var spanv = document.createElement('span');
+            spanv.className = 'historico-viewed';
+            var iconev = document.createElement('i');
+            iconev.className = 'fa-solid fa-check-double';
+            spanv.appendChild(iconev);
+            spanv.appendChild(document.createTextNode(' ' + (item.dtview || '')));
+            div.appendChild(spanv);
+        }
+
         list.appendChild(div);
     }
 }
+
+function atualizarAnexo(form, fileInput, file) {
+    var label = fileInput.closest('label');
+    var destino = label ? label.parentNode : fileInput.parentNode;
+    var wrapper = form.querySelector('[data-anexo-status]');
+    if (wrapper) wrapper.remove();
+
+    wrapper = document.createElement('div');
+    wrapper.setAttribute('data-anexo-status', '');
+    wrapper.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:#83e6e6;margin-top:6px;';
+    destino.insertBefore(wrapper, label ? label.nextSibling : fileInput.nextSibling);
+
+    var texto = document.createElement('span');
+    texto.textContent = 'Anexo: ' + file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Remover';
+    btn.style.cssText = 'padding:3px 10px;border:none;border-radius:6px;background:rgba(231,76,60,0.25);color:#ff9a8f;font-size:12px;cursor:pointer;';
+    btn.addEventListener('click', function() {
+        fileInput.value = '';
+        wrapper.remove();
+    });
+
+    wrapper.appendChild(texto);
+    wrapper.appendChild(btn);
+}
+
+document.addEventListener('paste', function(e) {
+    var target = e.target;
+    if (!target || target.tagName !== 'TEXTAREA') return;
+
+    var files = e.clipboardData && e.clipboardData.files;
+    if (!files || files.length === 0) return;
+
+    var form = target.closest('form');
+    if (!form) return;
+
+    var fileInput = form.querySelector('input[type="file"][name="helpAttach"]');
+    if (!fileInput) return;
+
+    var file = files[0];
+    var aceitos = ['jpg', 'jpeg', 'png', 'bmp', 'pdf', 'xls', 'xlsx', 'doc', 'docx'];
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+
+    if (aceitos.indexOf(ext) === -1) {
+        alert('Anexo: extensão não permitida (' + file.name + ')');
+        e.preventDefault();
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Anexo: arquivo excede 5 MB (' + file.name + ')');
+        e.preventDefault();
+        return;
+    }
+
+    e.preventDefault();
+
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+
+    atualizarAnexo(form, fileInput, file);
+});
+
+document.addEventListener('change', function(e) {
+    var input = e.target;
+    if (!input || input.type !== 'file' || input.name !== 'helpAttach') return;
+
+    var form = input.closest('form');
+    if (!form) return;
+
+    if (input.files && input.files.length > 0) {
+        atualizarAnexo(form, input, input.files[0]);
+    } else {
+        var wrapper = form.querySelector('[data-anexo-status]');
+        if (wrapper) wrapper.remove();
+    }
+});
 
 document.addEventListener('click', function(e) {
     var link = e.target.closest('.anexo-link');

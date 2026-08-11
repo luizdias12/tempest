@@ -4,7 +4,7 @@ namespace App\Core;
 
 class QueryBuilder
 {
-    protected string $connection = 'oracle';
+    protected string $connection = 'rm';
     protected string $table = '';
     protected array $selects = ['*'];
     protected array $joins = [];
@@ -18,7 +18,7 @@ class QueryBuilder
 
     // ── Factory ──
 
-    public static function table(string $table, string $connection = 'oracle'): self
+    public static function table(string $table, string $connection = 'rm'): self
     {
         $instance = new self();
         $instance->table = $table;

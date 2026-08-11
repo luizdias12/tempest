@@ -10,9 +10,12 @@ class HelpHistoricoModel
     public static function obterHistoricoHelpdesk(int $helpId): array
     {
         $historico = QueryBuilder::table('help_hist h', 'mysql')
-            ->select('h.id_hist', 'h.id_help', 'h.historico', 'h.status', 'h.data_hist', 'h.id_usu', 'h.file_str', 'f.nome')
+            ->select('h.id_hist', 'h.id_help', 'h.historico', 'h.status',
+            'h.data_hist', 'h.id_usu', 'h.file_str',
+            'COALESCE(f.nome, fe.nome) as nome', 'h.dtview')
             ->join('helpdesk hd', 'hd.id', '=', 'h.id_help')
-            ->join('func f', 'f.cpf', '=', 'h.id_usu')
+            ->leftJoin('func f', 'f.cpf', '=', 'h.id_usu')
+            ->leftJoin('func_externo as fe', 'fe.cpf', '=', 'h.id_usu')
             ->where('h.id_help', $helpId)
             ->where('h.status', '<>', 'A')
             ->orderBy('h.data_hist', 'ASC')
@@ -47,6 +50,22 @@ class HelpHistoricoModel
             ->get();
 
         return array_column($pendentes, 'id_help');
+    }
+
+    public static function chamadosAtualizados(array $helpIds): array
+    {
+        if (empty($helpIds)) {
+            return [];
+        }
+
+        $atualizados = QueryBuilder::table('help_hist h', 'mysql')
+            ->select('h.id_help')
+            ->where('status', '<>', 'A')
+            ->where('view', 'N')
+            ->whereIn('h.id_help', $helpIds)
+            ->get();
+
+        return array_column($atualizados, 'id_help');
     }
 
     public static function contagemHistoricos(array $helpIds): array
@@ -84,6 +103,19 @@ class HelpHistoricoModel
         return DB::update('help_hist', 'id_hist', $idHist, ['file_str' => $fileStr], 'mysql');
     }
 
+    public static function marcarVisualizado(int $helpId, string $idUsu): bool
+    {
+        $stmt = DB::connect('mysql')->prepare("
+            UPDATE help_hist
+            SET view = 'S', dtview = NOW()
+            WHERE id_help = :id
+            AND view = 'N'
+            AND id_usu <> :idUsu
+        ");
+
+        return $stmt->execute(['id' => $helpId, 'idUsu' => $idUsu]);
+    }
+
     public static function anexosAbertura(array $helpIds): array
     {
         if (empty($helpIds)) {
@@ -101,5 +133,20 @@ class HelpHistoricoModel
         ", [], 'mysql');
 
         return array_column($rows, 'file_str', 'id_help');
+    }
+
+    public static function possuiAnexo(array $helpIds): array
+    {
+       if (empty($helpIds)) {
+            return [];
+        }
+
+        $possuiAnexo = QueryBuilder::table('help_hist h', 'mysql')
+            ->select('h.id_help')
+            ->where('file_str', '<>', '')
+            ->whereIn('h.id_help', $helpIds)
+            ->get();
+
+        return array_column($possuiAnexo, 'id_help');
     }
 }

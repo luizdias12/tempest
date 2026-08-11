@@ -18,8 +18,12 @@ class DB
         return getenv($key) ?: ($_ENV[$key] ?? $default);
     }
 
-    public static function connect(string $name = 'oracle'): PDO
+    public static function connect(string $name = 'rm'): PDO
     {
+        if ($name === 'oracle') {
+            $name = 'rm';
+        }
+
         if (isset(self::$connections[$name])) {
             return self::$connections[$name];
         }
@@ -44,14 +48,14 @@ class DB
             } catch (PDOException $e) {
                 throw new Exception('Erro ao conectar ao MySQL: ' . $e->getMessage());
             }
-        } else {
-            // conexão Oracle (default)
-            $host      = self::env('DB_HOST');
-            $port      = self::env('DB_PORT', '1521');
-            $service   = self::env('DB_SERVICENAME');
-            $user      = self::env('DB_USER');
-            $pass      = self::env('DB_PASSWORD');
-            $charset   = self::env('DB_CHARSET', 'AL32UTF8');
+        } else if ($name === 'rm'){
+            // conexão Oracle - banco RM (default)
+            $host      = self::env('DB_RM_HOST');
+            $port      = self::env('DB_RM_PORT', '1521');
+            $service   = self::env('DB_RM_SERVICENAME');
+            $user      = self::env('DB_RM_USER');
+            $pass      = self::env('DB_RM_PASSWORD');
+            $charset   = self::env('DB_RM_CHARSET', 'AL32UTF8');
 
             try {
                 self::$connections[$name] = new PDO(
@@ -65,7 +69,30 @@ class DB
                     ]
                 );
             } catch (PDOException $e) {
-                throw new Exception('Erro ao conectar ao Oracle: ' . $e->getMessage());
+                throw new Exception('Erro ao conectar ao Oracle (RM): ' . $e->getMessage());
+            }
+        } else if ($name === 'consinco'){
+            // conexão Oracle - banco Consinco (default)
+            $host      = self::env('DB_C5_HOST');
+            $port      = self::env('DB_C5_PORT', '1521');
+            $service   = self::env('DB_C5_SERVICENAME');
+            $user      = self::env('DB_C5_USER');
+            $pass      = self::env('DB_C5_PASSWORD');
+            $charset   = self::env('DB_C5_CHARSET', 'AL32UTF8');
+
+            try {
+                self::$connections[$name] = new PDO(
+                    "oci:dbname=//{$host}:{$port}/{$service};charset={$charset}",
+                    $user,
+                    $pass,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_CASE => PDO::CASE_LOWER,
+                    ]
+                );
+            } catch (PDOException $e) {
+                throw new Exception('Erro ao conectar ao Oracle (Consinco): ' . $e->getMessage());
             }
         }
 
@@ -125,21 +152,21 @@ class DB
 
     // ------- CRUD -------
 
-    public static function select(string $sql, array $params = [], string $connection = 'oracle'): array
+    public static function select(string $sql, array $params = [], string $connection = 'rm'): array
     {
         $stmt = self::connect($connection)->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
-    public static function first(string $sql, array $params = [], string $connection = 'oracle'): ?array
+    public static function first(string $sql, array $params = [], string $connection = 'rm'): ?array
     {
         $stmt = self::connect($connection)->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetch() ?: null;
     }
 
-    public static function insert(string $table, array $data, string $connection = 'oracle'): ?int
+    public static function insert(string $table, array $data, string $connection = 'rm'): ?int
     {
         if (empty($data)) {
             return null;
@@ -162,7 +189,7 @@ class DB
         return (int) $conn->lastInsertId();
     }
 
-    public static function update(string $table, string $keyColumn, $keyValue, array $data, string $connection = 'oracle'): bool
+    public static function update(string $table, string $keyColumn, $keyValue, array $data, string $connection = 'rm'): bool
     {
         if (empty($data)) {
             return false;
@@ -290,7 +317,7 @@ class DB
         int $limit = 10,
         array $conditions = [],
         array $options = [],
-        string $connection = 'oracle'
+        string $connection = 'rm'
     ): array {
         self::validateTable($table);
 

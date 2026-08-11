@@ -26,6 +26,71 @@ class FinancController extends BaseController
         );
     }
 
+    public function holeritePdf(Request $request): void
+    {
+        try {
+            $user = AuthService::getUser();
+            $chapa = $user['chapa'] ?? '';
+
+            if (empty($chapa)) {
+                ErrorHandler::handle(400, 'Usuário sem chapa vinculada.');
+                exit;
+            }
+
+            $mescomp = (int) $request->query('mescomp', date('m'));
+            $anocomp = (int) $request->query('anocomp', date('Y'));
+            $periodo = (int) $request->query('periodo', 3);
+
+            $dataPagamento = DateTime::createFromFormat(
+                'Y-n-j',
+                "$anocomp-$mescomp-1"
+            );
+
+            if (!$dataPagamento) {
+                ErrorHandler::handle(400, 'Competência inválida.');
+                return;
+            }
+
+            $dataPagamento->modify('+1 month');
+
+            $dataReferencia = $dataPagamento->format('Ymd');
+            $libera = FinancService::holeriteLiberado($dataReferencia, 31);
+
+            if (!$libera) {
+                ErrorHandler::handle(403, 'Competência não liberada.');
+                return;
+            }
+
+            $totaisHolerite = FinancService::totaisHolerite($chapa, $mescomp, $anocomp, $periodo);
+
+            if (empty($totaisHolerite['proventos'])) {
+                ErrorHandler::handle(404, 'Nenhum dado encontrado para este período.');
+                return;
+            }
+
+            $funcionario = [
+                'nome' => $user['name'] ?? '',
+                'chapa' => $chapa,
+                'codfuncao' => $user['codfuncao'] ?? '',
+                'funcao' => $user['funcao'] ?? '',
+            ];
+
+            view('financ/holerite_pdf', [
+                'totaisHolerite' => $totaisHolerite,
+                'chapa'          => $chapa,
+                'mescomp'        => $mescomp,
+                'anocomp'        => $anocomp,
+                'periodo'        => $periodo,
+                'funcionario'    => $funcionario,
+                'title'          => 'Holerite_' . ($periodo == 2 ? '13' :str_pad($mescomp, 2, '0', STR_PAD_LEFT)) . '_' . $anocomp,
+            ], 'layouts/print');
+        } catch (Throwable $e) {
+            Logger::exception($e);
+
+            ErrorHandler::handle(500, $e->getMessage());
+        }
+    }
+
     public function holeriteView(Request $request): void
     {
         try {

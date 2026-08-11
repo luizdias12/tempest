@@ -179,6 +179,84 @@ if (!function_exists('pagination')) {
     }
 }
 
+if (!function_exists('maskCpf')) {
+    function maskCpf(string $cpf): string
+    {
+        $digits = preg_replace('/\D/', '', $cpf);
+
+        if (strlen($digits) !== 11) {
+            return $cpf;
+        }
+
+        return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $digits);
+    }
+}
+
+if (!function_exists('businessHoursBetween')) {
+    function businessHoursBetween(string|DateTimeInterface $start, string|DateTimeInterface|null $end = null): float
+    {
+        $inicio = $start instanceof DateTimeInterface ? (clone $start) : new DateTime($start);
+        $fim = $end ? ($end instanceof DateTimeInterface ? (clone $end) : new DateTime($end)) : new DateTime();
+
+        if ($fim <= $inicio) {
+            return 0.0;
+        }
+
+        $abreDia = 8;
+        $fechaDia = 18;
+        $almocoInicio = 12;
+        $almocoFim = 13;
+
+        $total = 0.0;
+        $dia = clone $inicio;
+        $dia->setTime(0, 0);
+        $ultimoDia = clone $fim;
+        $ultimoDia->setTime(0, 0);
+
+        while ($dia <= $ultimoDia) {
+            if ((int) $dia->format('N') < 6) {
+                $abre = (clone $dia)->setTime($abreDia, 0);
+                $fecha = (clone $dia)->setTime($fechaDia, 0);
+                $almIni = (clone $dia)->setTime($almocoInicio, 0);
+                $almFim = (clone $dia)->setTime($almocoFim, 0);
+
+                $inicioDia = $inicio > $abre ? $inicio : $abre;
+                $fimDia = $fim < $fecha ? $fim : $fecha;
+
+                if ($fimDia > $inicioDia) {
+                    $total += $fimDia->getTimestamp() - $inicioDia->getTimestamp();
+
+                    $iniAlmoco = $inicioDia > $almIni ? $inicioDia : $almIni;
+                    $fimAlmoco = $fimDia < $almFim ? $fimDia : $almFim;
+
+                    if ($fimAlmoco > $iniAlmoco) {
+                        $total -= $fimAlmoco->getTimestamp() - $iniAlmoco->getTimestamp();
+                    }
+                }
+            }
+
+            $dia->modify('+1 day');
+        }
+
+        return round($total / 3600, 2);
+    }
+}
+
+if (!function_exists('formatBusinessHours')) {
+    function formatBusinessHours(float $hours): string
+    {
+        $totalMin = (int) round($hours * 60);
+        $h = intdiv($totalMin, 60);
+        $m = $totalMin % 60;
+
+        if ($h > 0 && $m > 0) {
+            return "{$h}h {$m}min";
+        }
+
+        return $h > 0 ? "{$h}h" : "{$m}min";
+    }
+}
+
 if (!function_exists('initcap')) {
     function initcap(string $value): string
     {
@@ -216,5 +294,69 @@ if (!function_exists('removeAccents')) {
         ];
 
         return str_replace(array_keys($unwantedArray), array_values($unwantedArray), $string);
+    }
+}
+
+if (!function_exists('localPorIp')) {
+    function localPorIp(string $ip): string
+    {
+        $locals = [
+            '0' => 'Dulce Sarmento',
+            '1' => 'Dulce Sarmento',
+            '2' => 'CD',
+            '3' => 'CD',
+            '4' => 'Tito Fulgencio',
+            '5' => 'Juiz de Fora',
+            '6' => 'Ceanorte',
+            '7' => 'Coronel Fabriciano',
+            '8' => 'Vaz de Melo',
+            '9' => 'Brigadeiro',
+            '10' => 'Justinópolis',
+            '11' => 'Divinópolis',
+            '12' => 'Pedro II',
+            '13' => 'Joaquim Jose',
+            '14' => 'Tropical',
+            '15' => 'Jaraguá',
+            '16' => 'Humberto de Moro',
+            '17' => 'BR-040',
+            '18' => 'Serrano',
+            '19' => 'Santa Luzia',
+            '20' => 'Ceasa',
+            '21' => 'Ceasa',
+            '22' => 'Jataí',
+            '23' => 'Itabira',
+            '24' => 'Cula Managabeira',
+            '25' => 'Ipatinga',
+            '26' => 'Betania',
+            '27' => 'Sion',
+            '28' => 'Américo Vespúcio',
+            '29' => 'Uberaba',
+            '30' => 'Sabará',
+            '31' => 'Bosque - Escritorio',
+            '44' => 'Jacuí',
+            '45' => 'Bosque',
+            '32' => 'Poços de Caldas',
+            '33' => 'Lavras',
+            '34' => 'Paracatu',
+            '35' => 'Patrocínio',
+            '36' => 'Anápolis',
+            '37' => 'Uberlândia',
+            '38' => 'Vila Jaraguá',
+            '39' => 'Uberville',
+            '40' => 'Anápolis 2',
+            '100' => 'Arvoredo - VM',
+            '101' => 'Arvoredo - VM',
+            '112' => 'Pedro II - Callcenter',
+            '200' => 'Arvoredo - Bloco Verde',
+            '201' => 'Arvoredo - Bloco Amarelo',
+            '202' => 'Arvoredo - Bloco Vermelho',
+            '203' => 'Arvoredo - Central',
+            '204' => 'Arvoredo - Galpao',
+            '210' => 'Arvoredo - Presidencia',
+        ];
+
+        $octetos = explode('.', $ip);
+
+        return $locals[$octetos[2] ?? ''] ?? 'Nao Identificado';
     }
 }

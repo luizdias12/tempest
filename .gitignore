@@ -2,4 +2,6 @@
 .env
 /logs
 /public/files/helpdesk
+/public/files/documentos
+/test
 opencode.json

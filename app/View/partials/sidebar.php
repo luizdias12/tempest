@@ -4,6 +4,8 @@ use App\Service\AuthService;
 
 $user = AuthService::getUser();
 $isSuporte = AuthService::hasPermission('ti');
+$userCpf = AuthService::getUserCpf();
+$admin = $userCpf === '08374281650';
 
 ?>
 <aside class="sidebar" id="sidebar">
@@ -18,8 +20,9 @@ $isSuporte = AuthService::hasPermission('ti');
                     <i class="fa-solid fa-circle-user"></i>
                 </div>
                 <div class="sidebar-user-details">
-                    <span class="sidebar-user-name"><?= htmlspecialchars($user['name']) ?></span>
+                    <span class="sidebar-user-name"><?= initcap(htmlspecialchars($user['name'])) ?></span>
                     <span class="sidebar-user-badge"><?= $isSuporte ? '<i class="fa-solid fa-user-shield"></i> Suporte' : '<i class="fa-solid fa-user"></i> Usuário' ?></span>
+                    <span class="sidebar-user-badge"><i class="fa-solid fa-id-card-clip"></i> <?= initcap(htmlspecialchars($user['secao'] ?? '')) ?></span>
                 </div>
             </div>
         <?php endif; ?>
@@ -30,6 +33,7 @@ $isSuporte = AuthService::hasPermission('ti');
         <?php if ($user): ?>
         <div class="sidebar-area-protegida">
             <a href="/helpdesk/index"><i class="fa-solid fa-desktop"></i> Helpdesk</a>
+            <?php if (!AuthService::isExterno()): ?>
             <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
             <div class="sidebar-dropdown">
                 <a href="#" class="sidebar-dropdown-toggle">
@@ -38,6 +42,12 @@ $isSuporte = AuthService::hasPermission('ti');
                 </a>
                 <div class="sidebar-dropdown-menu">
                     <a href="/ti/lista"><i class="fa-solid fa-list"></i> Lista TI</a>
+                </div>
+                <div class="sidebar-dropdown-menu">
+                    <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>
+                </div>
+                <div class="sidebar-dropdown-menu">
+                    <a href="/logs"><i class="fa-solid fa-code"></i> Logs</a>
                 </div>
             </div>
             <div class="sidebar-dropdown">
@@ -49,6 +59,21 @@ $isSuporte = AuthService::hasPermission('ti');
                     <a href="/financ/holerite"><i class="fa-solid fa-money-bill"></i> Holerite</a>
                 </div>
             </div>
+            <div class="sidebar-dropdown">
+                <a href="#" class="sidebar-dropdown-toggle">
+                    <span class="sidebar-dropdown-label"><i class="fa-solid fa-file-invoice"></i> Documentação</span>
+                    <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                </a>
+                <div class="sidebar-dropdown-menu">
+                    <a href="/documentos"><i class="fa-solid fa-folder-open"></i> Documentos</a>
+                </div>
+                <?php if ($isSuporte): ?>
+                <div class="sidebar-dropdown-menu">
+                    <a href="/documentos/gestao"><i class="fa-solid fa-gear"></i> Gestão de documentos</a>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 

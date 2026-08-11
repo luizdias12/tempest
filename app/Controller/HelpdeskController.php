@@ -11,9 +11,11 @@ use App\Core\Response;
 use App\Service\AuthService;
 use App\Service\FileService;
 use App\Service\FuncionarioService;
+use App\Service\GenericService;
 use App\Service\HelpdeskService;
 use App\Service\HelpHistoricoService;
 use App\Service\MailService;
+use App\Service\LogService;
 use Throwable;
 
 class HelpdeskController extends BaseController
@@ -32,9 +34,10 @@ class HelpdeskController extends BaseController
 
             $idResp = !empty($meus) ? $this->cpfUsuarioAtual() : null;
 
-            // $isSuporte = AuthService::hasPermission('ti');
-            $isSuporte = false; // Temporarily disable support check for testing purposes
-            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $isSuporte);
+            $isSuporte = AuthService::hasPermission('ti');
+            $isExterno = AuthService::isExterno();
+            // $isSuporte = false; // Temporarily disable support check for testing purposes
+            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $isSuporte, $isExterno);
 
             $grupos = HelpdeskService::listarGrupos();
             $subgrupos = HelpdeskService::listarSubgrupos();
@@ -43,6 +46,37 @@ class HelpdeskController extends BaseController
             $contagemHistoricos = HelpHistoricoService::contagemHistoricos(array_column($result['data'], 'id'));
             $openCpf = $open > 0 ? HelpdeskService::obterCpfAbertura($open) : null;
             $anexosAbertura = HelpHistoricoService::anexosAbertura(array_column($result['data'], 'id'));
+            $motivosCancelamento = GenericService::listaMotivosCancelamento();
+            
+            $andamentos = [];
+            foreach ($result['data'] as $chamado) {
+                $dataRef = $chamado['data_status'] ?? $chamado['data_hist'] ?? '';
+
+                if (empty($dataRef)) {
+                    continue;
+                }
+
+                if (in_array($chamado['status'], ['R', 'C', 'EA', 'D'])) {
+                    continue;
+                }
+
+                try {
+                    $slaHoras = (float) preg_replace('/\D/', '', $chamado['sla'] ?? '');
+                    $slaHoras = $slaHoras > 0 ? $slaHoras : 24;
+
+                    $decorrido = businessHoursBetween($dataRef);
+                    $pct = (int) round($decorrido / $slaHoras * 100);
+
+                    $andamentos[$chamado['id']] = [
+                        'horas' => $decorrido,
+                        'sla' => $slaHoras,
+                        'pct' => min(100, $pct),
+                        'label' => formatBusinessHours($decorrido) . ' / ' . formatBusinessHours($slaHoras),
+                    ];
+                } catch (Throwable $e) {
+                    continue;
+                }
+            }
 
             view('helpdesk/index', [
                 'chamados' => $result['data'],
@@ -60,6 +94,9 @@ class HelpdeskController extends BaseController
                 'contagemHistoricos' => $contagemHistoricos,
                 'openCpf' => $openCpf,
                 'anexosAbertura' => $anexosAbertura,
+                'motivosCancelamento' => $motivosCancelamento,
+                'andamentos' => $andamentos,
+                'isSuporte' => $isSuporte,
                 'title' => 'Helpdesk'
             ]);
         } catch (Throwable $e) {
@@ -81,7 +118,24 @@ class HelpdeskController extends BaseController
             }
 
             $data = [];
-            foreach (['status', 'idgrupo', 'idsubgrupo', 'id_resp'] as $campo) {
+
+            $statusValue = $request->post('status');
+            if ($statusValue !== null && $statusValue !== '') {
+                $data['status'] = $statusValue;
+                $data['dt_solucao'] = in_array($statusValue, ['R', 'C'], true) ? date('Y-m-d H:i:s') : null;
+            }
+
+            $motivo = trim((string) $request->post('motivo', ''));
+            $statusAtual = HelpdeskService::obterStatus($id);
+            $cancelando = $statusValue === 'C' && $statusAtual !== 'C';
+
+            if ($cancelando && ($motivo === '' || !ctype_digit($motivo))) {
+                AlertManager::add('error', 'Selecione o motivo do cancelamento.');
+                redirect($this->redirectBack($request, $id));
+                return;
+            }
+
+            foreach (['idgrupo', 'idsubgrupo', 'id_resp'] as $campo) {
                 $valor = $request->post($campo);
                 if ($valor !== null && $valor !== '') {
                     $data[$campo] = $valor;
@@ -94,8 +148,41 @@ class HelpdeskController extends BaseController
                 return;
             }
 
+            if ($statusValue !== null && $statusValue !== '' && $statusAtual !== $statusValue) {
+                HelpdeskService::upsertHelpStatus($id, $statusValue);
+            }
+
             HelpdeskService::atualizar($id, $data);
-            AlertManager::add('success', "Chamado Nº {$id} atualizado.");
+
+            $user = AuthService::getUser() ?? [];
+            LogService::store([
+                'nivel' => 'INFO',
+                'tipo' => 'UPDATE',
+                'modulo' => 'helpdesk',
+                'acao' => 'alterar_chamado',
+                'usuario_id' => $user['id'] ?? null,
+                'chapa' => $user['chapa'] ?? null,
+                'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+                'metodo_http' => $request->method(),
+                'rota' => $request->uri(),
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                'mensagem' => "chamado {$id} " . (in_array($statusValue, ['R','C'], true) ? 'encerrado' : 'alterado'),
+                'contexto' => $data
+            ]);
+
+            if ($cancelando) {
+                HelpdeskService::registrarCancelamento($id, (int) $motivo, $this->cpfUsuarioAtual(), $_SERVER['REMOTE_ADDR'] ?? '');
+                HelpHistoricoService::registrarInteracao(
+                    $id,
+                    GenericService::obterTextoCancelamento((int) $motivo),
+                    $this->cpfUsuarioAtual(),
+                    $statusValue
+                );
+                AlertManager::add('warning', "Chamado Nº {$id} cancelado.");
+            } else {
+                AlertManager::add('success', "Chamado Nº {$id} atualizado.");
+            }
 
             redirect($this->redirectBack($request, $id));
         } catch (Throwable $e) {
@@ -172,6 +259,7 @@ class HelpdeskController extends BaseController
             }
 
             $idHist = HelpHistoricoService::registrarInteracao($id, 'Abertura do chamado', $cpfAb, 'A');
+            HelpdeskService::upsertHelpStatus($id, 'A');
 
             if ($upload !== null && $idHist !== null) {
                 try {
@@ -244,13 +332,26 @@ class HelpdeskController extends BaseController
             }
 
             HelpdeskService::atualizaStatusChamado($id, $status);
+            HelpdeskService::upsertHelpStatus($id, $status);
 
-            $this->notificarInteracao($id, $mensagem);
+            $this->notificarInteracao($id, $mensagem, $idUsu);
 
             AlertManager::add('success', "Interação registrada no chamado Nº {$id}.");
 
             redirect($this->redirectBack($request, $id));
         } catch (Throwable $e) {
+            LogService::store([
+                'nivel' => 'ERROR',
+                'tipo' => 'INSERT',
+                'modulo' => 'helpdesk',
+                'acao' => 'registro_interacao',
+                'mensagem' => $e->getMessage(),
+                'contexto' => [
+                    'id' => $id,
+                    'idUsu' => $idUsu,
+                    'status' => $status
+                ]
+            ]);
             Logger::exception($e);
 
             AlertManager::add('error', 'Erro ao registrar a interação.');
@@ -266,6 +367,8 @@ class HelpdeskController extends BaseController
                 return;
             }
 
+            HelpHistoricoService::marcarVisualizado($id, $this->cpfUsuarioAtual());
+
             $hist = HelpHistoricoService::obterHistoricoHelpdesk($id);
 
             $items = array_map(static fn(array $item): array => [
@@ -275,6 +378,7 @@ class HelpdeskController extends BaseController
                 'historico' => $item['historico'] ?? '',
                 'id_usu' => $item['id_usu'] ?? '',
                 'file_str' => $item['file_str'] ?? '',
+                'dtview' => !empty($item['dtview']) ? date('d-m-Y H:i', strtotime($item['dtview'])) : '',
             ], $hist);
 
             Response::json(['id' => $id, 'hist' => $items]);
@@ -285,10 +389,10 @@ class HelpdeskController extends BaseController
         }
     }
 
-    private function notificarInteracao(int $id, string $mensagem): void
+    private function notificarInteracao(int $id, string $mensagem, string $idUsu): void
     {
         try {
-            $emails = HelpdeskService::obterEmailsNotificacao($id);
+            $emails = HelpdeskService::obterEmailsNotificacao($id, $idUsu);
 
             if (empty($emails)) {
                 return;
@@ -299,6 +403,7 @@ class HelpdeskController extends BaseController
 
             $assunto = "Chamado Nº {$id} - Nova interação";
             $corpo = "
+                <h1 style='color: red;'>Email Automático, Favor Não Responder!</h1>
                 <h3>Nova interação no Chamado Nº {$id}</h3>
                 <p><strong>Autor:</strong> " . htmlspecialchars($autor) . "</p>
                 <p><strong>Data:</strong> " . date('d-m-Y H:i:s') . "</p>
@@ -331,6 +436,9 @@ class HelpdeskController extends BaseController
                 $func = FuncionarioService::findByNome($user['name']);
 
                 if (!empty($func['cpf'])) {
+                    return $func['cpf'];
+                } else {
+                    $func = GenericService::buscaFuncExterno($user['name']);
                     return $func['cpf'];
                 }
             }

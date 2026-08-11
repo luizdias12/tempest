@@ -54,6 +54,9 @@ use App\Core\Logger;
                 <th scope="col">Pessoa</th>
                 <th scope="col">Chapa</th>
                 <th scope="col">Nome</th>
+                <th scope="col">Data de Nascimento</th>
+                <th scope="col">CPF</th>
+                <th scope="col">RG</th>
                 <th scope="col">Filial</th>
                 <th scope="col">Seçao</th>
                 <th scope="col">Funçao</th>
@@ -67,11 +70,14 @@ use App\Core\Logger;
 
                 <tr>
                     <td><?= $usuario['codpessoa'] ?></td>
-                    <td><?= $usuario['chapa'] ?></td>
-                    <td><?= (initcap($usuario['nome'])) ?></td>
-                    <td><?= ($usuario['codfilial'] . " - " . initcap($usuario['filial'])) ?></td>
-                    <td><?= ($usuario['codsecao'] . " - " . initcap($usuario['secao'])) ?></td>
-                    <td><?= $usuario['funcao'] ?></td>
+                    <td><?= !empty($usuario['chapa']) ? $usuario['chapa'] : '-' ?></td>
+                    <td><?= (initcap($usuario['nome'] ?? '')) ?></td>
+                    <td><?= $usuario['dtnascimento'] ?></td>
+                    <td><?= !empty($usuario['cpf']) ? maskCpf($usuario['cpf']) : '-' ?></td>
+                    <td><?= $usuario['cartidentidade'] ?></td>
+                    <td><?= ($usuario['codfilial'] . " - " . initcap($usuario['filial'] ?? '')) ?></td>
+                    <td><?= ($usuario['codsecao'] . " - " . initcap($usuario['secao'] ?? '')) ?></td>
+                    <td><?= !empty($usuario['funcao']) ? $usuario['funcao'] : '-' ?></td>
                     <td>
                         <?php if (!empty($usuario['dataadmissao'])): ?>
                             <?php
@@ -109,14 +115,18 @@ use App\Core\Logger;
                                 <span class="status ferias popover-trigger" style="cursor:pointer" data-texto="Férias: <?= htmlspecialchars($periodo, ENT_QUOTES) ?>"><?= $usuario['situacao'] ?></span>
                             </div>
                         <?php else: ?>
-                            <span class="status <?= $usuario['codsituacao'] == 'A' 
-                            ? 'ativo' 
-                            : (($usuario['codsituacao'] == 'D' && $usuario['tipodemissao'] == '5') 
-                            ? 'transferido'
-                            : (($usuario['codsituacao'] == 'D' && $usuario['tipodemissao'] != '5')
-                            ? 'demitido'
-                            : 'afastado')) ?>"><?= $usuario['situacao'] ?>
-                            </span>
+                            <?php if (!empty($usuario['situacao'])): ?>
+                                <span class="status <?= $usuario['codsituacao'] == 'A' 
+                                ? 'ativo' 
+                                : (($usuario['codsituacao'] == 'D' && $usuario['tipodemissao'] == '5') 
+                                ? 'transferido'
+                                : (($usuario['codsituacao'] == 'D' && $usuario['tipodemissao'] != '5')
+                                ? 'demitido'
+                                : 'afastado')) ?>"><?= $usuario['situacao'] ?>
+                                </span>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
                         <?php endif; ?>
                     </td>
                 </tr>

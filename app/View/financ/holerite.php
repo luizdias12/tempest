@@ -8,9 +8,10 @@
     <form method="GET" class="filter-form">
         <label for="mescomp">Mês:</label>
         <select id="mescomp" name="mescomp">
-            <?php for ($m = 1; $m <= 12; $m++): ?>
-                <option value="<?= $m ?>" <?= ($mescomp == $m) ? 'selected' : '' ?>><?= str_pad($m, 2, '0', STR_PAD_LEFT) ?></option>
-            <?php endfor; ?>
+            <?php $meses = [1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril', 5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto', 9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro']; ?>
+            <?php foreach ($meses as $num => $nome): ?>
+                <option value="<?= $num ?>" <?= ($mescomp == $num) ? 'selected' : '' ?>><?= $nome ?></option>
+            <?php endforeach; ?>
         </select>
 
         <label for="anocomp">Ano:</label>
@@ -38,7 +39,7 @@
 
     <?php if (!empty($totaisHolerite['proventos'])): ?>
         <div class="table-wrapper table-proventos" style="margin-top: 1.5rem;">
-            <h3>Proventos</h3>
+            <h3 class="header-proventos">Proventos</h3>
             <table>
                 <thead>
                     <tr>
@@ -68,7 +69,7 @@
 
     <?php if (!empty($totaisHolerite['decontos'])): ?>
         <div class="table-wrapper table-descontos" style="margin-top: 1.5rem;">
-            <h3>Descontos</h3>
+            <h3 class="header-descontos">Descontos</h3>
             <table>
                 <thead>
                     <tr>
@@ -98,13 +99,19 @@
 
     <div class="holerite-resumo" style="margin: 1.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
         <div class="resumo-card">
-            <strong>FGTS</strong>
+            <strong>FGTS Depositado</strong>
             <span class="valor-destaque">R$ <?= number_format($totaisHolerite['valor_fgts'], 2, ',', '.') ?></span>
         </div>
         <div class="resumo-card">
             <strong>Valor Líquido</strong>
             <span class="valor-destaque">R$ <?= number_format($totaisHolerite['valor_liquido'], 2, ',', '.') ?></span>
         </div>
+    </div>
+
+    <div class="holerite-pdf-button">
+        <a class="btn-download" target="_blank" href="/financ/holerite/pdf?mescomp=<?= $mescomp ?>&anocomp=<?= $anocomp ?>&periodo=<?= $periodo ?>">
+            <i class="fa-solid fa-file-pdf"></i> Gerar PDF
+        </a>
     </div>
 
 <?php endif; ?>

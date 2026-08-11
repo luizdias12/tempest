@@ -14,13 +14,14 @@ class HelpdeskService
         ?string $status = null,
         ?string $local = null,
         ?string $idResp = null,
-        ?bool $isSuporte = false
+        ?bool $isSuporte = false,
+        ?bool $isExterno = false
         ): array|null
     {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
         
-        return HelpdeskModel::chamadosAbertos($page, $limit, $id, $emitente, $status, $local, $idResp, $isSuporte);
+        return HelpdeskModel::chamadosAbertos($page, $limit, $id, $emitente, $status, $local, $idResp, $isSuporte, $isExterno);
     }
 
     public static function obterSla(int $idgrupo, int $idsubgrupo): ?int
@@ -48,9 +49,24 @@ class HelpdeskService
         return HelpdeskModel::obterCpfAbertura($id);
     }
 
-    public static function obterEmailsNotificacao(int $id): array
+    public static function obterStatus(int $id): ?string
     {
-        return HelpdeskModel::obterEmailsNotificacao($id);
+        return HelpdeskModel::obterStatus($id);
+    }
+
+    public static function registrarCancelamento(int $idHelp, int $codmotivo, string $idCanc, string $ip): ?int
+    {
+        return HelpdeskModel::registrarCancelamento($idHelp, $codmotivo, $idCanc, $ip);
+    }
+
+    public static function upsertHelpStatus(int $idHelp, string $statusValue): bool
+    {
+        return HelpdeskModel::upsertHelpStatus($idHelp, $statusValue);
+    }
+
+    public static function obterEmailsNotificacao(int $id, ?string $idUsuExcluir = null): array
+    {
+        return HelpdeskModel::obterEmailsNotificacao($id, $idUsuExcluir);
     }
 
     public static function listarGrupos(): array
@@ -66,5 +82,10 @@ class HelpdeskService
     public static function listarResponsaveis(): array
     {
         return HelpdeskModel::listarResponsaveis();
+    }
+
+    public static function cancelaChamado(int $idHelp): bool
+    {
+        return HelpdeskModel::cancelaChamado($idHelp);
     }
 }
