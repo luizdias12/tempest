@@ -13,4 +13,13 @@ class UsuarioModel
             ->orderBy('nome', 'ASC')
             ->get();
     }
+
+    public static function getAdmin(string $cpf): string|null
+    {
+        $admin = QueryBuilder::table('usuarios', 'mysql')
+            ->select('IFNULL(admin, "N") as admin')
+            ->where('cpf', $cpf)
+            ->first();
+        return $admin['admin'] ?? '';
+    }
 }

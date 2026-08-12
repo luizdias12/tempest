@@ -651,12 +651,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<input type="hidden" name="id_versao" value="' + v.id + '">' +
                     '<button type="submit" class="btn-doc"><i class="fa-solid fa-rotate-left"></i> Tornar atual</button>' +
                     '</form>';
+                var excluir = v.atual ? '' :
+                    '<form method="POST" action="/documentos/versao/excluir" class="doc-form-inline" onsubmit="return confirm(\'Excluir esta versão? O arquivo será removido se nenhuma outra versão usar o mesmo caminho.\');">' +
+                    '<input type="hidden" name="id_doc" value="' + idDoc + '">' +
+                    '<input type="hidden" name="id_versao" value="' + v.id + '">' +
+                    '<button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i> Excluir</button>' +
+                    '</form>';
 
                 html += '<div class="doc-file">' +
                     '<span class="doc-file-versao">v' + v.versao + '</span>' +
                     '<span class="doc-file-tamanho">' + v.tamanho_texto + '</span>' +
                     '<span class="doc-file-tamanho">' + (v.dt_upload || '') + '</span>' +
-                    atual + semArquivo + restaurar +
+                    atual + semArquivo + restaurar + excluir +
                     '</div>';
             });
 

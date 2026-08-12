@@ -29,52 +29,67 @@ $admin = $userCpf === '08374281650';
     </div>
     <nav class="sidebar-nav">
         <a href="/"><i class="fa-solid fa-house"></i> Início</a>
+        <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
 
         <?php if ($user): ?>
-        <div class="sidebar-area-protegida">
-            <a href="/helpdesk/index"><i class="fa-solid fa-desktop"></i> Helpdesk</a>
-            <?php if (!AuthService::isExterno()): ?>
-            <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
-            <div class="sidebar-dropdown">
-                <a href="#" class="sidebar-dropdown-toggle">
-                    <span class="sidebar-dropdown-label"><i class="fa-solid fa-computer"></i> TI</span>
-                    <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
-                </a>
-                <div class="sidebar-dropdown-menu">
-                    <a href="/ti/lista"><i class="fa-solid fa-list"></i> Lista TI</a>
-                </div>
-                <div class="sidebar-dropdown-menu">
-                    <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>
-                </div>
-                <div class="sidebar-dropdown-menu">
-                    <a href="/logs"><i class="fa-solid fa-code"></i> Logs</a>
-                </div>
-            </div>
-            <div class="sidebar-dropdown">
-                <a href="#" class="sidebar-dropdown-toggle">
-                    <span class="sidebar-dropdown-label"><i class="fa-solid fa-wallet"></i> Financeiro</span>
-                    <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
-                </a>
-                <div class="sidebar-dropdown-menu">
-                    <a href="/financ/holerite"><i class="fa-solid fa-money-bill"></i> Holerite</a>
-                </div>
-            </div>
-            <div class="sidebar-dropdown">
-                <a href="#" class="sidebar-dropdown-toggle">
-                    <span class="sidebar-dropdown-label"><i class="fa-solid fa-file-invoice"></i> Documentação</span>
-                    <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
-                </a>
-                <div class="sidebar-dropdown-menu">
-                    <a href="/documentos"><i class="fa-solid fa-folder-open"></i> Documentos</a>
-                </div>
-                <?php if ($isSuporte): ?>
-                <div class="sidebar-dropdown-menu">
-                    <a href="/documentos/gestao"><i class="fa-solid fa-gear"></i> Gestão de documentos</a>
+            <div class="sidebar-area-protegida">
+                <a href="/helpdesk/index"><i class="fa-solid fa-desktop"></i> Helpdesk</a>
+                <?php if (!AuthService::isExterno() && AuthService::hasPermission('ti')): ?>
+                        <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
+                        <div class="sidebar-dropdown">
+                            <a href="#" class="sidebar-dropdown-toggle">
+                                <span class="sidebar-dropdown-label"><i class="fa-solid fa-computer"></i> TI</span>
+                                <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                            </a>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/ti/lista"><i class="fa-solid fa-list"></i> Lista TI</a>
+                            </div>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>
+                            </div>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/logs"><i class="fa-solid fa-code"></i> Logs</a>
+                            </div>
+                        </div>
+                    <div class="sidebar-dropdown">
+                        <a href="#" class="sidebar-dropdown-toggle">
+                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-wallet"></i> Financeiro</span>
+                            <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                        </a>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/financ/holerite"><i class="fa-solid fa-money-bill"></i> Holerite</a>
+                        </div>
+                    </div>
+                    <div class="sidebar-dropdown">
+                        <a href="#" class="sidebar-dropdown-toggle">
+                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-file-invoice"></i> Documentação</span>
+                            <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                        </a>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/documentos"><i class="fa-solid fa-folder-open"></i> Documentos</a>
+                        </div>
+                        <?php if ($isSuporte): ?>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/documentos/gestao"><i class="fa-solid fa-gear"></i> Gestão de documentos</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <!-- Configuraçoes -->
+                <div class="sidebar-dropdown">
+                    <a href="#" class="sidebar-dropdown-toggle">
+                        <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
+                        <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                    </a>
+                    <!-- Gestao do Caroussel do Home -->
+                    <?php if (AuthService::hasPermission('lideres rh') || AuthService::isAdmin()): ?>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Carousel</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
+                <!--  -->
             </div>
-            <?php endif; ?>
-        </div>
         <?php endif; ?>
 
         <a href="https://outlook.office.com/" target="_blank"><i class="fa-solid fa-mail-bulk"></i> Outlook Mail</a>

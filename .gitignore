@@ -3,5 +3,7 @@
 /logs
 /public/files/helpdesk
 /public/files/documentos
+/public/assets/images
+/public/assets/caroussel
 /test
 opencode.json

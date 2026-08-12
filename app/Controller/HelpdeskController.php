@@ -30,14 +30,16 @@ class HelpdeskController extends BaseController
             $status = $request->input('status', $request->query('status', ''));
             $local = $request->input('local', $request->query('local', ''));
             $meus = $request->input('meus', $request->query('meus', ''));
+            $openbyme = $request->input('openbyme', $request->query('openbyme', ''));
             $open = max(0, (int) $request->query('open', 0));
 
             $idResp = !empty($meus) ? $this->cpfUsuarioAtual() : null;
+            $idMeu = !empty($openbyme) ? $this->cpfUsuarioAtual() : null;
 
             $isSuporte = AuthService::hasPermission('ti');
             $isExterno = AuthService::isExterno();
             // $isSuporte = false; // Temporarily disable support check for testing purposes
-            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $isSuporte, $isExterno);
+            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $idMeu, $isSuporte, $isExterno);
 
             $grupos = HelpdeskService::listarGrupos();
             $subgrupos = HelpdeskService::listarSubgrupos();
@@ -47,7 +49,7 @@ class HelpdeskController extends BaseController
             $openCpf = $open > 0 ? HelpdeskService::obterCpfAbertura($open) : null;
             $anexosAbertura = HelpHistoricoService::anexosAbertura(array_column($result['data'], 'id'));
             $motivosCancelamento = GenericService::listaMotivosCancelamento();
-            
+
             $andamentos = [];
             foreach ($result['data'] as $chamado) {
                 $dataRef = $chamado['data_status'] ?? $chamado['data_hist'] ?? '';
@@ -86,6 +88,7 @@ class HelpdeskController extends BaseController
                 'status' => $status,
                 'local' => $local,
                 'meus' => $meus,
+                'openbyme' => $openbyme,
                 'open' => $open,
                 'grupos' => $grupos,
                 'subgrupos' => $subgrupos,
@@ -108,16 +111,34 @@ class HelpdeskController extends BaseController
 
     public function update(Request $request): void
     {
+        $json = $this->isFetch($request);
+        $responder = function (bool $sucesso, string $mensagem, ?string $url = null, int $status = 200) use ($request, $json) {
+            if ($json) {
+                Response::json(['success' => $sucesso, 'message' => $mensagem], $sucesso ? 200 : $status);
+                return;
+            }
+
+            AlertManager::add($sucesso ? 'success' : 'error', $mensagem);
+            redirect($url ?? '/helpdesk/index');
+        };
+
         try {
             $id = (int) $request->post('id', 0);
 
             if ($id <= 0) {
-                AlertManager::add('error', 'Chamado inválido.');
-                redirect('/helpdesk/index');
+                $responder(false, 'Chamado inválido.');
                 return;
             }
 
             $data = [];
+
+            $respValue = $request->post('id_resp');
+            if ($respValue !== null) {
+                if ($respValue === '') {
+                    $respValue = AuthService::getUserCpf() ?? '';
+                }
+                $data['id_resp'] = $respValue;
+            }
 
             $statusValue = $request->post('status');
             if ($statusValue !== null && $statusValue !== '') {
@@ -130,12 +151,11 @@ class HelpdeskController extends BaseController
             $cancelando = $statusValue === 'C' && $statusAtual !== 'C';
 
             if ($cancelando && ($motivo === '' || !ctype_digit($motivo))) {
-                AlertManager::add('error', 'Selecione o motivo do cancelamento.');
-                redirect($this->redirectBack($request, $id));
+                $responder(false, 'Selecione o motivo do cancelamento.');
                 return;
             }
 
-            foreach (['idgrupo', 'idsubgrupo', 'id_resp'] as $campo) {
+            foreach (['idgrupo', 'idsubgrupo'] as $campo) {
                 $valor = $request->post($campo);
                 if ($valor !== null && $valor !== '') {
                     $data[$campo] = $valor;
@@ -143,8 +163,7 @@ class HelpdeskController extends BaseController
             }
 
             if (empty($data)) {
-                AlertManager::add('error', 'Nenhum campo para atualizar.');
-                redirect($this->redirectBack($request, $id));
+                $responder(false, 'Nenhum campo para atualizar.');
                 return;
             }
 
@@ -160,14 +179,7 @@ class HelpdeskController extends BaseController
                 'tipo' => 'UPDATE',
                 'modulo' => 'helpdesk',
                 'acao' => 'alterar_chamado',
-                'usuario_id' => $user['id'] ?? null,
-                'chapa' => $user['chapa'] ?? null,
-                'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
-                'metodo_http' => $request->method(),
-                'rota' => $request->uri(),
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
-                'mensagem' => "chamado {$id} " . (in_array($statusValue, ['R','C'], true) ? 'encerrado' : 'alterado'),
+                'mensagem' => "chamado {$id} " . (in_array($statusValue, ['R'], true) ? 'finalizado' : 'alterado'),
                 'contexto' => $data
             ]);
 
@@ -179,17 +191,23 @@ class HelpdeskController extends BaseController
                     $this->cpfUsuarioAtual(),
                     $statusValue
                 );
-                AlertManager::add('warning', "Chamado Nº {$id} cancelado.");
-            } else {
-                AlertManager::add('success', "Chamado Nº {$id} atualizado.");
+                LogService::store([
+                    'nivel' => 'INFO',
+                    'tipo' => 'UPDATE',
+                    'modulo' => 'helpdesk',
+                    'acao' => 'cancelar_chamado',
+                    'mensagem' => "chamado {$id} cancelado",
+                    'contexto' => $data
+                ]);
+                $responder(true, "Chamado Nº {$id} cancelado.", $this->redirectBack($request, $id));
+                return;
             }
 
-            redirect($this->redirectBack($request, $id));
+            $responder(true, "Chamado Nº {$id} atualizado.", $this->redirectBack($request, $id));
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            AlertManager::add('error', 'Erro ao atualizar o chamado.');
-            redirect('/helpdesk/index');
+            $responder(false, 'Erro ao atualizar o chamado.');
         }
     }
 
@@ -284,19 +302,28 @@ class HelpdeskController extends BaseController
 
     public function interacao(Request $request): void
     {
+        $json = $this->isFetch($request);
+        $responder = function (bool $sucesso, string $mensagem, ?string $url = null, int $status = 200) use ($request, $json) {
+            if ($json) {
+                Response::json(['success' => $sucesso, 'message' => $mensagem], $sucesso ? 200 : $status);
+                return;
+            }
+
+            AlertManager::add($sucesso ? 'success' : 'error', $mensagem);
+            redirect($url ?? '/helpdesk/index');
+        };
+
         try {
             $id = (int) $request->post('id', 0);
             $mensagem = trim((string) $request->post('mensagem', ''));
 
             if ($id <= 0) {
-                AlertManager::add('error', 'Chamado inválido.');
-                redirect('/helpdesk/index');
+                $responder(false, 'Chamado inválido.');
                 return;
             }
 
             if ($mensagem === '') {
-                AlertManager::add('error', 'Escreva uma mensagem para registrar a interação.');
-                redirect($this->redirectBack($request, $id));
+                $responder(false, 'Escreva uma mensagem para registrar a interação.');
                 return;
             }
 
@@ -313,8 +340,7 @@ class HelpdeskController extends BaseController
                 } catch (Throwable $e) {
                     Logger::exception($e);
 
-                    AlertManager::add('error', $e->getMessage());
-                    redirect($this->redirectBack($request, $id));
+                    $responder(false, $e->getMessage());
                     return;
                 }
             }
@@ -327,7 +353,8 @@ class HelpdeskController extends BaseController
                 } catch (Throwable $e) {
                     Logger::exception($e);
 
-                    AlertManager::add('warning', 'Interação registrada, mas o anexo não pôde ser salvo.');
+                    $responder(true, 'Interação registrada, mas o anexo não pôde ser salvo.', $this->redirectBack($request, $id));
+                    return;
                 }
             }
 
@@ -336,9 +363,7 @@ class HelpdeskController extends BaseController
 
             $this->notificarInteracao($id, $mensagem, $idUsu);
 
-            AlertManager::add('success', "Interação registrada no chamado Nº {$id}.");
-
-            redirect($this->redirectBack($request, $id));
+            $responder(true, "Interação registrada no chamado Nº {$id}.", $this->redirectBack($request, $id));
         } catch (Throwable $e) {
             LogService::store([
                 'nivel' => 'ERROR',
@@ -354,8 +379,7 @@ class HelpdeskController extends BaseController
             ]);
             Logger::exception($e);
 
-            AlertManager::add('error', 'Erro ao registrar a interação.');
-            redirect('/helpdesk/index');
+            $responder(false, 'Erro ao registrar a interação.');
         }
     }
 
@@ -425,6 +449,11 @@ class HelpdeskController extends BaseController
         $query['open'] = $id;
 
         return '/helpdesk/index?' . http_build_query($query);
+    }
+
+    private function isFetch(Request $request): bool
+    {
+        return $request->header('X-Requested-With') === 'fetch';
     }
 
     private function cpfUsuarioAtual(): string

@@ -16,6 +16,7 @@ class HelpdeskModel
         ?string $status = null,
         ?string $local = null,
         ?string $idResp = null,
+        ?string $idMeu = null,
         ?bool $isSuporte = false,
         ?bool $isExterno = false
     ): array|null {
@@ -84,8 +85,9 @@ class HelpdeskModel
             ->when(!empty($emitente), fn($q) => $q->where('f.nome', 'LIKE', "%$emitente%"))
             ->when(!empty($status), fn($q) => $q->where('h.status', $status))
             ->when(!empty($idResp), fn($q) => $q->where('h.id_resp', $idResp)->whereNotNull('h.status'))
+            ->when(!empty($idMeu), fn($q) => $q->where('h.cpf_ab', $idMeu)->whereNotNull('h.status'))
             ->when($isExterno === true, fn($q) => $q->where('h.id_resp', AuthService::getUserCpf()))
-            ->when(empty($status) && $isSuporte && empty($id), fn($q) => $q->whereNotIn('h.status', ['R', 'C']));
+            ->when(empty($status) && empty($idMeu) && $isSuporte && empty($id), fn($q) => $q->whereNotIn('h.status', ['R', 'C']));
 
         return $chamadosAbertos->paginate($page, $limit);
     }

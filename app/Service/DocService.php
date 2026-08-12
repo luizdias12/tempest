@@ -158,6 +158,16 @@ class DocService
         $nomeArquivo = $arquivo['nome'];
         $ext = $arquivo['ext'];
 
+        $cpf = AuthService::getUserCpf() ?? 'sistema';
+        $titulo = $file['name'] !== '' ? (string) $file['name'] : $nomeArquivo;
+
+        $idDocExistente = DocModel::buscarDocPorArquivo($idDir, $idSubdir, $nomeArquivo);
+
+        if ($idDocExistente !== null) {
+            $versao = (DocModel::ultimaVersao($idDocExistente) ?? 0) + 1;
+            $nomeArquivo = self::nomeVersao($nomeArquivo, $versao);
+        }
+
         $dirs = self::diretoriosParaCaminho($idDir, $idSubdir);
 
         $relativo = 'documentos/' . $dirs['diretorio'] . '/' . $dirs['subdiretorio'] . '/' . $nomeArquivo;
@@ -173,14 +183,7 @@ class DocService
             throw new RuntimeException('Falha ao salvar o arquivo em disco.');
         }
 
-        $cpf = AuthService::getUserCpf() ?? 'sistema';
-        $titulo = $file['name'] !== '' ? (string) $file['name'] : $nomeArquivo;
-
-        $idDocExistente = DocModel::buscarDocPorArquivo($idDir, $idSubdir, $nomeArquivo);
-
         if ($idDocExistente !== null) {
-            $versao = (DocModel::ultimaVersao($idDocExistente) ?? 0) + 1;
-
             $idVersao = DocModel::criarVersao([
                 'id_doc' => $idDocExistente,
                 'versao' => $versao,
@@ -192,6 +195,8 @@ class DocService
             ]);
 
             if ($idVersao === null) {
+                @unlink($absoluto);
+
                 throw new RuntimeException('Erro ao registrar a nova versão.');
             }
 
@@ -253,6 +258,11 @@ class DocService
         $arquivo = self::validarArquivo($file);
         $nomeArquivo = $arquivo['nome'];
 
+        $cpf = AuthService::getUserCpf() ?? 'sistema';
+        $versao = (DocModel::ultimaVersao($idDoc) ?? 0) + 1;
+
+        $nomeArquivo = self::nomeVersao($nomeArquivo, $versao);
+
         $dirs = self::diretoriosParaCaminho((int) $doc['id_dir'], (int) $doc['id_subdir']);
 
         $relativo = 'documentos/' . $dirs['diretorio'] . '/' . $dirs['subdiretorio'] . '/' . $nomeArquivo;
@@ -267,9 +277,6 @@ class DocService
         if (!move_uploaded_file((string) $file['tmp_name'], $absoluto)) {
             throw new RuntimeException('Falha ao salvar o arquivo em disco.');
         }
-
-        $cpf = AuthService::getUserCpf() ?? 'sistema';
-        $versao = (DocModel::ultimaVersao($idDoc) ?? 0) + 1;
 
         $idVersao = DocModel::criarVersao([
             'id_doc' => $idDoc,
@@ -397,6 +404,31 @@ class DocService
     public static function restaurarVersao(int $idDoc, int $idVersao): bool
     {
         return DocModel::restaurarVersao($idDoc, $idVersao);
+    }
+
+    public static function excluirVersao(int $idDoc, int $idVersao): string
+    {
+        $info = DocModel::versaoInfo($idDoc, $idVersao);
+
+        if ($info === null) {
+            throw new RuntimeException('Versão não encontrada para este documento.');
+        }
+
+        if ($info['atual']) {
+            throw new RuntimeException('A versão atual não pode ser excluída.');
+        }
+
+        if (!DocModel::excluirVersao($idDoc, $idVersao)) {
+            throw new RuntimeException('Erro ao excluir a versão.');
+        }
+
+        $absoluto = self::caminhoAbsoluto($info['caminho']);
+
+        if (DocModel::outrasVersoesComMesmoCaminho($info['caminho'], $idVersao) === 0 && is_file($absoluto)) {
+            @unlink($absoluto);
+        }
+
+        return "Versão {$info['versao']} do documento excluída.";
     }
 
     public static function excluirDocumento(int $idDoc): bool
@@ -580,6 +612,18 @@ class DocService
             'nome' => self::sanitizarNome((string) $file['name']),
             'ext' => $ext,
         ];
+    }
+
+    private static function nomeVersao(string $nomeArquivo, int $versao): string
+    {
+        $ext = strtolower(pathinfo($nomeArquivo, PATHINFO_EXTENSION));
+        $base = pathinfo($nomeArquivo, PATHINFO_FILENAME);
+
+        if ($base === '' || $base === '.') {
+            $base = 'arquivo';
+        }
+
+        return $ext !== '' ? "{$base}_v{$versao}.{$ext}" : "{$base}_v{$versao}";
     }
 
     private static function sanitizarNome(string $nome): string

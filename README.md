@@ -1,24 +1,24 @@
-# 🚀 Web Master — PHP MVC Framework (Portfolio)
+# 🌪️ Tempest — Intranet Corporativa
 
-> 💡 Um mini-framework desenvolvido do zero em PHP, inspirado em arquiteturas modernas como MVC + Service Layer, com foco em organização, escalabilidade e boas práticas de engenharia.
+> 💡 Aplicação web PHP construída sobre um mini-framework MVC próprio (Controller → Service → Model), sem frameworks externos, com foco em organização, escalabilidade e boas práticas de engenharia.
 
 ---
 
 ## 🖼️ Visão Geral
 
-Este projeto demonstra a construção de uma aplicação completa **sem frameworks externos**, incluindo:
+O **Tempest** é a intranet da Villefort Atacarejo. Reúne em um único sistema os principais serviços internos, integrando-se diretamente aos bancos de dados legados da empresa.
 
 * 🔹 Arquitetura em camadas (Controller → Service → Model)
-* 🔹 Sistema de rotas próprio
-* 🔹 Middleware (Auth, CORS, API)
-* 🔹 Tratamento de exceções centralizado
-* 🔹 Padrão de resposta para APIs
-* 🔹 Paginação nativa
-* 🔹 Separação entre API e Web
+* 🔹 Sistema de rotas próprio (Web + API)
+* 🔹 Middleware (Auth via LDAP, Role TI, CORS, API)
+* 🔹 Tratamento de exceções centralizado e logging
+* 🔹 Conexão simultânea com **3 bancos de dados**
+* 🔹 Paginação, upload de arquivos e notificação por e-mail
+* 🔹 Validação de acesso por funções (RH/TOTVS)
 
 ---
 
-## 🧠 Arquitetura (Clean-like)
+## 🧠 Arquitetura
 
 ```text
 Request → Router → Middleware → Controller → Service → Model → Database
@@ -26,15 +26,22 @@ Request → Router → Middleware → Controller → Service → Model → Datab
 
 ### 🔸 Controller
 
-Recebe a requisição e retorna a resposta.
+Recebe a requisição, orquestra os serviços e devolve a resposta (view, redirect ou JSON).
 
 ### 🔸 Service
 
-Camada de regras de negócio.
+Camada de regras de negócio — isolada da infraestrutura.
 
 ### 🔸 Model
 
-Responsável pelo acesso ao banco de dados.
+Responsável pelo acesso ao banco de dados, separado por conexão:
+
+```text
+app/Model/
+├── Mysql/      → dados operacionais (helpdesk, documentos, logs, carousel...)
+├── Oracle/     → banco RM (TOTVS) — funcionários, financeiro, filiais
+└── Consinco/   → banco Consinco — funções pai
+```
 
 ### 🔸 Core
 
@@ -42,17 +49,17 @@ Infraestrutura do sistema:
 
 * Router
 * Request / Response
-* DB (PDO)
+* DB (PDO — conexões `mysql`, `rm` e `consinco`)
+* ErrorHandler / Logger
+* BaseController
 * ApiException
-* ErrorHandler
+* Alerts (AlertManager — toasts/flash messages)
 
 ### 🔸 Middleware
 
-Intercepta requisições para:
-
-* Autenticação
-* CORS
-* Tratamento de API
+* `AuthMiddleware` → autenticação LDAP + presença online (heartbeat)
+* `RoleMiddleware` → restringe rotas ao suporte TI
+* `CorsMiddleware` / `ApiMiddleware` → camada de API
 
 ---
 
@@ -60,31 +67,48 @@ Intercepta requisições para:
 
 ```bash
 app/
-├── Controller/
-├── Core/
+├── Controller/       # Controllers web + API
+├── Core/             # Infraestrutura (DB, Router, Request, Response, Logger...)
+├── Middleware/       # Auth, Role, CORS, API
+├── Model/            # Mysql / Oracle (RM) / Consinco
+├── Service/          # Regras de negócio
+├── View/             # Templates (por módulo + partials + components)
+├── Facades/
 ├── DTO/
-├── Middleware/
-├── Model/
-├── Service/
-├── View/
 routes/
-├── api.php
-├── web.php
+├── api.php           # Rotas da API
+├── web.php           # Rotas web
 public/
-├── index.php
+├── index.php         # Front controller
+├── css/ js/ assets/  # Estilos, scripts e arquivos públicos
 resources/
-├── functions/
+├── functions/        # Helpers globais (view, asset, initcap, pagination...)
 ```
 
 ---
 
 ## ⚙️ Stack Utilizada
 
-* 🐘 PHP 8+
-* 🛢️ MySQL (PDO)
-* 📦 Composer (PSR-4 Autoload)
-* 🌐 JavaScript (Vanilla)
-* 🎨 HTML + CSS
+* 🐘 PHP 8+ (PDO)
+* 🛢️ MySQL — dados operacionais
+* 🛢️ Oracle RM (TOTVS) — RH, financeiro e funções
+* 🛢️ Oracle Consinco — funções pai
+* 🔐 LDAP / Active Directory — autenticação
+* 📦 Composer: `vlucas/phpdotenv`, `phpoffice/phpspreadsheet`, `phpmailer/phpmailer`
+* 🌐 JavaScript Vanilla + HTML + CSS (tema dark, sem frameworks de frontend)
+
+---
+
+## 🧩 Módulos
+
+* 🏠 **Home** — carousel de banners/vídeos gerenciável pela tabela `carousel` (imagens em `public/assets/caroussel/`)
+* 🖥️ **Helpdesk** — abertura de chamados, histórico com anexos, filtros (por Nº, nome, status, local, "atribuídos a mim"), SLA, cancelamento com motivo, notificações por e-mail e visualização de anexos
+* 📄 **Documentos** — árvore de diretórios/subpastas, versões de documentos, permissões por função, download inline e gestão administrativa
+* 💰 **Financeiro** — holerite com totais e impressão em PDF (dados do RM)
+* 👥 **Funcionários** — listagem com filtros e aniversariantes do mês em cards por dia (dados do RM)
+* 🛠️ **TI** — lista de funcionários da TI com exportação Excel (PhpSpreadsheet)
+* 📶 **Usuários Online** — presença em tempo real via heartbeat (tabela `online`) com força de deslogamento
+* 📜 **Logs** — auditoria centralizada das ações no sistema (`log_user`)
 
 ---
 
@@ -102,83 +126,55 @@ resources/
 }
 ```
 
+Destaques: autenticação JWT, consulta de funcionários (por chapa/nome), totais de holerite e utilitários de data.
+
 ---
 
 ## ❌ Tratamento de Erros
 
-Uso de exceção customizada:
-
-```php
-throw new ApiException('Usuário não encontrado', 404);
-```
-
-✔ Erros de negócio → `ApiException`
-✔ Erros inesperados → capturados globalmente
-
----
-
-## 🔐 Middlewares
-
-* `AuthMiddleware` → autenticação
-* `CorsMiddleware` → controle de acesso
-* `ApiMiddleware` → padronização de requisições API
-
----
-
-## 📄 Exemplo de Endpoint
-
-```http
-GET /api/usuarios?page=1&limit=10
-```
+* ✔ Erros de negócio → `ApiException`
+* ✔ Erros inesperados → capturados globalmente (`ErrorHandler`) e registrados no `Logger`
 
 ---
 
 ## 🛠️ Funcionalidades
 
-* ✔ CRUD completo de usuários
-* ✔ Paginação
-* ✔ Upload de arquivos
-* ✔ Sistema de rotas customizado
-* ✔ Middleware configurável
-* ✔ Respostas padronizadas
+* ✔ Autenticação LDAP com sessão
+* ✔ CRUD e gestão administrativa de documentos com permissões por função
+* ✔ Carousel administrável (upload, ordem, ativar/inativar, excluir)
+* ✔ Upload de anexos (validado por tipo e tamanho)
+* ✔ Paginação nativa
+* ✔ Notificação por e-mail (PHPMailer)
+* ✔ Exportação Excel (PhpSpreadsheet)
+* ✔ Presença online com heartbeat throttled + retry em deadlock
+* ✔ Logging de auditoria
+* ✔ Respostas padronizadas para API
 
 ---
 
-## 🚀 Roadmap (Evolução)
+## 🚀 Roadmap
 
 * [ ] Validator estilo Laravel
 * [ ] DTO completo
 * [ ] Query Layer (joins complexos)
-* [ ] Logger estruturado
-* [ ] Autenticação JWT
+* [ ] Autenticação JWT para frontend mobile
+* [x] Logger estruturado
 * [x] Cache
 
 ---
 
-## 🧑‍💻 Sobre o Projeto
+## 🔧 Configuração
 
-Este projeto foi desenvolvido com o objetivo de:
-
-* 📚 Estudo de arquitetura backend
-* 🧠 Prática de boas práticas em PHP
-* 🏗️ Construção de um mini-framework próprio
-
----
-
-## 👨‍💻 Autor
-
-**Luiz Junior**
+1. `composer install`
+2. Copie `.env.example` → `.env` e preencha as conexões (LDAP, Oracle RM, Oracle Consinco, MySQL e e-mail)
+3. Aponte o servidor web para `public/`
+4. Crie a tabela `carousel` (id, filename, ord, dtinicio, dtfim, ativo) e registre os slides
 
 ---
 
-## ⭐ Destaque
+## 🧑‍💻 Autor
 
-Este projeto demonstra conhecimento em:
-
-* Arquitetura em camadas
-* Padrões de projeto
-* Backend estruturado
-* Criação de framework próprio
+**Luiz Junior** — Desenvolvimento e arquitetura.
 
 ---
 

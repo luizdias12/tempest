@@ -506,6 +506,57 @@ class DocModel
         return $stmt->rowCount();
     }
 
+    public static function versaoInfo(int $idDoc, int $idVersao): ?array
+    {
+        $row = DB::first("
+            SELECT
+                v.id,
+                v.versao,
+                v.caminho,
+                (v.id = doc.id_versao_atual) AS atual
+            FROM doc_versao v
+            JOIN doc_documento doc ON doc.id_doc = v.id_doc
+            WHERE v.id = :versao
+              AND v.id_doc = :doc
+        ", ['versao' => $idVersao, 'doc' => $idDoc], 'mysql');
+
+        if ($row === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $row['id'],
+            'versao' => (int) $row['versao'],
+            'caminho' => $row['caminho'],
+            'atual' => (bool) $row['atual'],
+        ];
+    }
+
+    public static function excluirVersao(int $idDoc, int $idVersao): bool
+    {
+        $info = self::versaoInfo($idDoc, $idVersao);
+
+        if ($info === null || $info['atual']) {
+            return false;
+        }
+
+        $stmt = DB::connect('mysql')->prepare("DELETE FROM doc_versao WHERE id = :id");
+
+        return $stmt->execute(['id' => $idVersao]);
+    }
+
+    public static function outrasVersoesComMesmoCaminho(string $caminho, int $idVersao): int
+    {
+        $row = DB::first("
+            SELECT COUNT(*) AS total
+            FROM doc_versao
+            WHERE caminho = :caminho
+              AND id <> :id
+        ", ['caminho' => $caminho, 'id' => $idVersao], 'mysql');
+
+        return (int) ($row['total'] ?? 0);
+    }
+
     public static function restaurarVersao(int $idDoc, int $idVersao): bool
     {
         $versao = DB::first("

@@ -14,6 +14,7 @@ class HelpdeskService
         ?string $status = null,
         ?string $local = null,
         ?string $idResp = null,
+        ?string $idMeu = null,
         ?bool $isSuporte = false,
         ?bool $isExterno = false
         ): array|null
@@ -21,7 +22,7 @@ class HelpdeskService
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
         
-        return HelpdeskModel::chamadosAbertos($page, $limit, $id, $emitente, $status, $local, $idResp, $isSuporte, $isExterno);
+        return HelpdeskModel::chamadosAbertos($page, $limit, $id, $emitente, $status, $local, $idResp, $idMeu, $isSuporte, $isExterno);
     }
 
     public static function obterSla(int $idgrupo, int $idsubgrupo): ?int

@@ -228,6 +228,16 @@ class DocController extends BaseController
         }, 'restaurar_versao');
     }
 
+    public function excluirVersao(Request $request): void
+    {
+        $this->acaoGestao($request, function () use ($request): string {
+            return DocService::excluirVersao(
+                (int) $request->post('id_doc', 0),
+                (int) $request->post('id_versao', 0)
+            );
+        }, 'excluir_versao');
+    }
+
     public function excluirDocumento(Request $request): void
     {
         $this->acaoGestao($request, function () use ($request): string {

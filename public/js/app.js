@@ -129,4 +129,66 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
     });
+
+    // Carousel
+    var carousel = document.getElementById('homeCarousel');
+    if (carousel) {
+        var slides = carousel.querySelectorAll('.carousel-slide');
+        var indicators = carousel.querySelectorAll('.carousel-indicator');
+        var current = 0;
+        var intervalId = null;
+        var INTERVAL = 150000;
+        var PAUSED = false;
+
+        function goToSlide(index) {
+            if (!slides.length) return;
+            current = (index + slides.length) % slides.length;
+            slides.forEach(function(slide, i) {
+                slide.classList.toggle('active', i === current);
+            });
+            indicators.forEach(function(ind, i) {
+                ind.classList.toggle('active', i === current);
+            });
+        }
+
+        function nextSlide() {
+            goToSlide(current + 1);
+        }
+
+        function startAutoplay() {
+            stopAutoplay();
+            if (!PAUSED && slides.length > 1) {
+                intervalId = setInterval(nextSlide, INTERVAL);
+            }
+        }
+
+        function stopAutoplay() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        }
+
+        carousel.querySelector('.carousel-prev').addEventListener('click', function() {
+            goToSlide(current - 1);
+            startAutoplay();
+        });
+
+        carousel.querySelector('.carousel-next').addEventListener('click', function() {
+            goToSlide(current + 1);
+            startAutoplay();
+        });
+
+        indicators.forEach(function(ind) {
+            ind.addEventListener('click', function() {
+                goToSlide(parseInt(ind.getAttribute('data-slide')));
+                startAutoplay();
+            });
+        });
+
+        carousel.addEventListener('mouseenter', function() { PAUSED = true; startAutoplay(); });
+        carousel.addEventListener('mouseleave', function() { PAUSED = false; startAutoplay(); });
+
+        startAutoplay();
+    }
 });

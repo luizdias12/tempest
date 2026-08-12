@@ -107,6 +107,29 @@ class FuncionarioController extends BaseController
         }
     }
 
+    public function aniversariantesView(Request $request): void
+    {
+        try {
+            $mes = $request->query('mes', date('n'));
+            $mes = max(1, min(12, (int) $mes));
+
+            $codfilial = $request->input('filial', $request->query('filial', ''));
+
+            $data = FuncionarioService::aniversariantes($mes, $codfilial ?: null);
+
+            view('funcionarios/aniversariantes', [
+                'data' => $data,
+                'mes' => $mes,
+                'filial' => $codfilial,
+                'title' => 'Aniversariantes'
+            ]);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+
+            ErrorHandler::handle(500, $e->getMessage());
+        }
+    }
+
     public function listaDownload(Request $request): void
     {
         $permitidos = ['405','0310'];

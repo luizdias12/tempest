@@ -3,6 +3,7 @@
 /** @var $router App\Core\Router */
 
 use App\Controller\AuthController;
+use App\Controller\CarouselController;
 use App\Controller\DocController;
 use App\Controller\ErrorController;
 use App\Controller\FinancController;
@@ -36,6 +37,7 @@ $router->get('/financ/holerite/pdf', [FinancController::class, 'holeritePdf'], [
 
 //FuncionarioController
 $router->get('/funcionarios/index', [FuncionarioController::class, 'indexView'], ['auth', 'role']);
+$router->get('/funcionarios/aniversariantes', [FuncionarioController::class, 'aniversariantesView']);
 $router->get('/ti/lista', [FuncionarioController::class, 'listaView'], ['auth']);
 $router->get('/ti/lista/download', [FuncionarioController::class, 'listaDownload'], ['auth']);
 
@@ -59,10 +61,18 @@ $router->post('/documentos/geral', [DocController::class, 'geral'], ['auth', 'ro
 $router->post('/documentos/copiar-permissoes', [DocController::class, 'copiarPermissoes'], ['auth', 'role']);
 $router->post('/documentos/nova-versao', [DocController::class, 'novaVersao'], ['auth', 'role']);
 $router->post('/documentos/versao', [DocController::class, 'versao'], ['auth', 'role']);
+$router->post('/documentos/versao/excluir', [DocController::class, 'excluirVersao'], ['auth', 'role']);
 $router->post('/documentos/excluir-documento', [DocController::class, 'excluirDocumento'], ['auth', 'role']);
 
 //LogController
 $router->get('/logs', [LogController::class, 'indexView'], ['auth', 'role']);
+
+//CarouselController
+$router->get('/carousel/gestao', [CarouselController::class, 'gestaoView'], ['auth', 'role']);
+$router->post('/carousel/salvar', [CarouselController::class, 'salvar'], ['auth', 'role']);
+$router->post('/carousel/ativo', [CarouselController::class, 'ativo'], ['auth', 'role']);
+$router->post('/carousel/ordem', [CarouselController::class, 'ordem'], ['auth', 'role']);
+$router->post('/carousel/excluir', [CarouselController::class, 'excluir'], ['auth', 'role']);
 
 //OnlineController
 $router->get('/online', [OnlineController::class, 'indexView'], ['auth', 'role']);

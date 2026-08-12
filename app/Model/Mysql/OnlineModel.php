@@ -3,6 +3,8 @@
 namespace App\Model\Mysql;
 
 use App\Core\DB;
+use PDO;
+use PDOException;
 
 class OnlineModel
 {
@@ -19,7 +21,7 @@ class OnlineModel
                 local = :local2
         ");
 
-        return $stmt->execute([
+        return self::executarComTentativa($stmt, [
             'cpf' => $cpf,
             'ip' => $ip,
             'sid' => $sessionId,
@@ -37,9 +39,10 @@ class OnlineModel
             SET dt_login = NOW()
             WHERE sessionid = :sid
             AND status = '1'
+            AND dt_login < NOW() - INTERVAL 60 SECOND
         ");
 
-        return $stmt->execute(['sid' => $sessionId]);
+        return self::executarComTentativa($stmt, ['sid' => $sessionId]);
     }
 
     public static function registrarLogout(string $cpf): bool
@@ -51,7 +54,7 @@ class OnlineModel
             AND status = '1'
         ");
 
-        return $stmt->execute(['cpf' => $cpf]);
+        return self::executarComTentativa($stmt, ['cpf' => $cpf]);
     }
 
     public static function situacaoSessao(string $sessionId, string $cpf): ?string
@@ -113,5 +116,27 @@ class OnlineModel
                 'totalPages' => $totalPages,
             ],
         ];
+    }
+
+    private static function executarComTentativa(\PDOStatement $stmt, array $params, int $tentativas = 3): bool
+    {
+        $ultima = null;
+
+        for ($i = 0; $i < $tentativas; $i++) {
+            try {
+                $stmt->execute($params);
+                return true;
+            } catch (PDOException $e) {
+                $ultima = $e;
+
+                if ($e->getCode() !== '40001') {
+                    throw $e;
+                }
+
+                usleep(100000 * ($i + 1));
+            }
+        }
+
+        throw $ultima;
     }
 }

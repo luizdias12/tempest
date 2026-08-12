@@ -188,6 +188,44 @@ class FuncionarioModel extends DB
         return $query->paginate($page, $limit);
     }
 
+    public static function aniversariantes(?string $mes, ?string $codfilial = null): array
+    {
+        $query = QueryBuilder::table('ppessoa p')
+            ->select(
+                'p.codigo as codpessoa',
+                'f.chapa',
+                'p.nome',
+                "TO_CHAR(p.dtnascimento, 'YYYY-MM-DD') as dtnascimento",
+                'p.cpf',
+                'f.codfilial',
+                'g.vilnomefilial as filial',
+                'f.codsecao',
+                's.descricao as secao',
+                'f.codfuncao',
+                'fu.nome as funcaorm',
+                'initcap(pai.funcaopai) as funcao'
+            )
+            ->join('pfunc f', 'f.codpessoa', '=', 'p.codigo')
+            ->leftJoin('pfuncao fu', 'f.codfuncao', '=', 'fu.codigo')
+            ->leftJoin('consinco.vilrhfuncaofilho@consinco filho', 'filho.codfuncao', '=', 'f.codfuncao')
+            ->leftJoin('consinco.vilrhfuncaopai@consinco pai', 'pai.codfuncaopai', '=', 'filho.codfuncaopai')
+            ->leftJoin('psecao s', 'f.codsecao', '=', 's.codigo')
+            ->leftJoin('gfilial g', 'f.codfilial', '=', 'g.codfilial')
+            ->whereRaw('EXTRACT(MONTH FROM p.dtnascimento) = :mes', ['mes' => $mes])
+            ->whereNotNull('p.dtnascimento')
+            ->whereNotIn('f.codsituacao', ['D', 'L'])
+            ->orderBy('f.codfilial', 'ASC')
+            ->orderBy('EXTRACT(DAY FROM p.dtnascimento)', 'ASC')
+            ->orderBy('p.nome', 'ASC');
+
+        if (!empty($codfilial)) {
+            $query->where('f.codfilial', $codfilial);
+            return $query->get();
+        } else {
+            return [];
+        }
+    }
+
     public static function dataFerias(string $chapa): ?array
     {
         return QueryBuilder::table('pfuferiasper fp')

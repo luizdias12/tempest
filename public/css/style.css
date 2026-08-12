@@ -575,7 +575,12 @@ td.valor {
     overflow: auto;
 }
 
-.chamado-top h1,h2,h3,h4,h5,h6 {
+.chamado-top h1,
+.chamado-top h2,
+.chamado-top h3,
+.chamado-top h4,
+.chamado-top h5,
+.chamado-top h6 {
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.116);
@@ -1037,16 +1042,50 @@ td.valor {
 .filter-form .filter-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
     font-weight: 500;
 }
 
 .filter-form .filter-toggle input[type="checkbox"] {
-    accent-color: #83e6e6;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.2);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.filter-form .filter-toggle input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
     width: 16px;
     height: 16px;
-    cursor: pointer;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.3s ease;
+}
+
+.filter-form .filter-toggle input[type="checkbox"]:checked {
+    background: #83e6e6;
+    border-color: #83e6e6;
+}
+
+.filter-form .filter-toggle input[type="checkbox"]:checked::before {
+    left: calc(100% - 18px);
+    background: #0b1a20;
+}
+
+.filter-form .filter-toggle input[type="checkbox"]:focus-visible {
+    outline: 2px solid #83e6e6;
+    outline-offset: 2px;
 }
 
 .filter-form input[type="text"] {
@@ -2221,4 +2260,304 @@ td.valor {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+}
+
+.aniversariantes-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.aniversariantes-cards .card_cs {
+    position: relative;
+    height: auto;
+    display: flex;
+    width: 30%;
+    min-width: 280px;
+    margin: 10px 30px;
+    border-radius: 20px;
+    padding: 10px 5px 10px 40px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.aniversariantes-cards .card_cs:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.aniversariantes-cards .card_cs.normal {
+    background: #fff;
+}
+
+.aniversariantes-cards .card_cs.congrats {
+    background: url("../assets/images/birthday.jpg") center/cover no-repeat;
+    border: 1px solid rgba(255, 193, 7, 0.6);
+}
+
+.aniversariantes-cards .card_cs .imgBx_cs {
+    position: absolute;
+    height: 80px;
+    width: 60px;
+    left: -25px;
+    top: calc(50% - 40px);
+    background: rgba(255, 193, 7, 0.473);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 193, 7, 0.473);
+    box-shadow: 5px 5px 30px rgba(0, 0, 0, 0.1);
+    transition: 0.5s ease-in-out;
+}
+
+.aniversariantes-cards .card_cs .imgBx_cs h1 {
+    font-size: 48px;
+    z-index: 3;
+    margin: 0;
+    color: #58420e; /*b8860b*/
+}
+
+.aniversariantes-cards .card_cs.congrats .imgBx_cs h1 {
+    color: #fff;
+    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.aniversariantes-cards .card_cs .content_cs {
+    right: 0;
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    word-wrap: break-word;
+}
+
+.aniversariantes-cards .card_cs .content_cs .pessoa_cs {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: 5px;
+}
+
+.aniversariantes-cards .card_cs .content_cs h3 {
+    color: #ffc107;
+    margin: 0;
+    font-size: 18px;
+    text-align: right;
+}
+
+.aniversariantes-cards .card_cs.congrats .content_cs h3 {
+    background: rgba(221, 220, 220, 0.808);
+    padding: 0.2rem;
+    border-radius: 5px;
+    color: #463507;
+}
+
+.aniversariantes-cards .card_cs .content_cs h4 {
+    color: #6c757d;
+    margin: 0;
+    font-size: 16px;
+    text-align: right;
+}
+
+.aniversariantes-cards .card_cs.congrats .content_cs h4 {
+    background: rgba(221, 220, 220, 0.808);
+    padding: 0.2rem;
+    border-radius: 5px;
+    color: #7c6723;
+}
+
+@media only screen and (max-width: 1366px) {
+    .aniversariantes-cards .card_cs .content_cs h3 {
+        font-size: 14px;
+    }
+
+    .aniversariantes-cards .card_cs .content_cs h4 {
+        font-size: 12px;
+    }
+}
+
+.carousel {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    margin: 1.5rem auto;
+}
+
+.carousel-viewport {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    aspect-ratio: 16 / 9;
+    max-height: 75vh;
+}
+
+.carousel-slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.carousel-slide video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.carousel-slide.active {
+    opacity: 1;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 5;
+}
+
+.carousel-nav:hover {
+    background: rgba(0, 0, 0, 0.75);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-prev {
+    left: 0.75rem;
+}
+
+.carousel-next {
+    right: 0.75rem;
+}
+
+.carousel-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.carousel-indicator {
+    width: 0.6rem;
+    height: 0.6rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.carousel-indicator.active,
+.carousel-indicator:hover {
+    background: #ffc107;
+    transform: scale(1.25);
+}
+
+.carousel-thumb {
+    width: 96px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.carousel-ordem {
+    white-space: nowrap;
+}
+
+.carousel-ordem-num {
+    display: inline-block;
+    min-width: 1.6rem;
+    text-align: center;
+    margin: 0 0.3rem;
+    font-weight: 600;
+}
+
+.btn-doc-ordem {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.8rem;
+}
+
+.btn-doc-off {
+    background: rgba(255, 255, 255, 0.06);
+    color: #9a9a9a;
+}
+
+@media only screen and (max-width: 768px) {
+    .carousel-viewport {
+        aspect-ratio: 4 / 3;
+        max-height: 55vh;
+        border-radius: 0.75rem;
+    }
+
+    .carousel-nav {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.8rem;
+    }
+
+    .carousel-prev {
+        left: 0.5rem;
+    }
+
+    .carousel-next {
+        right: 0.5rem;
+    }
+
+    .carousel-indicators {
+        gap: 0.4rem;
+        margin-top: 0.6rem;
+    }
+
+    .carousel-indicator {
+        width: 0.5rem;
+        height: 0.5rem;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .carousel-viewport {
+        aspect-ratio: 1 / 1;
+        max-height: 45vh;
+    }
+
+    .carousel-nav {
+        width: 1.75rem;
+        height: 1.75rem;
+        font-size: 0.7rem;
+    }
 }

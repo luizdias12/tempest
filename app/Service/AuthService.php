@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Core\Facades\JWT;
 use App\Service\FuncionarioService;
 use App\Service\GenericService;
+use App\Service\UsuarioService;
 use Throwable;
 use App\Core\Logger;
 use App\Core\QueryBuilder;
@@ -73,6 +74,7 @@ class AuthService
                     }
                 }
 
+                $isAdmin = UsuarioService::getAdmin($func['cpf']);
                 $permissoes = self::extrairGrupos($entries[0] ?? []);
 
                 $_SESSION['auth'] = [
@@ -87,6 +89,7 @@ class AuthService
                     'secao' => $func['secao'] ?? null,
                     'permissoes' => $permissoes,
                     'suporte' => in_array('ti', $permissoes, true),
+                    'admin' => $isAdmin ?? 'N',
                     'externo' => $externo,
                 ];
 
@@ -236,8 +239,6 @@ class AuthService
                     return null;
                 }
 
-                $permissoes = self::extrairGrupos($entries[0] ?? []);
-
                 $userData = [
                     'sub' => $username,
                     'name' => $entries[0]['cn'][0] ?? $username,
@@ -314,6 +315,10 @@ class AuthService
         $permissoes = self::getUser()['permissoes'] ?? [];
 
         return in_array($permissao, $permissoes, true);
+    }
+
+    public static function isAdmin(): ?string{
+        return UsuarioService::getAdmin(self::getUser()['cpf']) ?? 'N';
     }
 
     public static function isExterno(): bool

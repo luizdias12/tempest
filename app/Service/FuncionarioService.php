@@ -61,6 +61,11 @@ class FuncionarioService
         return $result;
     }
 
+    public static function aniversariantes(string $mes, ?string $codfilial = null): array
+    {
+        return FuncionarioModel::aniversariantes($mes, $codfilial);
+    }
+
     public static function ti(int $page = 1, int $limit = 10): array
     {
         $page = max(1, $page);
