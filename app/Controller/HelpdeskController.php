@@ -38,7 +38,6 @@ class HelpdeskController extends BaseController
 
             $isSuporte = AuthService::hasPermission('ti');
             $isExterno = AuthService::isExterno();
-            // $isSuporte = false; // Temporarily disable support check for testing purposes
             $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $idMeu, $isSuporte, $isExterno);
 
             $grupos = HelpdeskService::listarGrupos();
@@ -184,7 +183,7 @@ class HelpdeskController extends BaseController
             ]);
 
             if ($cancelando) {
-                HelpdeskService::registrarCancelamento($id, (int) $motivo, $this->cpfUsuarioAtual(), $_SERVER['REMOTE_ADDR'] ?? '');
+                HelpdeskService::registrarCancelamento($id, (int) $motivo, $this->cpfUsuarioAtual(), $_SERVER['REMOTE_ADDR'] ?? '', 'U');
                 HelpHistoricoService::registrarInteracao(
                     $id,
                     GenericService::obterTextoCancelamento((int) $motivo),
@@ -401,7 +400,7 @@ class HelpdeskController extends BaseController
                 'status' => $item['status'] ?? '',
                 'historico' => $item['historico'] ?? '',
                 'id_usu' => $item['id_usu'] ?? '',
-                'file_str' => $item['file_str'] ?? '',
+                'file_str' => handleAttach($item['file_str'] ?? '', $id),
                 'dtview' => !empty($item['dtview']) ? date('d-m-Y H:i', strtotime($item['dtview'])) : '',
             ], $hist);
 

@@ -3,6 +3,8 @@
 use App\Service\StatusService;
 use App\Service\GenericService;
 use App\Service\HelpHistoricoService;
+
+// dd($chamados);
 ?>
 
 <div class="header-bar">
@@ -77,7 +79,7 @@ use App\Service\HelpHistoricoService;
         <tbody>
             <?php
             $pendentes = HelpHistoricoService::visualizacoesPendentes(array_column($chamados, 'id'));
-            $atualizados = HelpHistoricoService::chamadosAtualizados(array_column($chamados, 'id'));
+            $atualizados = HelpHistoricoService::chamadosAtualizados(array_column($chamados, 'id'));   
             $anexosAbertura = HelpHistoricoService::anexosAbertura(array_column($chamados, 'id'));
             $possuiAnexo = HelpHistoricoService::possuiAnexo(array_column($chamados, 'id'));
             // dd($possuiAnexo);
@@ -111,7 +113,7 @@ use App\Service\HelpHistoricoService;
                     data-ramal="<?= $chamado['ramal'] !== '' ? htmlspecialchars($chamado['ramal']) : '-' ?>"
                     data-email="<?= $chamado['email'] !== '' ? htmlspecialchars($chamado['email']) : '-' ?>"
                     data-cpf-ab="<?= htmlspecialchars($chamado['cpf_ab'] ?? '') ?>"
-                    data-file-abertura="<?= htmlspecialchars($anexosAbertura[$chamado['id']] ?? '') ?>"
+                    data-file-abertura="<?= handleAttach(htmlspecialchars($anexosAbertura[$chamado['id']]), $chamado['id']) ?>"
                     data-dtview="<?= htmlspecialchars(!empty($chamado['dtview']) ? date('d-m-Y H:i', strtotime($chamado['dtview'])) : '-') ?>">
 
                     <td>
@@ -284,7 +286,7 @@ ob_start();
                     </div>
                     <p><?= htmlspecialchars($item['historico']) ?></p>
                     <?php if (!empty($item['file_str'])): ?>
-                        <p><a href="/<?= htmlspecialchars($item['file_str']) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> Anexo</a></p>
+                        <p><a href="<?= htmlspecialchars(handleAttach($item['file_str'], (int) $open)) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> Anexo</a></p>
                     <?php endif; ?>
                     <?php if (!empty($item['dtview'])): ?>
                         <span class="historico-viewed">Visualizado em <?= date('d-m-Y H:i', strtotime($item['dtview'])) ?></span>
@@ -529,7 +531,11 @@ ob_start();
     function enviarFormModal(form) {
         var modal = form.closest('.modal');
         var btn = form.querySelector('button[type="submit"]');
-        if (btn) btn.disabled = true;
+        var btnOriginal = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span> Enviando...';
+        }
 
         fetch(form.action, {
             method: 'POST',
@@ -556,12 +562,17 @@ ob_start();
                     if (wrapper) wrapper.remove();
                 }
             } else {
+                console.error('Erro ao enviar formulário:', res.message);
                 mostrarToastHistorico('error', res.message);
             }
-        }).catch(function() {
+        }).catch(function(err) {
+            console.error('Erro de comunicação ao enviar formulário:', err);
             mostrarToastHistorico('error', 'Erro de comunicação com o servidor.');
         }).finally(function() {
-            if (btn) btn.disabled = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = btnOriginal;
+            }
         });
     }
 
@@ -609,7 +620,7 @@ ob_start();
             if (item.file_str) {
                 var pa = document.createElement('p');
                 var a = document.createElement('a');
-                a.href = '/' + item.file_str;
+                a.href = item.file_str;
                 a.className = 'anexo-link';
                 a.textContent = ' Anexo';
                 a.setAttribute('download', '');
@@ -714,6 +725,26 @@ ob_start();
         }
     });
 
+    document.addEventListener('change', function(e) {
+        var checkbox = e.target;
+        if (!checkbox || checkbox.type !== 'checkbox') return;
+
+        var form = checkbox.closest('form.filter-form');
+        if (!form) return;
+
+        form.submit();
+    });
+
+    document.addEventListener('change', function(e) {
+        var select = e.target;
+        if (!select || select.tagName !== 'SELECT') return;
+
+        var form = select.closest('form.filter-form');
+        if (!form) return;
+
+        form.submit();
+    });
+
     document.addEventListener('click', function(e) {
         var link = e.target.closest('.anexo-link');
         if (!link) return;
@@ -775,7 +806,7 @@ ob_start();
             if (anexoFile) {
                 anexoWrap.hidden = false;
                 var anexoLink = modal.querySelector('[data-file-abertura-link]');
-                if (anexoLink) anexoLink.href = '/' + anexoFile;
+                if (anexoLink) anexoLink.href = anexoFile;
             } else {
                 anexoWrap.hidden = true;
             }

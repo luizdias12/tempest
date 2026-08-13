@@ -9,7 +9,7 @@ class HelpdeskService
     public static function chamadosAbertos(
         int $page = 1,
         int $limit = 10,
-        ?string $id = null,
+        ?int $id = null,
         ?string $emitente = null,
         ?string $status = null,
         ?string $local = null,
@@ -55,9 +55,9 @@ class HelpdeskService
         return HelpdeskModel::obterStatus($id);
     }
 
-    public static function registrarCancelamento(int $idHelp, int $codmotivo, string $idCanc, string $ip): ?int
+    public static function registrarCancelamento(int $idHelp, int $codmotivo, string $idCanc, string $ip, string $acao): ?int
     {
-        return HelpdeskModel::registrarCancelamento($idHelp, $codmotivo, $idCanc, $ip);
+        return HelpdeskModel::registrarCancelamento($idHelp, $codmotivo, $idCanc, $ip, $acao);
     }
 
     public static function upsertHelpStatus(int $idHelp, string $statusValue): bool
@@ -88,5 +88,10 @@ class HelpdeskService
     public static function cancelaChamado(int $idHelp): bool
     {
         return HelpdeskModel::cancelaChamado($idHelp);
+    }
+
+    public static function chamadosPendentesUsuario(): array|null
+    {
+        return HelpdeskModel::chamadosPendentesUsuario();
     }
 }

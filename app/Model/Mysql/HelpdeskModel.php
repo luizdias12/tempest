@@ -65,11 +65,8 @@ class HelpdeskModel
                     ->on('sg.id', '=', 'h.idsubgrupo');
             })
             ->join('status st', 'st.status', '=', 'h.status')
-            ->leftJoinOn('online o', function ($join) use ($local) {
+            ->leftJoinOn('online o', function ($join) {
                 $join->on('o.cpf', '=', 'f.cpf');
-                if (!empty($local)) {
-                    $join->onValue('o.local', '=', $local);
-                }
             })
             ->orderBy('h.id', 'DESC')
             ->when(!$isSuporte, function ($q) {
@@ -84,6 +81,7 @@ class HelpdeskModel
             ->when(!empty($id), fn($q) => $q->where('h.id', $id))
             ->when(!empty($emitente), fn($q) => $q->where('f.nome', 'LIKE', "%$emitente%"))
             ->when(!empty($status), fn($q) => $q->where('h.status', $status))
+            ->when(!empty($local), fn($q) => $q->where('o.local', $local))
             ->when(!empty($idResp), fn($q) => $q->where('h.id_resp', $idResp)->whereNotNull('h.status'))
             ->when(!empty($idMeu), fn($q) => $q->where('h.cpf_ab', $idMeu)->whereNotNull('h.status'))
             ->when($isExterno === true, fn($q) => $q->where('h.id_resp', AuthService::getUserCpf()))
@@ -134,14 +132,14 @@ class HelpdeskModel
         return DB::first("SELECT status FROM helpdesk WHERE id = :id", ['id' => $id], 'mysql')['status'] ?? null;
     }
 
-    public static function registrarCancelamento(int $idHelp, int $codmotivo, string $idCanc, string $ip): ?int
+    public static function registrarCancelamento(int $idHelp, int $codmotivo, string $idCanc, string $ip, string $acao): ?int
     {
         return DB::insert('help_canc', [
             'id_help' => $idHelp,
             'codmotivo' => $codmotivo,
             'id_canc' => $idCanc,
             'datacanc' => date('Y-m-d H:i:s'),
-            'acao' => 'U',
+            'acao' => $acao,
             'ip' => $ip,
         ], 'mysql');
     }
@@ -231,7 +229,7 @@ class HelpdeskModel
         ], 'mysql');
     }
 
-    public static function chamadosPendentesUsuario(string $cpf): array|null
+    public static function chamadosPendentesSuporte(string $cpf): array|null
     {
         $pendentes = DB::select("SELECT count(*) AS total
             FROM helpdesk
@@ -239,5 +237,20 @@ class HelpdeskModel
             AND id_resp = :resp
         ",
         ['resp' => $cpf], 'mysql');
+        return $pendentes;
+    }
+
+    public static function chamadosPendentesUsuario(): array|null
+    {
+        return QueryBuilder::table('helpdesk h', 'mysql')
+        ->select('h.id', 'h.status',
+        "(SELECT MAX(hh.data_hist) FROM help_hist hh WHERE hh.id_help = h.id AND hh.status <> 'A') AS data_hist",
+        'hs.date as data_status')
+        ->leftJoinOn('help_status hs', function ($join) {
+                $join->on('hs.id_help', '=', 'h.id')
+                    ->onValue('hs.status', '<>', 'A');
+        })
+        ->where('h.status', 'PU')
+        ->get();
     }
 }

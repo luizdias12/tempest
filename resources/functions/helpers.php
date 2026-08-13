@@ -131,6 +131,23 @@ if (!function_exists('asset')) {
     }
 }
 
+if (!function_exists('handleAttach')) {
+    function handleAttach(?string $filename, int $id): string
+    {
+        if (empty($filename)) {
+            return '';
+        }
+
+        $filename = ltrim($filename, '/');
+        $parts = explode('/', $filename);
+
+        if (isset($parts[1]) && (int) $parts[1] === $id) {
+            return 'http://192.168.101.16:8082/' . $filename;
+        }
+
+        return '/' . $filename;
+    }
+}
 
 if (!function_exists('jsonResponse')) {
     function jsonResponse(array $data, int $statusCode = 200): never
