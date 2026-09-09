@@ -9,6 +9,7 @@
             <tr>
                 <th scope="col">Prévia</th>
                 <th scope="col">Arquivo</th>
+                <th scope="col">Link</th>
                 <th scope="col">Período</th>
                 <th scope="col">Ordem</th>
                 <th scope="col">Status</th>
@@ -30,6 +31,13 @@
                         <?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars($slide['filename']) ?></td>
+                    <td>
+                        <?php if ($slide['link']): ?>
+                            <a href="<?= htmlspecialchars($slide['link']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($slide['link']) ?></a>
+                        <?php else: ?>
+                            <span class="badge badge-pill badge-secondary">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <?php if ($slide['dtinicio'] || $slide['dtfim']): ?>
                             De <?= $slide['dtinicio'] ? date('d/m/Y', strtotime($slide['dtinicio'])) : 'sempre' ?>
@@ -65,7 +73,7 @@
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($slides)): ?>
-                <tr><td colspan="6" class="doc-tree-empty">Nenhum slide cadastrado.</td></tr>
+                <tr><td colspan="7" class="doc-tree-empty">Nenhum slide cadastrado.</td></tr>
             <?php endif; ?>
         </tbody>
     </table>
@@ -81,6 +89,9 @@
         </label>
         <label>Data de fim (opcional):
             <input type="date" name="dtfim">
+        </label>
+        <label>Link (opcional):
+            <input type="url" name="link" placeholder="https://... ou /caminho">
         </label>
         <label class="doc-upload-geral">
             <input type="checkbox" name="ativo" value="S" checked>

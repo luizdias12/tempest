@@ -79,7 +79,7 @@ use App\Service\HelpHistoricoService;
         <tbody>
             <?php
             $pendentes = HelpHistoricoService::visualizacoesPendentes(array_column($chamados, 'id'));
-            $atualizados = HelpHistoricoService::chamadosAtualizados(array_column($chamados, 'id'));   
+            $atualizados = HelpHistoricoService::chamadosAtualizados(array_column($chamados, 'id'));
             $anexosAbertura = HelpHistoricoService::anexosAbertura(array_column($chamados, 'id'));
             $possuiAnexo = HelpHistoricoService::possuiAnexo(array_column($chamados, 'id'));
             // dd($possuiAnexo);
@@ -155,7 +155,9 @@ use App\Service\HelpHistoricoService;
                 'local' => $local ?? '',
                 'meus' => $meus ?? '',
                 'openbyme' => $openbyme ?? ''
-            ])) ?>
+            ]
+        )
+    ) ?>
 </div>
 
 <?php
@@ -249,6 +251,14 @@ ob_start();
                     <?php endforeach; ?>
                 </select>
             </label>
+            <label>Solicitante:
+                <select name="cpf_ab" data-field="cpf-ab" <?= !$isSuporte ? "disabled" : "" ?>>
+                    <option value="">Selecione o solicitante</option>
+                    <?php foreach ($funcionarios as $func): ?>
+                        <option value="<?= htmlspecialchars($func['cpf']) ?>"><?= htmlspecialchars($func['nome']) ?><?= !empty($func['chapa']) ? ' - ' . htmlspecialchars($func['chapa']) : '' ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
             <label>Responsável:
                 <?php component('select', [
                     'name' => 'id_resp',
@@ -268,7 +278,7 @@ ob_start();
     </div>
     <form method="POST" action="/helpdesk/interacao<?= $filtrosUrl !== '' ? '?' . $filtrosUrl : '' ?>" class="chamado-form" enctype="multipart/form-data">
         <input type="hidden" name="id" data-field="id">
-        <textarea name="mensagem" rows="3" placeholder="Escreva uma interação no chamado..." required></textarea>
+        <textarea name="mensagem" rows="6" placeholder="Escreva uma interação no chamado..." required></textarea>
         <label>Anexo (máx. 5 MB):
             <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
         </label>
@@ -309,6 +319,18 @@ ob_start();
 ob_start();
 ?>
 <form method="POST" action="/helpdesk/novo" class="chamado-form" enctype="multipart/form-data">
+    <?php if ($isSuporte): ?>
+        <div class="chamado-form-row">
+            <label>Solicitante:
+                <select name="cpf_ab" id="novo-cpf-ab">
+                    <option value="">Eu (padrão)</option>
+                    <?php foreach ($funcionarios as $func): ?>
+                        <option value="<?= htmlspecialchars($func['cpf']) ?>"><?= htmlspecialchars($func['nome']) ?><?= !empty($func['chapa']) ? ' - ' . htmlspecialchars($func['chapa']) : '' ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+        </div>
+    <?php endif; ?>
     <div class="chamado-form-row">
         <label>Grupo:
             <select name="idgrupo" id="novo-idgrupo" required>
@@ -732,9 +754,15 @@ ob_start();
         var form = checkbox.closest('form.filter-form');
         if (!form) return;
 
+        if (checkbox.checked) {
+            form.querySelectorAll('.filter-toggle input[type="checkbox"]').forEach(function(other) {
+                if (other !== checkbox) other.checked = false;
+            });
+        }
+
         form.submit();
     });
-
+    
     document.addEventListener('change', function(e) {
         var select = e.target;
         if (!select || select.tagName !== 'SELECT') return;
@@ -831,6 +859,20 @@ ob_start();
             .catch(function() {
                 mostrarMensagemHistorico(list, 'Erro ao carregar histórico.');
             });
+    });
+
+    document.addEventListener('click', function(e) {
+        var closeBtn = e.target.closest('.modal .close');
+        if (!closeBtn) return;
+        var modal = closeBtn.closest('.modal');
+        if (!modal || modal.id !== 'modal-chamado') return;
+
+        var url = new URL(window.location.href);
+        if (url.searchParams.has('open')) {
+            url.searchParams.delete('open');
+            history.replaceState(null, '', url.toString());
+        }
+        location.reload();
     });
 
     setInterval(function() {

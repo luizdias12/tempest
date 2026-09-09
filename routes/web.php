@@ -12,6 +12,7 @@ use App\Controller\HelpdeskController;
 use App\Controller\HomeController;
 use App\Controller\LogController;
 use App\Controller\OnlineController;
+use App\Controller\RegionalController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 
@@ -38,6 +39,8 @@ $router->get('/financ/holerite/pdf', [FinancController::class, 'holeritePdf'], [
 //FuncionarioController
 $router->get('/funcionarios/index', [FuncionarioController::class, 'indexView'], ['auth', 'role']);
 $router->get('/funcionarios/aniversariantes', [FuncionarioController::class, 'aniversariantesView']);
+$router->get('/funcionarios/admissoes', [FuncionarioController::class, 'admissoesView'], ['auth']);
+$router->get('/funcionarios/admissoes/json', [FuncionarioController::class, 'admissoesJson'], ['auth']);
 $router->get('/ti/lista', [FuncionarioController::class, 'listaView'], ['auth']);
 $router->get('/ti/lista/download', [FuncionarioController::class, 'listaDownload'], ['auth']);
 
@@ -77,6 +80,23 @@ $router->post('/carousel/excluir', [CarouselController::class, 'excluir'], ['aut
 //OnlineController
 $router->get('/online', [OnlineController::class, 'indexView'], ['auth', 'role']);
 $router->post('/online/deslogar', [OnlineController::class, 'deslogar'], ['auth', 'role']);
+
+//RegionalController
+$router->get('/regional/index', [RegionalController::class, 'indexView'], ['auth', 'role']);
+$router->get('/regional/listaRegional', [RegionalController::class, 'listaRegional'], ['auth', 'role']);
+$router->get('/regional/byRegional/{regiao}', [RegionalController::class, 'byRegional'], ['auth', 'role']);
+$router->get('/regional/filialByRegional', [RegionalController::class, 'filialByRegional'], ['auth', 'role']);
+$router->get('/regional/byFilial/{filial}', [RegionalController::class, 'byFilial'], ['auth', 'role']);
+$router->get('/regional/onlyGerente', [RegionalController::class, 'onlyGerente'], ['auth', 'role']);
+$router->get('/regional/onlysubGerente', [RegionalController::class, 'onlysubGerente'], ['auth', 'role']);
+$router->get('/regional/listaGerencia', [RegionalController::class, 'listaGerencia'], ['auth', 'role']);
+$router->get('/regional/regionalFilial', [RegionalController::class, 'regionalFilial'], ['auth', 'role']);
+$router->get('/regional/usuario/{cpf}', [RegionalController::class, 'usuario'], ['auth', 'role']);
+$router->post('/regional/gravaGerente', [RegionalController::class, 'gravaGerente'], ['auth', 'role']);
+$router->put('/regional/updateRegional/{id}', [RegionalController::class, 'updateRegional'], ['auth', 'role']);
+$router->put('/regional/updatefilialReg/{filial}', [RegionalController::class, 'updatefilialReg'], ['auth', 'role']);
+$router->put('/regional/alteraRegional/{regiao}', [RegionalController::class, 'alteraRegional'], ['auth', 'role']);
+$router->delete('/regional/deletaGerente/{id}', [RegionalController::class, 'deletaGerente'], ['auth', 'role']);
 
 /*----------------------------------- ROTAS POST -----------------------------------*/
 

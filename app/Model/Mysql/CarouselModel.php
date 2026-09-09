@@ -9,7 +9,7 @@ class CarouselModel
     public static function listarAtivos(): array
     {
         return DB::select("
-            SELECT id, filename, ord, dtinicio, dtfim, ativo
+            SELECT id, filename, ord, dtinicio, dtfim, ativo, link
             FROM carousel
             WHERE ativo = 'S'
               AND (dtinicio IS NULL OR dtinicio <= CURDATE())
@@ -21,7 +21,7 @@ class CarouselModel
     public static function listarTodos(): array
     {
         return DB::select("
-            SELECT id, filename, ord, dtinicio, dtfim, ativo
+            SELECT id, filename, ord, dtinicio, dtfim, ativo, link
             FROM carousel
             ORDER BY ord, id
         ", [], 'mysql');
@@ -45,7 +45,7 @@ class CarouselModel
     public static function buscar(int $id): ?array
     {
         return DB::first("
-            SELECT id, filename, ord, dtinicio, dtfim, ativo
+            SELECT id, filename, ord, dtinicio, dtfim, ativo, link
             FROM carousel
             WHERE id = :id
         ", ['id' => $id], 'mysql');
@@ -77,7 +77,7 @@ class CarouselModel
     public static function vizinhoPorOrdem(int $ord, string $operador, string $direcao): ?array
     {
         return DB::first("
-            SELECT id, filename, ord, dtinicio, dtfim, ativo
+            SELECT id, filename, ord, dtinicio, dtfim, ativo, link
             FROM carousel
             WHERE ord {$operador} :ord
             ORDER BY ord {$direcao}, id {$direcao}

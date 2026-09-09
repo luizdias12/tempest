@@ -43,6 +43,7 @@ class HelpdeskController extends BaseController
             $grupos = HelpdeskService::listarGrupos();
             $subgrupos = HelpdeskService::listarSubgrupos();
             $responsaveis = HelpdeskService::listarResponsaveis();
+            $funcionarios = HelpdeskService::listarFuncionarios();
             $historico = $open > 0 ? HelpHistoricoService::obterHistoricoHelpdesk($open) : [];
             $contagemHistoricos = HelpHistoricoService::contagemHistoricos(array_column($result['data'], 'id'));
             $openCpf = $open > 0 ? HelpdeskService::obterCpfAbertura($open) : null;
@@ -92,6 +93,7 @@ class HelpdeskController extends BaseController
                 'grupos' => $grupos,
                 'subgrupos' => $subgrupos,
                 'responsaveis' => $responsaveis,
+                'funcionarios' => $funcionarios,
                 'hist' => $historico,
                 'contagemHistoricos' => $contagemHistoricos,
                 'openCpf' => $openCpf,
@@ -137,6 +139,13 @@ class HelpdeskController extends BaseController
                     $respValue = AuthService::getUserCpf() ?? '';
                 }
                 $data['id_resp'] = $respValue;
+            }
+
+            $cpfAb = trim((string) $request->post('cpf_ab', ''));
+            if ($cpfAb !== '') {
+                $chapa = HelpdeskService::obterChapaPorCpf($cpfAb);
+                $data['cpf_ab'] = $cpfAb;
+                $data['chapa'] = $chapa ?? '';
             }
 
             $statusValue = $request->post('status');
@@ -252,10 +261,18 @@ class HelpdeskController extends BaseController
                 return;
             }
 
-            $cpfAb = $this->cpfUsuarioAtual();
-            $chapa = (int) (AuthService::getUser()['chapa'] ?? 0);
+            $isSuporte = AuthService::hasPermission('ti');
 
-            $id = HelpdeskService::criar([
+            $cpfAb = trim((string) $request->post('cpf_ab', ''));
+
+            if (!empty($cpfAb) && $isSuporte) {
+                $chapa = (int) (HelpdeskService::obterChapaPorCpf($cpfAb) ?? 0);
+            } else {
+                $cpfAb = $this->cpfUsuarioAtual();
+                $chapa = (int) (AuthService::getUser()['chapa'] ?? 0);
+            }
+
+            $dadosAbertura = [
                 'cpf_ab' => $cpfAb,
                 'chapa' => $chapa,
                 'dt_abertura' => date('Y-m-d H:i:s'),
@@ -267,13 +284,24 @@ class HelpdeskController extends BaseController
                 'desc_problema' => $descProblema,
                 'id_resp' => '',
                 'cpf' => $cpfAb,
-            ]);
+            ];
+
+            $id = HelpdeskService::criar($dadosAbertura);
 
             if ($id === null) {
                 AlertManager::add('error', 'Erro ao abrir o chamado.');
                 redirect('/helpdesk/index');
                 return;
             }
+
+            LogService::store([
+                'nivel' => 'INFO',
+                'tipo' => 'INSERT',
+                'modulo' => 'helpdesk',
+                'acao' => 'abrir_chamado',
+                'mensagem' => "chamado {$id} aberto",
+                'contexto' => $dadosAbertura
+            ]);
 
             $idHist = HelpHistoricoService::registrarInteracao($id, 'Abertura do chamado', $cpfAb, 'A');
             HelpdeskService::upsertHelpStatus($id, 'A');

@@ -393,4 +393,16 @@ class FuncionarioModel extends DB
             ]
         ];
     }
+
+    public static function admissoes(): array
+    {
+        $query = QueryBuilder::table('pesocialeventos e')
+        ->select('count(f.chapa) as pendentes', 'f.dataadmissao', "TO_CHAR(max(e.dataevento), 'YYYY-MM-DD HH24:MI:SS') as dataevento")
+        ->join('pfunc f', 'f.chapa', '=', 'e.chapa')
+        ->where('e.tipoevento', 'S-2200')
+        ->whereIn('e.status', [0,1,2,6,9])
+        ->groupBy('f.dataadmissao')
+        ->get();
+        return $query;
+    }
 }

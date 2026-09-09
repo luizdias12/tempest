@@ -90,6 +90,16 @@ class HelpdeskService
         return HelpdeskModel::cancelaChamado($idHelp);
     }
 
+    public static function listarFuncionarios(): array
+    {
+        return HelpdeskModel::listarFuncionarios();
+    }
+
+    public static function obterChapaPorCpf(string $cpf): ?string
+    {
+        return HelpdeskModel::obterChapaPorCpf($cpf);
+    }
+
     public static function chamadosPendentesUsuario(): array|null
     {
         return HelpdeskModel::chamadosPendentesUsuario();

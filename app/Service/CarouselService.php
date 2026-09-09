@@ -35,6 +35,7 @@ class CarouselService
             $slides[] = [
                 'url' => asset('assets/caroussel/' . $row['filename']),
                 'tipo' => $tipo,
+                'link' => $row['link'] ?? null,
             ];
         }
 
@@ -61,13 +62,14 @@ class CarouselService
                 'url' => $tipo !== null && is_file($arquivo)
                     ? asset('assets/caroussel/' . $row['filename'])
                     : null,
+                'link' => $row['link'] ?? null,
             ];
         }
 
         return $slides;
     }
 
-    public static function salvarNovo(array $file, ?string $dtinicio, ?string $dtfim, string $ativo): string
+    public static function salvarNovo(array $file, ?string $dtinicio, ?string $dtfim, string $ativo, ?string $link = null): string
     {
         if (empty($file['name'])) {
             throw new RuntimeException('Selecione um arquivo para o slide.');
@@ -108,6 +110,7 @@ class CarouselService
             'dtinicio' => self::dataOuNull($dtinicio),
             'dtfim' => self::dataOuNull($dtfim),
             'ativo' => $ativo === 'S' ? 'S' : 'N',
+            'link' => self::linkOuNull($link),
         ]);
 
         if ($id === null) {
@@ -169,9 +172,9 @@ class CarouselService
         }
 
         if ($sentido > 0) {
-            $vizinho = CarouselModel::vizinhoPorOrdem($origem['ord'], '>', 'ASC');
-        } else {
             $vizinho = CarouselModel::vizinhoPorOrdem($origem['ord'], '<', 'DESC');
+        } else {
+            $vizinho = CarouselModel::vizinhoPorOrdem($origem['ord'], '>', 'ASC');
         }
 
         if ($vizinho === null) {
@@ -208,5 +211,20 @@ class CarouselService
         $data = trim((string) $data);
 
         return ($data !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) ? $data : null;
+    }
+
+    private static function linkOuNull(?string $link): ?string
+    {
+        $link = trim((string) $link);
+
+        if ($link === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $link) !== 1 && $link[0] !== '/') {
+            throw new RuntimeException('Link inválido. Use https://... ou um caminho relativo (ex.: /documentos).');
+        }
+
+        return $link;
     }
 }

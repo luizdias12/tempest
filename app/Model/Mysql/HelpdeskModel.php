@@ -229,6 +229,29 @@ class HelpdeskModel
         ], 'mysql');
     }
 
+    public static function listarFuncionarios(): array
+    {
+        return DB::select("SELECT f.cpf, f.nome, f.chapa, fu.nome AS funcao
+                FROM func f
+                LEFT JOIN funcao fu ON fu.codigo = f.codfuncao
+                WHERE f.cpf IS NOT NULL AND f.cpf <> ''
+                UNION
+                SELECT fe.cpf, fe.nome, fe.chapa, '' AS funcao
+                FROM func_externo fe
+                WHERE fe.cpf IS NOT NULL AND fe.cpf <> ''
+                ORDER BY 2", [], 'mysql');
+    }
+
+    public static function obterChapaPorCpf(string $cpf): ?string
+    {
+        $row = DB::first("SELECT chapa FROM func WHERE cpf = :cpf
+                UNION
+                SELECT chapa FROM func_externo WHERE cpf = :cpf2 LIMIT 1",
+            ['cpf' => $cpf, 'cpf2' => $cpf], 'mysql');
+
+        return $row['chapa'] ?? null;
+    }
+
     public static function chamadosPendentesSuporte(string $cpf): array|null
     {
         $pendentes = DB::select("SELECT count(*) AS total

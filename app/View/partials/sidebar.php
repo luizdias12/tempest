@@ -50,7 +50,14 @@ $admin = $userCpf === '08374281650';
                             <div class="sidebar-dropdown-menu">
                                 <a href="/logs"><i class="fa-solid fa-code"></i> Logs</a>
                             </div>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/funcionarios/admissoes"><i class="fa-solid fa-user-plus"></i> Admissões</a>
+                            </div>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
+                            </div>
                         </div>
+                <?php endif; ?>
                     <div class="sidebar-dropdown">
                         <a href="#" class="sidebar-dropdown-toggle">
                             <span class="sidebar-dropdown-label"><i class="fa-solid fa-wallet"></i> Financeiro</span>
@@ -87,8 +94,6 @@ $admin = $userCpf === '08374281650';
                         </div>
                     <?php endif; ?>
                 </div>
-                <?php endif; ?>
-                <!--  -->
             </div>
         <?php endif; ?>
 

@@ -42,7 +42,8 @@ class CarouselController extends BaseController
                 $request->file('slideArquivo') ?? [],
                 (string) $request->post('dtinicio', ''),
                 (string) $request->post('dtfim', ''),
-                (string) $request->post('ativo', 'N')
+                (string) $request->post('ativo', 'N'),
+                (string) $request->post('link', '')
             );
 
             $this->logAcao($request, 'criar_slide', $mensagem, $request->post());

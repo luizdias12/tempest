@@ -87,4 +87,9 @@ class FuncionarioService
         return FuncionarioModel::exportTi();
     }
 
+    public static function admissoes(): array
+    {
+        return FuncionarioModel::admissoes();
+    }
+
 }

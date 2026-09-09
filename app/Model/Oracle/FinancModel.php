@@ -10,21 +10,22 @@ class FinancModel extends DB
     public static function valoresHolerite(string $chapa, int $mescomp, int $anocomp, int $periodo, string $pdb): array|null
     {
         return QueryBuilder::table('pffinanc fi')
-        ->select('fi.codevento', 'e.descricao', 'fi.valor')
-        ->join('pfunc f', 'f.chapa', '=', 'fi.chapa')
-        ->join('pevento e', 'e.codigo', '=', 'fi.codevento')
-        ->where('e.provdescbase', $pdb)
-        ->where('fi.chapa', $chapa)
-        ->where('fi.mescomp', $mescomp)
-        ->where('fi.anocomp', $anocomp)
-        ->where('fi.nroperiodo', $periodo)
-        ->where('fi.valor', '>', 0)
-        ->get();
+            ->select('fi.codevento', 'e.descricao', 'fi.valor')
+            ->join('pfunc f', 'f.chapa', '=', 'fi.chapa')
+            ->join('pevento e', 'e.codigo', '=', 'fi.codevento')
+            ->where('e.provdescbase', $pdb)
+            ->where('fi.chapa', $chapa)
+            ->where('fi.mescomp', $mescomp)
+            ->where('fi.anocomp', $anocomp)
+            ->where('fi.nroperiodo', $periodo)
+            ->where('fi.valor', '>', 0)
+            ->get();
     }
 
     public static function valorBaseFgts(string $chapa, int $mescomp, int $anocomp, int $periodo): array|null
     {
-        $result = DB::select("
+        $result = DB::select(
+            "
         SELECT pf.basefgts, f.codtipo,
             CASE WHEN f.codtipo='N' THEN TRUNC(((pf.basefgts + pf.basefgts13) * 0.08), 2)
                  ELSE TRUNC(((pf.basefgts + pf.basefgts13) * 0.02), 2) END calc_fgts
@@ -34,19 +35,21 @@ class FinancModel extends DB
             AND pf.anocomp = :ano
             AND pf.mescomp = :mes
             AND pf.nroperiodo = :periodo",
-       [
-        'chapa'     => $chapa,
-        'ano'       => $anocomp,
-        'mes'       => $mescomp,
-        'periodo'   => $periodo,
-       ]);
-       
-       return $result;
+            [
+                'chapa'     => $chapa,
+                'ano'       => $anocomp,
+                'mes'       => $mescomp,
+                'periodo'   => $periodo,
+            ]
+        );
+
+        return $result;
     }
 
     public static function obterQuintoDiaUtil(string $dataref, int $codsecao): array|null
     {
-        $quintoDiaUtil = DB::select("
+        $quintoDiaUtil = DB::select(
+            "
             WITH dias AS (
                 SELECT TRUNC(TO_DATE(:data_referencia, 'YYYYMMDD'), 'MM') + LEVEL - 1 AS dia
                 FROM dual
@@ -55,7 +58,9 @@ class FinancModel extends DB
                     - TRUNC(TO_DATE(:data_referencia, 'YYYYMMDD'), 'MM')
                     + 1
             )
-            SELECT dia AS quinto_dia_util
+            SELECT CASE WHEN TRUNC(dia) - TRUNC(dia, 'IW') = 5 THEN dia - 1
+                   ELSE dia
+               END AS quinto_dia_util
             FROM (
                 SELECT d.dia,
                     ROW_NUMBER() OVER (ORDER BY d.dia) AS rn
@@ -73,12 +78,12 @@ class FinancModel extends DB
             )
             WHERE rn = 5
         ",
-        [
-            'data_referencia' => $dataref,
-            'secao' => $codsecao
-        ]);
+            [
+                'data_referencia' => $dataref,
+                'secao' => $codsecao
+            ]
+        );
 
         return $quintoDiaUtil[0] ?? null;
     }
-
 }

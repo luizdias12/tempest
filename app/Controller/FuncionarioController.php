@@ -7,6 +7,7 @@ use App\Core\BaseController;
 use App\Core\ErrorHandler;
 use App\Core\Logger;
 use App\Core\Request;
+use App\Core\Response;
 use App\Service\AuthService;
 use App\Service\FuncionarioService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -179,6 +180,39 @@ class FuncionarioController extends BaseController
             Logger::exception($e);
 
             ErrorHandler::handle(500, $e->getMessage());
+        }
+    }
+
+    public function admissoesView(Request $request): void
+    {
+        try {
+            $data = FuncionarioService::admissoes();
+
+            view('funcionarios/admissoes', [
+                'data' => $data,
+                'title' => 'Admissões'
+            ]);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+
+            ErrorHandler::handle(500, $e->getMessage());
+        }
+    }
+
+    public function admissoesJson(Request $request): void
+    {
+        try {
+            $data = array_map(static fn(array $item): array => [
+                'pendentes' => (int) ($item['pendentes'] ?? 0),
+                'dataadmissao' => !empty($item['dataadmissao']) ? date('d/m/Y', strtotime($item['dataadmissao'])) : '-',
+                'dataevento' => !empty($item['dataevento']) ? date('d/m/Y H:i:s', strtotime($item['dataevento'])) : '-',
+            ], FuncionarioService::admissoes());
+
+            Response::json(['data' => $data]);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+
+            Response::json(['error' => 'Erro ao carregar as admissões.'], 500);
         }
     }
 }

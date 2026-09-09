@@ -5,10 +5,17 @@
         <div class="carousel-viewport">
             <?php foreach ($slides as $i => $slide): ?>
                 <div class="carousel-slide <?= $i === 0 ? 'active' : '' ?>" data-slide="<?= $i ?>">
+                    <?php $link = $slide['link'] ?? null; ?>
+                    <?php if ($link): ?>
+                        <a href="<?= htmlspecialchars($link) ?>" class="carousel-slide-link" target="_blank" rel="noopener">
+                    <?php endif; ?>
                     <?php if ($slide['tipo'] === 'video'): ?>
                         <video src="<?= $slide['url'] ?>" controls muted playsinline></video>
                     <?php else: ?>
                         <img src="<?= $slide['url'] ?>" alt="Slide <?= $i + 1 ?>">
+                    <?php endif; ?>
+                    <?php if ($link): ?>
+                        </a>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>

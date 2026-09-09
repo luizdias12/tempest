@@ -9,9 +9,9 @@ $labelKey = $labelKey ?? 'label';
 $class = $class ?? '';
 $attrs = $attrs ?? '';
 ?>
-<select id="<?= htmlspecialchars($id) ?>" name="<?= htmlspecialchars($name) ?>"<?= $class !== '' ? ' class="' . htmlspecialchars($class) . '"' : '' ?><?= $attrs !== '' ? ' ' . $attrs : '' ?>>
+<select id="<?= htmlspecialchars($id) ?>" name="<?= htmlspecialchars($name) ?>" <?= $class !== '' ? ' class="' . htmlspecialchars($class) . '"' : '' ?><?= $attrs !== '' ? ' ' . $attrs : '' ?>>
     <?php if ($placeholder !== ''): ?>
-        <option value=""><?= htmlspecialchars($placeholder) ?></option>
+        <option value=""<?= $selected === '' ? ' selected' : '' ?>><?= htmlspecialchars($placeholder) ?></option>
     <?php endif; ?>
     <?php foreach ($options as $key => $opt): ?>
         <?php
@@ -23,7 +23,7 @@ $attrs = $attrs ?? '';
             $label = $opt;
         }
         ?>
-        <option value="<?= htmlspecialchars($val) ?>"<?= $selected === $val ? ' selected' : '' ?>>
+        <option value="<?= htmlspecialchars($val) ?>" <?= $selected === $val ? ' selected' : '' ?>>
             <?= htmlspecialchars($label) ?>
         </option>
     <?php endforeach; ?>
