@@ -12,6 +12,7 @@ use App\Service\AuthService;
 use App\Service\FileService;
 use App\Service\FuncionarioService;
 use App\Service\GenericService;
+use App\Service\EmailHelpdeskService;
 use App\Service\HelpdeskService;
 use App\Service\HelpHistoricoService;
 use App\Service\MailService;
@@ -481,6 +482,17 @@ class HelpdeskController extends BaseController
     private function isFetch(Request $request): bool
     {
         return $request->header('X-Requested-With') === 'fetch';
+    }
+
+    public function importarEmails(Request $request): void
+    {
+        try {
+            $resumo = EmailHelpdeskService::importarEmails();
+            Response::json($resumo);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+            Response::json(['error' => 'Erro ao importar e-mails.'], 500);
+        }
     }
 
     private function cpfUsuarioAtual(): string

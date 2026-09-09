@@ -52,6 +52,42 @@ class FileService
         ];
     }
 
+    public static function salvarConteudo(string $nomeArquivo, string $conteudo): array
+    {
+        if ($nomeArquivo === '') {
+            throw new RuntimeException('Nome do arquivo vazio.');
+        }
+
+        $ext = strtolower(pathinfo($nomeArquivo, PATHINFO_EXTENSION));
+
+        if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+            throw new RuntimeException('Tipo de arquivo não permitido.');
+        }
+
+        if (strlen($conteudo) > self::MAX_SIZE) {
+            throw new RuntimeException('Tamanho máximo do arquivo deve ser de 5 MB.');
+        }
+
+        $safe = substr(sha1($nomeArquivo . microtime()), 7, 14);
+        $dir = basePath('public/files/helpdesk/' . $safe . '/');
+
+        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+            throw new RuntimeException('Falha ao criar o diretório de upload.');
+        }
+
+        $dest = $dir . $safe . '.' . $ext;
+
+        if (file_put_contents($dest, $conteudo) === false) {
+            throw new RuntimeException('Falha ao salvar o arquivo em disco.');
+        }
+
+        return [
+            'dir' => $dir,
+            'safe' => $safe,
+            'ext' => $ext,
+        ];
+    }
+
     public static function finalize(array $upload, int $idHist): string
     {
         $old = $upload['dir'] . $upload['safe'] . '.' . $upload['ext'];

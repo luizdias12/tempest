@@ -30,6 +30,7 @@ $admin = $userCpf === '08374281650';
     <nav class="sidebar-nav">
         <a href="/"><i class="fa-solid fa-house"></i> Início</a>
         <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
+        <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
 
         <?php if ($user): ?>
             <div class="sidebar-area-protegida">
@@ -52,9 +53,6 @@ $admin = $userCpf === '08374281650';
                             </div>
                             <div class="sidebar-dropdown-menu">
                                 <a href="/funcionarios/admissoes"><i class="fa-solid fa-user-plus"></i> Admissões</a>
-                            </div>
-                            <div class="sidebar-dropdown-menu">
-                                <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
                             </div>
                         </div>
                 <?php endif; ?>

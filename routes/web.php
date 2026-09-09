@@ -106,6 +106,7 @@ $router->post('/login', [AuthController::class, 'login']);
 $router->post('/helpdesk/update', [HelpdeskController::class, 'update'], ['auth']);
 $router->post('/helpdesk/novo', [HelpdeskController::class, 'store'], ['auth']);
 $router->post('/helpdesk/interacao', [HelpdeskController::class, 'interacao'], ['auth']);
+$router->post('/helpdesk/importar-emails', [HelpdeskController::class, 'importarEmails'], ['auth', 'role']);
 
 //LogController
 $router->post('/logs', [LogController::class, 'store'], ['auth']);
