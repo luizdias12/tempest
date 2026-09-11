@@ -818,6 +818,8 @@ td.valor {
 .historico-item p {
     margin: 0;
     font-size: 16px;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .historico-empty {
@@ -2625,6 +2627,9 @@ td.valor {
 }
 
 .region-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(0.88rem);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -2633,20 +2638,183 @@ td.valor {
     margin-bottom: 16px;
 }
 
+.region-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.region-card-head-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.region-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #83e6e6 0%, #4facfe 100%);
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
 .region-card-title {
-    margin: 0 0 6px;
+    margin: 0;
     color: #ffffff;
     font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .region-card-contact {
-    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
     color: #d6d6d6;
     font-size: 13px;
 }
 
-.region-card table {
+.region-card-contact span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.region-card-table-wrap {
+    overflow: auto;
+    max-height: 340px;
+    border-radius: 8px;
+}
+
+.region-card-table-wrap table {
+    width: 100%;
     min-width: 480px;
+}
+
+.region-card-table-wrap thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(30, 41, 59, 0.96);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.region-card-table-wrap thead th {
+    padding: 12px 16px;
+}
+
+.region-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.region-search {
+    width: 240px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f1f1;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.region-search::placeholder {
+    color: rgba(241, 241, 241, 0.55);
+}
+
+.region-search:focus {
+    outline: none;
+    border-color: rgba(131, 230, 230, 0.7);
+}
+
+.region-count {
+    font-size: 13px;
+    color: #d6d6d6;
+    white-space: nowrap;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.region-filtros {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.region-filtros label {
+    color: #d6d6d6;
+    font-size: 14px;
+}
+
+.region-filtros .region-select {
+    max-width: 260px;
+    width: auto;
+}
+
+.region-filtros .region-search {
+    width: 280px;
+}
+
+.region-subtabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.region-subtab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    font-weight: 600;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.region-subtab:hover {
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-1px);
+}
+
+.region-subtab.active {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(167, 139, 250, 0.3);
+}
+
+.region-tab--gestao.active {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(167, 139, 250, 0.3);
+}
+
+#cardsArea {
+    padding: 0;
+    background: transparent;
+    border: none;
 }
 
 .region-actions {

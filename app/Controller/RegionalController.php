@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Core\BaseController;
 use App\Core\Request;
 use App\Core\Response;
+use App\Service\AuthService;
 use App\Service\RegionalService;
 use Throwable;
 
@@ -14,12 +15,18 @@ class RegionalController extends BaseController
     {
         view('regional/index', [
             'title' => 'Regionais',
+            'permiteGestao' => AuthService::hasPermission('ti'),
         ]);
     }
 
     public function listaRegional(): array
     {
         return $this->handle(fn() => $this->success(RegionalService::listaRegional()));
+    }
+
+    public function consulta(): array
+    {
+        return $this->handle(fn() => $this->success(RegionalService::consulta()));
     }
 
     public function byRegional(Request $request, int $regiao): array

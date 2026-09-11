@@ -11,6 +11,11 @@ class RegionalService
         return RegionalModel::listaRegional();
     }
 
+    public static function consulta(): array
+    {
+        return RegionalModel::consulta();
+    }
+
     public static function byRegional(int $regiao): array
     {
         return RegionalModel::byRegional($regiao);

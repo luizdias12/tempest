@@ -13,6 +13,21 @@ class RegionalModel
             LEFT JOIN usuarios u ON u.cpf = gr.cpf", [], 'mysql');
     }
 
+    public static function consulta(): array
+    {
+        return DB::select("SELECT gr.regiao, gr.nome AS regional, u.email, u.corporativo,
+                fi.codfilial, COALESCE(fi.abreviado, fi.nome) AS filial,
+                f1.nome AS gerente, f2.nome AS subgerente, f1.cpf AS cpf_g1, f2.cpf AS cpf_g2
+            FROM ger_regional gr
+            LEFT JOIN usuarios u ON u.cpf = gr.cpf
+            LEFT JOIN regional_filial rf ON rf.cod_regional = gr.regiao
+            LEFT JOIN filial fi ON fi.codgfilial = rf.filial
+            LEFT JOIN gerentes ge ON ge.codregional = gr.regiao AND ge.codfilial = rf.filial
+            LEFT JOIN func f1 ON f1.cpf = ge.g1
+            LEFT JOIN func f2 ON f2.cpf = ge.g2
+            ORDER BY gr.regiao, fi.codfilial * 1", [], 'mysql');
+    }
+
     public static function byRegional(int $regiao): array
     {
         return DB::select("SELECT fi.codfilial, COALESCE(fi.abreviado, fi.nome) AS filial, gr.regiao, gr.nome AS regional,
@@ -29,7 +44,7 @@ class RegionalModel
 
     public static function filialByRegional(): array
     {
-        return DB::select("SELECT rf.id, fi.codfilial, fi.codgfilial, COALESCE(fi.abreviado, fi.nome) AS filial, gr.nome AS regional
+        return DB::select("SELECT rf.id, rf.cod_regional, fi.codfilial, fi.codgfilial, COALESCE(fi.abreviado, fi.nome) AS filial, gr.nome AS regional
             FROM regional_filial rf
             INNER JOIN filial fi ON fi.codgfilial = rf.filial
             INNER JOIN ger_regional gr ON gr.regiao = rf.cod_regional

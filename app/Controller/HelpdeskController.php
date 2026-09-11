@@ -192,6 +192,10 @@ class HelpdeskController extends BaseController
                 'contexto' => $data
             ]);
 
+            if ($statusValue !== null && $statusValue !== '' && $statusAtual !== $statusValue) {
+                HelpdeskService::notificarFinalizacao($id, $statusValue);
+            }
+
             if ($cancelando) {
                 HelpdeskService::registrarCancelamento($id, (int) $motivo, $this->cpfUsuarioAtual(), $_SERVER['REMOTE_ADDR'] ?? '', 'U');
                 HelpHistoricoService::registrarInteracao(
@@ -306,6 +310,8 @@ class HelpdeskController extends BaseController
 
             $idHist = HelpHistoricoService::registrarInteracao($id, 'Abertura do chamado', $cpfAb, 'A');
             HelpdeskService::upsertHelpStatus($id, 'A');
+
+            HelpdeskService::notificarAbertura($id, $cabProblema);
 
             if ($upload !== null && $idHist !== null) {
                 try {
@@ -455,7 +461,6 @@ class HelpdeskController extends BaseController
 
             $assunto = "Chamado Nº {$id} - Nova interação";
             $corpo = "
-                <h1 style='color: red;'>Email Automático, Favor Não Responder!</h1>
                 <h3>Nova interação no Chamado Nº {$id}</h3>
                 <p><strong>Autor:</strong> " . htmlspecialchars($autor) . "</p>
                 <p><strong>Data:</strong> " . date('d-m-Y H:i:s') . "</p>

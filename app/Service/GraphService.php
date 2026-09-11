@@ -69,7 +69,7 @@ class GraphService
             $response = self::client()->get("users/{$mailbox}/messages", [
                 'query' => [
                     '$filter'   => 'isRead eq false',
-                    '$select'   => 'id,subject,from,receivedDateTime,body,hasAttachments,bodyPreview',
+                    '$select'   => 'id,subject,from,receivedDateTime,body,hasAttachments,bodyPreview,conversationId',
                     '$top'      => $top,
                     '$orderby'  => 'receivedDateTime desc',
                 ],
@@ -87,7 +87,11 @@ class GraphService
     public static function anexos(string $mailbox, string $messageId): array
     {
         try {
-            $response = self::client()->get("users/{$mailbox}/messages/{$messageId}/attachments");
+            $response = self::client()->get("users/{$mailbox}/messages/{$messageId}/attachments", [
+                'query' => [
+                    '$select' => 'id,name,contentType,size,isInline,contentId',
+                ],
+            ]);
             $data     = json_decode((string) $response->getBody(), true);
 
             return $data['value'] ?? [];

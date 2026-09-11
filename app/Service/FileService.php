@@ -36,7 +36,8 @@ class FileService
         $dir = basePath('public/files/helpdesk/' . $safe . '/');
 
         if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
-            throw new RuntimeException('Falha ao criar o diretório de upload.');
+            $err = error_get_last();
+            throw new RuntimeException('Falha ao criar o diretório de upload: ' . $dir . ($err['message'] ?? ''));
         }
 
         $tmp = $dir . $safe . '.' . $ext;
@@ -72,7 +73,8 @@ class FileService
         $dir = basePath('public/files/helpdesk/' . $safe . '/');
 
         if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
-            throw new RuntimeException('Falha ao criar o diretório de upload.');
+            $err = error_get_last();
+            throw new RuntimeException('Falha ao criar o diretório de upload: ' . $dir . ($err['message'] ?? ''));
         }
 
         $dest = $dir . $safe . '.' . $ext;

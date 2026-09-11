@@ -127,6 +127,16 @@ class HelpdeskModel
         return DB::first("SELECT cpf_ab FROM helpdesk WHERE id = :id", ['id' => $id], 'mysql')['cpf_ab'] ?? null;
     }
 
+    public static function obterDadosNotificacao(int $id): ?array
+    {
+        return DB::first("
+            SELECT h.cab_problema, u.email AS email_abertura
+            FROM helpdesk h
+            LEFT JOIN usuarios u ON u.cpf = h.cpf_ab
+            WHERE h.id = :id
+        ", ['id' => $id], 'mysql');
+    }
+
     public static function obterStatus(int $id): ?string
     {
         return DB::first("SELECT status FROM helpdesk WHERE id = :id", ['id' => $id], 'mysql')['status'] ?? null;

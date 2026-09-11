@@ -83,7 +83,7 @@ class FuncionarioController extends BaseController
 
     public function listaView(Request $request): void
     {
-        $permitidos = ['405',''];
+        $permitidos = ['405','0318'];
 
         try {
 
@@ -133,7 +133,7 @@ class FuncionarioController extends BaseController
 
     public function listaDownload(Request $request): void
     {
-        $permitidos = ['405','0310'];
+        $permitidos = ['405','0310','0318'];
 
         if(!AuthService::hasAnyRole($permitidos)) {
             ErrorHandler::handle(403, 'Acesso não permitido!', false);

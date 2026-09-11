@@ -82,16 +82,17 @@ $router->get('/online', [OnlineController::class, 'indexView'], ['auth', 'role']
 $router->post('/online/deslogar', [OnlineController::class, 'deslogar'], ['auth', 'role']);
 
 //RegionalController
-$router->get('/regional/index', [RegionalController::class, 'indexView'], ['auth', 'role']);
-$router->get('/regional/listaRegional', [RegionalController::class, 'listaRegional'], ['auth', 'role']);
-$router->get('/regional/byRegional/{regiao}', [RegionalController::class, 'byRegional'], ['auth', 'role']);
-$router->get('/regional/filialByRegional', [RegionalController::class, 'filialByRegional'], ['auth', 'role']);
-$router->get('/regional/byFilial/{filial}', [RegionalController::class, 'byFilial'], ['auth', 'role']);
-$router->get('/regional/onlyGerente', [RegionalController::class, 'onlyGerente'], ['auth', 'role']);
-$router->get('/regional/onlysubGerente', [RegionalController::class, 'onlysubGerente'], ['auth', 'role']);
-$router->get('/regional/listaGerencia', [RegionalController::class, 'listaGerencia'], ['auth', 'role']);
-$router->get('/regional/regionalFilial', [RegionalController::class, 'regionalFilial'], ['auth', 'role']);
-$router->get('/regional/usuario/{cpf}', [RegionalController::class, 'usuario'], ['auth', 'role']);
+$router->get('/regional/index', [RegionalController::class, 'indexView'], ['auth']);
+$router->get('/regional/consulta', [RegionalController::class, 'consulta'], ['auth']);
+$router->get('/regional/listaRegional', [RegionalController::class, 'listaRegional'], ['auth']);
+$router->get('/regional/byRegional/{regiao}', [RegionalController::class, 'byRegional'], ['auth']);
+$router->get('/regional/filialByRegional', [RegionalController::class, 'filialByRegional'], ['auth']);
+$router->get('/regional/byFilial/{filial}', [RegionalController::class, 'byFilial'], ['auth']);
+$router->get('/regional/onlyGerente', [RegionalController::class, 'onlyGerente'], ['auth']);
+$router->get('/regional/onlysubGerente', [RegionalController::class, 'onlysubGerente'], ['auth']);
+$router->get('/regional/listaGerencia', [RegionalController::class, 'listaGerencia'], ['auth']);
+$router->get('/regional/regionalFilial', [RegionalController::class, 'regionalFilial'], ['auth']);
+$router->get('/regional/usuario/{cpf}', [RegionalController::class, 'usuario'], ['auth']);
 $router->post('/regional/gravaGerente', [RegionalController::class, 'gravaGerente'], ['auth', 'role']);
 $router->put('/regional/updateRegional/{id}', [RegionalController::class, 'updateRegional'], ['auth', 'role']);
 $router->put('/regional/updatefilialReg/{filial}', [RegionalController::class, 'updatefilialReg'], ['auth', 'role']);

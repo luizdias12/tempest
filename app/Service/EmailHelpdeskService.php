@@ -17,7 +17,7 @@ class EmailHelpdeskService
     {
         HelpdeskEmailModel::criarTabelaSeNecessario();
 
-        $resumo = ['importados' => 0, 'ignorados' => 0, 'erros' => []];
+        $resumo = ['importados' => 0, 'ignorados' => 0, 'erros' => [], 'respostas' => 0];
 
         $mailbox = self::env('SUPPORT_MAILBOX', 'helpdesk@villefort.com.br');
 
@@ -29,19 +29,33 @@ class EmailHelpdeskService
 
         $mensagens = GraphService::mensagensNaoLidas($mailbox, $limite);
 
+        $resumo['total'] = count($mensagens);
+
         foreach ($mensagens as $m) {
             $messageId = $m['id'] ?? '';
             if ($messageId === '') {
                 continue;
             }
 
-            if (!HelpdeskEmailModel::reservarImportacao($messageId)) {
+            $conversationId = (string) ($m['conversationId'] ?? '');
+            $subject        = trim($m['subject'] ?? '');
+
+            if (!HelpdeskEmailModel::reservarImportacao($messageId, $conversationId)) {
                 $resumo['ignorados']++;
                 continue;
             }
 
             try {
-                $helpId = self::criarChamado($m, $mailbox);
+                $chamadoExistente = self::chamadoExistente($conversationId, $subject);
+
+                if ($chamadoExistente !== null) {
+                    self::registrarResposta($chamadoExistente, $m, $mailbox);
+                    $helpId = $chamadoExistente;
+                    $resumo['respostas']++;
+                } else {
+                    $helpId = self::criarChamado($m, $mailbox);
+                    $resumo['importados']++;
+                }
 
                 HelpdeskEmailModel::confirmarImportacao($messageId, $helpId);
 
@@ -50,18 +64,16 @@ class EmailHelpdeskService
                 if ($pastaId !== null) {
                     GraphService::mover($mailbox, $messageId, $pastaId);
                 }
-
-                $resumo['importados']++;
             } catch (Throwable $e) {
                 HelpdeskEmailModel::liberarReserva($messageId);
 
                 Logger::exception($e, [
                     'message_id' => $messageId,
-                    'subject'    => $m['subject'] ?? '',
+                    'subject'    => $subject,
                 ]);
 
                 $resumo['erros'][] = [
-                    'subject' => $m['subject'] ?? '(sem assunto)',
+                    'subject' => $subject !== '' ? $subject : '(sem assunto)',
                     'erro'    => $e->getMessage(),
                 ];
             }
@@ -70,21 +82,78 @@ class EmailHelpdeskService
         return $resumo;
     }
 
+    private static function chamadoExistente(string $conversationId, string $subject): ?int
+    {
+        if ($conversationId !== '') {
+            $helpId = HelpdeskEmailModel::buscarPorConversa($conversationId);
+
+            if ($helpId !== null) {
+                return $helpId;
+            }
+        }
+
+        if (preg_match('/N[º°]?\s*(\d+)/iu', $subject, $m) && isset($m[1])) {
+            $helpId = (int) $m[1];
+
+            if ($helpId > 0 && HelpdeskService::obterStatus($helpId) !== null) {
+                return $helpId;
+            }
+        }
+
+        return null;
+    }
+
+    private static function registrarResposta(int $helpId, array $m, string $mailbox): void
+    {
+        [$fromEmail, $fromName] = self::remetenteMensagem($m);
+        $corpo = self::corpoMensagem($m);
+        $messageId = $m['id'] ?? '';
+
+        $desc = "Resposta de {$fromName} <{$fromEmail}>:\n\n{$corpo}";
+
+        $cpfAb = '';
+        $usuario = HelpdeskEmailModel::buscarUsuarioPorEmail($fromEmail);
+
+        if ($usuario && ($usuario['cpf'] ?? '') !== '') {
+            $cpfAb = $usuario['cpf'];
+        }
+
+        $ehAbertura = $cpfAb !== '' && HelpdeskService::obterCpfAbertura($helpId) === $cpfAb;
+        $status = $ehAbertura ? 'PS' : 'PU';
+
+        HelpHistoricoService::registrarInteracao(
+            $helpId,
+            '[EMAIL] ' . $desc,
+            $cpfAb !== '' ? $cpfAb : '0',
+            $status
+        );
+
+        HelpdeskService::atualizaStatusChamado($helpId, $status);
+        HelpdeskService::upsertHelpStatus($helpId, $status);
+
+        LogService::store([
+            'nivel'    => 'INFO',
+            'tipo'     => 'UPDATE',
+            'modulo'   => 'helpdesk',
+            'acao'     => 'resposta_email',
+            'mensagem' => "chamado {$helpId} recebeu resposta via e-mail de {$fromEmail}",
+            'contexto' => [
+                'help_id'   => $helpId,
+                'from_email' => $fromEmail,
+            ],
+        ]);
+
+        self::salvarAnexos($helpId, $messageId, $mailbox, $fromEmail);
+    }
+
     private static function criarChamado(array $m, string $mailbox): int
     {
-        $fromEmail = strtolower(trim($m['from']['emailAddress']['address'] ?? ''));
-        $fromName  = trim($m['from']['emailAddress']['name'] ?? '');
+        [$fromEmail, $fromName] = self::remetenteMensagem($m);
+        $corpo = self::corpoMensagem($m);
 
         $cab = trim($m['subject'] ?? '');
         if ($cab === '') {
             $cab = '(sem assunto)';
-        }
-
-        $corpo = '';
-        if (($m['body']['contentType'] ?? '') === 'text/plain') {
-            $corpo = trim($m['body']['content'] ?? '');
-        } else {
-            $corpo = trim(strip_tags(html_entity_decode((string) ($m['body']['content'] ?? ''))));
         }
 
         $desc = "Enviado por: {$fromName} <{$fromEmail}>\n\n{$corpo}";
@@ -151,6 +220,8 @@ class EmailHelpdeskService
 
         self::salvarAnexos($helpId, $m['id'] ?? '', $mailbox, $fromEmail);
 
+        HelpdeskService::notificarAbertura($helpId, $cab, $fromEmail);
+
         return $helpId;
     }
 
@@ -165,6 +236,10 @@ class EmailHelpdeskService
         foreach ($anexos as $anexo) {
             $nome = $anexo['name'] ?? '';
             if ($nome === '') {
+                continue;
+            }
+
+            if (!empty($anexo['isInline'])) {
                 continue;
             }
 
@@ -199,6 +274,131 @@ class EmailHelpdeskService
                 Logger::exception($e, ['help_id' => $helpId, 'anexo' => $nome]);
             }
         }
+    }
+
+    private static function remetenteMensagem(array $m): array
+    {
+        $fromEmail = strtolower(trim($m['from']['emailAddress']['address'] ?? ''));
+        $fromName  = trim($m['from']['emailAddress']['name'] ?? '');
+
+        return [$fromEmail, $fromName];
+    }
+
+    private static function corpoMensagem(array $m): string
+    {
+        if (($m['body']['contentType'] ?? '') === 'text/plain') {
+            return self::limparCorpoTexto(trim($m['body']['content'] ?? ''));
+        }
+
+        $html = (string) ($m['body']['content'] ?? '');
+
+        if ($html !== '') {
+            $comQuebras = preg_replace('#</(div|p|li|tr|blockquote|br)\s*/?>#i', "\n", $html);
+
+            if ($comQuebras !== null) {
+                $html = $comQuebras;
+            }
+
+            $html = self::removerCitacaoHtml($html);
+        }
+
+        return self::limparCorpoTexto(trim(strip_tags(html_entity_decode($html))));
+    }
+
+    private static function removerCitacaoHtml(string $html): string
+    {
+        if (!extension_loaded('dom') || $html === '') {
+            return $html;
+        }
+
+        $dom = new \DOMDocument();
+        $anterior = libxml_use_internal_errors(true);
+
+        $dom->loadHTML(
+            '<html><head><meta charset="utf-8"></head><body>' . $html . '</body></html>',
+            LIBXML_NOERROR | LIBXML_NOWARNING
+        );
+
+        $blocos = [];
+
+        foreach ($dom->getElementsByTagName('blockquote') as $n) {
+            $blocos[] = $n;
+        }
+
+        foreach ($dom->getElementsByTagName('div') as $d) {
+            $classe = strtolower((string) $d->getAttribute('class'));
+            $style  = strtolower((string) $d->getAttribute('style'));
+
+            if (
+                strpos($classe, 'gmail_quote') !== false ||
+                strpos($classe, 'quote') !== false ||
+                strpos($classe, 'citacao') !== false ||
+                strpos($classe, 'cmpq') !== false ||
+                (strpos($style, 'border-left') !== false && strpos($style, 'solid') !== false) ||
+                (strpos($style, 'border:none') !== false && strpos($style, 'border-top') !== false && strpos($style, 'solid') !== false)
+            ) {
+                $blocos[] = $d;
+            }
+        }
+
+        foreach ($blocos as $n) {
+            if ($n->parentNode) {
+                $n->parentNode->removeChild($n);
+            }
+        }
+
+        $html = $dom->saveHTML();
+
+        libxml_clear_errors();
+        libxml_use_internal_errors($anterior);
+
+        return $html;
+    }
+
+    private static function limparCorpoTexto(string $corpo): string
+    {
+        if ($corpo === '') {
+            return '';
+        }
+
+        $linhas = preg_split('/\R/', $corpo);
+
+        $marcadoresCitacao = [
+            '/^-{5,}/',                                       // separador "-----Original Message-----"
+            '/^_{10,}/',                                      // sublinhado longo
+            '/^(?:On\b.+?)wrote:\s*$/i',                      // Gmail/Apple
+            '/^(?:Em\b.+?)escreveu:\s*$/i',                   // Gmail pt-BR
+            '/^[>*\-_ ]{0,4}(?:De|From|Sent|Enviad[oa]|Enviada em|Para|To|Cc|Assunto|Subject):/i',
+        ];
+
+        $mantidas = [];
+
+        foreach ($linhas as $linha) {
+            $l = trim($linha);
+
+            if ($l !== '') {
+                $ehCitacao = false;
+
+                foreach ($marcadoresCitacao as $rx) {
+                    if (preg_match($rx, $l)) {
+                        $ehCitacao = true;
+                        break;
+                    }
+                }
+
+                if ($ehCitacao) {
+                    break;
+                }
+
+                if (strpos($l, '>') === 0) {
+                    continue;
+                }
+            }
+
+            $mantidas[] = $linha;
+        }
+
+        return trim(implode("\n", $mantidas));
     }
 
     private static function env(string $key, string $default = ''): string

@@ -3,6 +3,7 @@
 namespace App\Model\Mysql;
 
 use App\Core\DB;
+use App\Core\Logger;
 
 class HelpdeskEmailModel
 {
@@ -15,23 +16,30 @@ class HelpdeskEmailModel
         ) !== null;
     }
 
-    public static function reservarImportacao(string $messageId): bool
+    public static function reservarImportacao(string $messageId, string $conversationId = ''): bool
     {
         try {
-            DB::deleteWhere('helpdesk_email_importado', [
-                'message_id' => $messageId,
-                'help_id' => 0,
-            ]);
+            $stmt = DB::connect('mysql')->prepare(
+                "DELETE FROM helpdesk_email_importado WHERE message_id = :id AND help_id = 0"
+            );
+            $stmt->execute(['id' => $messageId]);
 
             DB::insert('helpdesk_email_importado', [
-                'message_id'   => $messageId,
-                'help_id'      => 0,
-                'importado_em' => date('Y-m-d H:i:s'),
+                'message_id'      => $messageId,
+                'help_id'         => 0,
+                'conversation_id' => $conversationId !== '' ? $conversationId : null,
+                'importado_em'    => date('Y-m-d H:i:s'),
             ], 'mysql');
 
             return true;
-        } catch (\Throwable $e) {
-            return false;
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000') {
+                Logger::error("HelpdeskEmailModel: duplicidade ao reservar mensagem {$messageId}");
+                return false;
+            }
+
+            Logger::exception($e, ['message_id' => $messageId]);
+            throw $e;
         }
     }
 
@@ -46,11 +54,29 @@ class HelpdeskEmailModel
 
     public static function liberarReserva(string $messageId): bool
     {
-        DB::deleteWhere('helpdesk_email_importado', [
-            'message_id' => $messageId,
-        ]);
+        $stmt = DB::connect('mysql')->prepare(
+            "DELETE FROM helpdesk_email_importado WHERE message_id = :id AND help_id = 0"
+        );
+        $stmt->execute(['id' => $messageId]);
 
         return true;
+    }
+
+    public static function buscarPorConversa(string $conversationId): ?int
+    {
+        if ($conversationId === '') {
+            return null;
+        }
+
+        $row = DB::first(
+            "SELECT help_id FROM helpdesk_email_importado
+             WHERE conversation_id = :id AND help_id > 0
+             LIMIT 1",
+            ['id' => $conversationId],
+            'mysql'
+        );
+
+        return ($row['help_id'] ?? 0) > 0 ? (int) $row['help_id'] : null;
     }
 
     public static function registrar(string $messageId, int $helpId): bool
@@ -94,12 +120,21 @@ class HelpdeskEmailModel
 
     public static function criarTabelaSeNecessario(): void
     {
-        DB::connect('mysql')->exec("
+        $pdo = DB::connect('mysql');
+
+        $pdo->exec("
             CREATE TABLE IF NOT EXISTS helpdesk_email_importado (
                 message_id VARCHAR(200) NOT NULL PRIMARY KEY,
                 help_id INT NOT NULL,
+                conversation_id VARCHAR(200) NULL,
                 importado_em DATETIME NOT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
+
+        $coluna = $pdo->query("SHOW COLUMNS FROM helpdesk_email_importado LIKE 'conversation_id'")->fetch();
+
+        if (!$coluna) {
+            $pdo->exec("ALTER TABLE helpdesk_email_importado ADD COLUMN conversation_id VARCHAR(200) NULL AFTER help_id");
+        }
     }
 }

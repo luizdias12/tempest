@@ -104,4 +104,74 @@ class HelpdeskService
     {
         return HelpdeskModel::chamadosPendentesUsuario();
     }
+
+    public static function notificarAbertura(int $id, string $assunto, string $paraEmail = ''): void
+    {
+        if ($paraEmail === '') {
+            $dados = HelpdeskModel::obterDadosNotificacao($id);
+            $paraEmail = $dados['email_abertura'] ?? '';
+        }
+
+        if ($paraEmail === '') {
+            return;
+        }
+
+        $assunto = trim($assunto);
+        if ($assunto === '') {
+            $assunto = '(sem assunto)';
+        }
+
+        $corpo = '<p>Olá!</p>'
+            . '<p>O seu chamado <strong>Nº ' . $id . '</strong> foi aberto.</p>'
+            . '<ul>'
+            . '<li><strong>Assunto:</strong> ' . htmlspecialchars($assunto, ENT_QUOTES, 'UTF-8') . '</li>'
+            . '<li><strong>Situação:</strong> Em atendimento pela equipe de TI</li>'
+            . '</ul>'
+            . '<p>Em caso de dúvidas, responda a este e-mail informando o número do chamado.</p>';
+
+        MailService::enviar(
+            $paraEmail,
+            'Chamado Nº ' . $id . ' aberto - ' . $assunto,
+            $corpo
+        );
+    }
+
+    public static function notificarFinalizacao(int $id, string $statusValue): void
+    {
+        $map = [
+            'R' => 'foi resolvido',
+            'C' => 'foi cancelado',
+        ];
+
+        $frase = $map[$statusValue] ?? null;
+
+        if ($frase === null) {
+            return;
+        }
+
+        $dados = HelpdeskModel::obterDadosNotificacao($id);
+
+        if (!$dados || empty($dados['email_abertura'])) {
+            return;
+        }
+
+        $assunto = trim((string) $dados['cab_problema']);
+        if ($assunto === '') {
+            $assunto = '(sem assunto)';
+        }
+
+        $corpo = '<p>Olá!</p>'
+            . '<p>O chamado <strong>Nº ' . $id . '</strong> ' . $frase . '.</p>'
+            . '<ul>'
+            . '<li><strong>Assunto:</strong> ' . htmlspecialchars($assunto, ENT_QUOTES, 'UTF-8') . '</li>'
+            . '<li><strong>Número:</strong> ' . $id . '</li>'
+            . '</ul>'
+            . '<p>Em caso de dúvidas, responda a este e-mail informando o número do chamado.</p>';
+
+        MailService::enviar(
+            $dados['email_abertura'],
+            'Chamado Nº ' . $id . ' - ' . $assunto,
+            $corpo
+        );
+    }
 }

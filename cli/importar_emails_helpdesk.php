@@ -16,9 +16,11 @@ try {
     $resumo = EmailHelpdeskService::importarEmails();
 
     $msg = sprintf(
-        '[%s] Importados: %d | Ignorados: %d | Erros: %d',
+        '[%s] Total: %d | Importados: %d | Respostas: %d | Ignorados: %d | Erros: %d',
         date('d-m-Y H:i:s'),
+        $resumo['total'] ?? 0,
         $resumo['importados'],
+        $resumo['respostas'],
         $resumo['ignorados'],
         count($resumo['erros'])
     );
