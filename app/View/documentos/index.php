@@ -1,5 +1,5 @@
 <div class="header-bar">
-    <?php if (!empty($isSuporte)): ?>
+    <?php if (!empty($isGestao)): ?>
         <a href="/documentos/gestao" class="btn-novo"><i class="fa-solid fa-gear"></i> Gestão</a>
     <?php endif; ?>
 </div>

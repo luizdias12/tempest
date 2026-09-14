@@ -320,9 +320,20 @@ class DocService
         }
     }
 
-    public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null): array
+    public static function listarFuncoesFilhas(): array
     {
-        $documentos = DocModel::listarDocumentosAdmin($idDir, $idSubdir, $nome);
+        try {
+            return FuncaoPaiModel::listarFuncoesFilhas();
+        } catch (Throwable $e) {
+            Logger::exception($e);
+
+            return [];
+        }
+    }
+
+    public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null, ?int $idFuncao = null): array
+    {
+        $documentos = DocModel::listarDocumentosAdmin($idDir, $idSubdir, $nome, $idFuncao);
 
         foreach ($documentos as &$doc) {
             $doc['existe'] = is_file(self::caminhoAbsoluto($doc['caminho']));

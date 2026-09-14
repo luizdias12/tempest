@@ -23,24 +23,45 @@ class ErrorHandler
                     'message' => $message
                 ]
             ], $statusCode);
+
             return;
         }
 
         (new ErrorController())->indexView($statusCode, $message);
     }
 
-    public static function notFound(string $message = 'Rota não encontrada'): void
-    {
-        self::handle(404, $message);
+    public static function notFound(
+        string $message = 'Rota não encontrada',
+        bool $isApi = false
+    ): void {
+        self::handle(404, $message, $isApi);
     }
 
-    public static function serverError(string $message = 'Erro interno do servidor'): void
-    {
-        self::handle(500, $message);
+    public static function serverError(
+        string $message = 'Erro interno do servidor',
+        bool $isApi = false
+    ): void {
+        self::handle(500, $message, $isApi);
     }
 
-    public static function forbidden(string $message = 'Acesso negado'): void
-    {
-        self::handle(403, $message);
+    public static function forbidden(
+        string $message = 'Acesso negado',
+        bool $isApi = false
+    ): void {
+        self::handle(403, $message, $isApi);
+    }
+
+    public static function unauthorized(
+        string $message = 'Não autenticado',
+        bool $isApi = false
+    ): void {
+        self::handle(401, $message, $isApi);
+    }
+
+    public static function badRequest(
+        string $message = 'Requisição inválida',
+        bool $isApi = false
+    ): void {
+        self::handle(400, $message, $isApi);
     }
 }

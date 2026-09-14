@@ -23,7 +23,7 @@ class DocController extends BaseController
                 'diretorios' => DocService::listarDiretorios(),
                 'subdiretorios' => DocService::listarSubdiretorios(),
                 'funcoes' => DocService::listarFuncoes(),
-                'isSuporte' => AuthService::hasPermission('ti'),
+                'isGestao' => AuthService::hasPermission('gestao de processos') || AuthService::hasPermission('ti'),
                 'title' => 'Documentos'
             ]);
         } catch (Throwable $e) {
@@ -91,8 +91,8 @@ class DocController extends BaseController
         header('Content-Length: ' . $arquivo['tamanho']);
         header(
             "Content-Disposition: " . ($arquivo['inline'] ? 'inline' : 'attachment')
-            . '; filename="' . rawurlencode($arquivo['basename'])
-            . '"; filename*=UTF-8\'\'' . rawurlencode($arquivo['basename'])
+                . '; filename="' . rawurlencode($arquivo['basename'])
+                . '"; filename*=UTF-8\'\'' . rawurlencode($arquivo['basename'])
         );
 
         readfile($arquivo['caminho_absoluto']);
@@ -104,12 +104,14 @@ class DocController extends BaseController
             $idDir = max(0, (int) $request->query('id_dir', 0));
             $idSubdir = max(0, (int) $request->query('id_subdir', 0));
             $nome = trim((string) $request->query('nome', ''));
+            $idFuncao = max(0, (int) $request->query('id_funcao', 0));
 
             view('documentos/gestao', [
                 'documentos' => DocService::listarDocumentosAdmin(
                     $idDir > 0 ? $idDir : null,
                     $idSubdir > 0 ? $idSubdir : null,
-                    $nome !== '' ? $nome : null
+                    $nome !== '' ? $nome : null,
+                    $idFuncao > 0 ? $idFuncao : null
                 ),
                 'permissoes' => DocService::permissoesPorDocumento(),
                 'versoes' => DocService::versoesPorDocumento(),
@@ -119,6 +121,7 @@ class DocController extends BaseController
                 'filtroDir' => $idDir,
                 'filtroSubdir' => $idSubdir,
                 'filtroNome' => $nome,
+                'filtroFuncao' => $idFuncao,
                 'title' => 'Gestão de Documentos'
             ]);
         } catch (Throwable $e) {
@@ -305,7 +308,7 @@ class DocController extends BaseController
     private function acaoGestao(Request $request, callable $acao, string $acaoNome, bool $json = false): void
     {
         try {
-            if (!AuthService::hasPermission('ti')) {
+            if (!AuthService::canManageDocuments()) {
                 if ($json) {
                     Response::json(['success' => false, 'message' => 'Acesso não permitido.'], 403);
                     return;

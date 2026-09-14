@@ -405,4 +405,31 @@ class FuncionarioModel extends DB
         ->get();
         return $query;
     }
+
+    public static function listAllFuncs(): array
+    {
+        return QueryBuilder::table('pfunc f')
+            ->select(
+                'f.chapa',
+                'INITCAP(f.nome) nome',
+                'INITCAP(p.nomesocial) nomesocial',
+                'f.codfuncao',
+                'f.codhorario',
+                'f.codsecao',
+                'p.codigo codpessoa',
+                'p.cpf',
+                'f.codfilial',
+                "TO_CHAR(p.dtnascimento, 'YYYY-MM-DD') dtnascimento",
+                "TO_CHAR(f.dataadmissao, 'YYYY-MM-DD') dataadmissao",
+                "TO_CHAR(f.datademissao, 'YYYY-MM-DD') datademissao",
+                'f.codsituacao',
+                'f.pisepasep'
+            )
+            ->join('ppessoa p', 'p.codigo', '=', 'f.codpessoa')
+            ->whereNotIn('f.codsituacao', ['I','D','L'])
+            ->where('f.chapa', '<>', '00001')
+            ->whereNotNull('p.cpf')
+            ->orderBy('f.nome', 'ASC')
+            ->get();
+    }
 }

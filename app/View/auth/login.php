@@ -17,6 +17,11 @@
 
             <button type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar</button>
         </form>
+
+        <div class="login-links">
+            <a href="/login/cadastro"><i class="fa-solid fa-user-plus"></i> Não possui acesso? Cadastre-se</a>
+            <a href="/login/redefinir"><i class="fa-solid fa-key"></i> Esqueceu a senha?</a>
+        </div>
     </div>
 </div>
 

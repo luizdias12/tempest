@@ -69,6 +69,21 @@ class AuthService
                     } catch (Throwable $e) {
                         Logger::exception($e);
 
+                        LogService::store([
+                            'nivel' => 'ERROR',
+                            'tipo' => 'LDAP',
+                            'modulo' => 'loginLdap',
+                            'acao' => 'busca_func_externo',
+                            'usuario_id' => $username ?? null,
+                            'chapa' => $user['chapa'] ?? null,
+                            'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+                            'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+                            'rota' => $_SERVER['REQUEST_URI'] ?? null,
+                            'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                            'mensagem' => "{$e->getMessage()} ({$username})",
+                        ]);
+
                         ldap_close($ldapConn);
                         return false;
                     }
@@ -123,6 +138,22 @@ class AuthService
                 ->first();
         } catch (Throwable $e) {
             Logger::exception($e);
+
+            LogService::store([
+                'nivel' => 'ERROR',
+                'tipo' => 'LOGIN_FALLBACK',
+                'modulo' => 'fallbackLogin',
+                'acao' => 'dadosFallback_query',
+                'usuario_id' => $username ?? null,
+                'chapa' => $user['chapa'] ?? null,
+                'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+                'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+                'rota' => $_SERVER['REQUEST_URI'] ?? null,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                'mensagem' => "{$e->getMessage()} ({$username})",
+            ]);
+
             return null;
         }
 
@@ -149,6 +180,22 @@ class AuthService
             $func = $cpf !== '' ? FuncionarioService::findByCpfDados($cpf) : null;
         } catch (Throwable $e) {
             Logger::exception($e);
+
+            LogService::store([
+                'nivel' => 'ERROR',
+                'tipo' => 'QUERY',
+                'modulo' => 'FuncionarioService',
+                'acao' => 'findByCpfDados',
+                'usuario_id' => $username ?? null,
+                'chapa' => $user['chapa'] ?? null,
+                'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+                'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+                'rota' => $_SERVER['REQUEST_URI'] ?? null,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                'mensagem' => "{$e->getMessage()} ({$cpf})",
+            ]);
+
             $func = null;
         }
 
@@ -158,6 +205,22 @@ class AuthService
                 $externo = !empty($func);
             } catch (Throwable $e) {
                 Logger::exception($e);
+
+                LogService::store([
+                    'nivel' => 'ERROR',
+                    'tipo' => 'QUERY',
+                    'modulo' => 'GenericService',
+                    'acao' => 'buscaFuncExternoPorCpf',
+                    'usuario_id' => $username ?? null,
+                    'chapa' => $user['chapa'] ?? null,
+                    'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+                    'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+                    'rota' => $_SERVER['REQUEST_URI'] ?? null,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                    'mensagem' => "{$e->getMessage()} ({$cpf})",
+                ]);
+
                 $func = [];
             }
         }
@@ -235,6 +298,22 @@ class AuthService
                     $func = FuncionarioService::findByNome(removeAccents($entries[0]['cn'][0]));
                 } catch (Throwable $e) {
                     Logger::exception($e);
+
+                    LogService::store([
+                        'nivel' => 'ERROR',
+                        'tipo' => 'QUERY',
+                        'modulo' => 'FuncionarioService',
+                        'acao' => 'findByNome',
+                        'usuario_id' => $username ?? null,
+                        'chapa' => $user['chapa'] ?? null,
+                        'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+                        'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+                        'rota' => $_SERVER['REQUEST_URI'] ?? null,
+                        'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                        'mensagem' => "{$e->getMessage()} ({$entries[0]['cn'][0]})",
+                    ]);
+
                     ldap_close($ldapConn);
                     return null;
                 }
@@ -317,7 +396,8 @@ class AuthService
         return in_array($permissao, $permissoes, true);
     }
 
-    public static function isAdmin(): ?string{
+    public static function isAdmin(): ?string
+    {
         return UsuarioService::getAdmin(self::getUser()['cpf']) ?? 'N';
     }
 
@@ -354,5 +434,11 @@ class AuthService
         }
 
         return array_values(array_unique($grupos));
+    }
+
+    public static function canManageDocuments(): bool
+    {
+        return self::hasPermission('ti')
+            || self::hasPermission('gestao de processos');
     }
 }

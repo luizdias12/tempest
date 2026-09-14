@@ -81,6 +81,21 @@ class FuncionarioController extends BaseController
         }
     }
 
+    public function sessaoView(Request $request): void
+    {
+        try {
+
+            view('ti/sessao', [
+                'data' => AuthService::getUser(),
+                'title' => 'TESTE SESSÃO'
+            ]);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+            
+            ErrorHandler::handle(500, $e->getMessage());
+        }
+    }
+
     public function listaView(Request $request): void
     {
         $permitidos = ['405','0318'];
@@ -215,4 +230,5 @@ class FuncionarioController extends BaseController
             Response::json(['error' => 'Erro ao carregar as admissões.'], 500);
         }
     }
+
 }

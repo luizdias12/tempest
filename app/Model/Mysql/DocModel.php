@@ -274,7 +274,7 @@ class DocModel
         return DB::select($sql, $params, 'mysql');
     }
 
-    public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null): array
+    public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null, ?int $idFuncao = null): array
     {
         $sql = "
             SELECT
@@ -313,6 +313,20 @@ class DocModel
         if ($nome !== null && $nome !== '') {
             $sql .= " AND doc.titulo LIKE :nome";
             $params['nome'] = '%' . addcslashes($nome, '\\%_') . '%';
+        }
+
+        if ($idFuncao !== null && $idFuncao > 0) {
+            $sql .= "
+                AND (
+                    doc.geral = 'S'
+                    OR EXISTS (
+                        SELECT 1 FROM doc_permissao fp
+                        WHERE fp.id_doc = doc.id_doc
+                          AND fp.codfuncao = :funcao
+                    )
+                )
+            ";
+            $params['funcao'] = $idFuncao;
         }
 
         $sql .= "

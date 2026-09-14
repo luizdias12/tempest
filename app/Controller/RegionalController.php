@@ -154,4 +154,79 @@ class RegionalController extends BaseController
             return $this->success(null, [], 'Gerência excluída.');
         });
     }
+
+    public function criaRegional(Request $request): array
+    {
+        return $this->handle(function () use ($request) {
+            $regiao = (int) $request->input('regiao', 0);
+            $nome = trim((string) $request->input('nome', ''));
+            $cpf = preg_replace('/\D/', '', (string) $request->input('cpf', '')) ?: null;
+
+            if ($regiao <= 0) {
+                return $this->error('Número da regional é obrigatório.', 400);
+            }
+
+            if ($nome === '') {
+                return $this->error('Nome da regional é obrigatório.', 400);
+            }
+
+            if (RegionalService::regionalExiste($regiao)) {
+                return $this->error('Já existe uma regional com o número informado.', 409);
+            }
+
+            RegionalService::gravaRegional($regiao, $nome, $cpf);
+
+            return $this->success(['regiao' => $regiao], [], 'Regional criada.');
+        });
+    }
+
+    public function excluiRegional(Request $request, int $regiao): array
+    {
+        return $this->handle(function () use ($regiao) {
+            $removido = RegionalService::deletaRegional($regiao);
+
+            if (!$removido) {
+                return $this->error('Regional não encontrada.', 404);
+            }
+
+            return $this->success(null, [], 'Regional excluída.');
+        });
+    }
+
+    public function vinculaFilial(Request $request): array
+    {
+        return $this->handle(function () use ($request) {
+            $codRegional = (int) $request->input('cod_regional', 0);
+            $filial = trim((string) $request->input('filial', ''));
+
+            if ($codRegional <= 0) {
+                return $this->error('Regional é obrigatória.', 400);
+            }
+
+            if ($filial === '') {
+                return $this->error('Filial é obrigatória.', 400);
+            }
+
+            if (RegionalService::filialVinculada($codRegional, $filial)) {
+                return $this->error('Filial já está vinculada a esta regional.', 409);
+            }
+
+            RegionalService::gravaFilial($codRegional, $filial);
+
+            return $this->success(['cod_regional' => $codRegional, 'filial' => $filial], [], 'Filial vinculada.');
+        });
+    }
+
+    public function desvinculaFilial(Request $request, int $id): array
+    {
+        return $this->handle(function () use ($id) {
+            $removido = RegionalService::deletaFilial($id);
+
+            if (!$removido) {
+                return $this->error('Vínculo não encontrado.', 404);
+            }
+
+            return $this->success(null, [], 'Filial desvinculada.');
+        });
+    }
 }

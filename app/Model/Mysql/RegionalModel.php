@@ -17,7 +17,9 @@ class RegionalModel
     {
         return DB::select("SELECT gr.regiao, gr.nome AS regional, u.email, u.corporativo,
                 fi.codfilial, COALESCE(fi.abreviado, fi.nome) AS filial,
-                f1.nome AS gerente, f2.nome AS subgerente, f1.cpf AS cpf_g1, f2.cpf AS cpf_g2
+                f1.nome AS gerente, f2.nome AS subgerente, f1.cpf AS cpf_g1, f2.cpf AS cpf_g2,
+                ug1.email AS email_g1, ug1.corporativo AS corp_g1,
+                ug2.email AS email_g2, ug2.corporativo AS corp_g2
             FROM ger_regional gr
             LEFT JOIN usuarios u ON u.cpf = gr.cpf
             LEFT JOIN regional_filial rf ON rf.cod_regional = gr.regiao
@@ -25,6 +27,8 @@ class RegionalModel
             LEFT JOIN gerentes ge ON ge.codregional = gr.regiao AND ge.codfilial = rf.filial
             LEFT JOIN func f1 ON f1.cpf = ge.g1
             LEFT JOIN func f2 ON f2.cpf = ge.g2
+            LEFT JOIN usuarios ug1 ON ug1.cpf = ge.g1
+            LEFT JOIN usuarios ug2 ON ug2.cpf = ge.g2
             ORDER BY gr.regiao, fi.codfilial * 1", [], 'mysql');
     }
 
@@ -128,6 +132,68 @@ class RegionalModel
     {
         $stmt = DB::connect('mysql')->prepare("DELETE FROM gerentes WHERE id = :id");
         $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public static function regionalExiste(int $regiao): bool
+    {
+        return DB::first("SELECT regiao FROM ger_regional WHERE regiao = :regiao", ['regiao' => $regiao], 'mysql') !== null;
+    }
+
+    public static function gravaRegional(int $regiao, string $nome, ?string $cpf): ?int
+    {
+        return DB::insert('ger_regional', [
+            'regiao' => $regiao,
+            'nome' => $nome,
+            'cpf' => $cpf,
+        ], 'mysql');
+    }
+
+    public static function deletaRegional(int $regiao): bool
+    {
+        $conn = DB::connect('mysql');
+        $stmt = $conn->prepare("DELETE FROM gerentes WHERE codregional = :regiao");
+        $stmt->execute(['regiao' => $regiao]);
+
+        $stmt = $conn->prepare("DELETE FROM regional_filial WHERE cod_regional = :regiao");
+        $stmt->execute(['regiao' => $regiao]);
+
+        $stmt = $conn->prepare("DELETE FROM ger_regional WHERE regiao = :regiao");
+        $stmt->execute(['regiao' => $regiao]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public static function filialVinculada(int $codRegional, string $filial): bool
+    {
+        return DB::first(
+            "SELECT id FROM regional_filial WHERE cod_regional = :cod_regional AND filial = :filial",
+            ['cod_regional' => $codRegional, 'filial' => $filial],
+            'mysql'
+        ) !== null;
+    }
+
+    public static function gravaFilial(int $codRegional, string $filial): ?int
+    {
+        return DB::insert('regional_filial', [
+            'cod_regional' => $codRegional,
+            'filial' => $filial,
+        ], 'mysql');
+    }
+
+    public static function deletaFilial(int $id): bool
+    {
+        $stmt = DB::connect('mysql')->prepare("DELETE FROM regional_filial WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public static function deletaGerentesFilial(int $codRegional, string $codfilial): bool
+    {
+        $stmt = DB::connect('mysql')->prepare("DELETE FROM gerentes WHERE codregional = :codregional AND codfilial = :codfilial");
+        $stmt->execute(['codregional' => $codRegional, 'codfilial' => $codfilial]);
 
         return $stmt->rowCount() > 0;
     }

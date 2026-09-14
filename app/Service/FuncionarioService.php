@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Model\Oracle\FuncionarioModel;
 use App\Core\ApiException;
+use App\Model\Oracle\FuncaoModel;
 
 class FuncionarioService
 {
@@ -90,6 +91,16 @@ class FuncionarioService
     public static function admissoes(): array
     {
         return FuncionarioModel::admissoes();
+    }
+
+    public static function listAllFuncs(): array
+    {
+        return FuncionarioModel::listAllFuncs();
+    }
+
+    public static function listAllFuncoes(): array
+    {
+        return FuncaoModel::listAllFuncoes();
     }
 
 }

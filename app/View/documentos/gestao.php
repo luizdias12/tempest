@@ -28,9 +28,16 @@ use App\Service\DocService;
         </select>
         <label for="filtro-nome">Documento:</label>
         <input type="text" id="filtro-nome" name="nome" value="<?= htmlspecialchars($filtroNome ?? '') ?>" placeholder="Nome do documento">
+        <label for="filtro-funcao">Função com acesso:</label>
+        <select name="id_funcao" id="filtro-funcao">
+            <option value="">Todas as funções</option>
+            <?php foreach ($funcoes as $funcao): ?>
+                <option value="<?= htmlspecialchars((string) $funcao['codigo']) ?>" <?= (string) $funcao['codigo'] === (string) ($filtroFuncao ?? '') ? 'selected' : '' ?>><?= htmlspecialchars($funcao['nome']) ?></option>
+            <?php endforeach; ?>
+        </select>
         <button type="submit">Filtrar</button>
 
-        <?php if (!empty($filtroDir) || !empty($filtroSubdir) || !empty($filtroNome)): ?>
+        <?php if (!empty($filtroDir) || !empty($filtroSubdir) || !empty($filtroNome) || !empty($filtroFuncao)): ?>
             <a href="/documentos/gestao" class="btn-clear">Limpar filtro</a>
         <?php endif; ?>
     </form>

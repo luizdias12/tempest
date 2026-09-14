@@ -10,6 +10,18 @@
     </div>
 </div>
 
+<!-- Stats -->
+<div class="region-stats" id="statsArea">
+    <div class="region-stat-card">
+        <div class="region-stat-icon region-stat-icon--regional"><i class="fa-solid fa-building"></i></div>
+        <div class="region-stat-info">
+            <span class="region-stat-num" id="statRegionais">-</span>
+            <span class="region-stat-label">Regionais</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== CONSULTA ==================== -->
 <div class="region-tab-wrap header-bar tab" id="consultaArea">
     <h2 class="header_title">Consulta de Regionais</h2>
     <div class="region-filtros">
@@ -25,6 +37,7 @@
     <div id="cardsContainer"></div>
 </div>
 
+<!-- ==================== GESTÃO ==================== -->
 <div class="region-tab-wrap tab" id="gestaoArea" hidden>
     <div class="region-subtabs">
         <button type="button" class="region-subtab active" data-sub="cad" onclick="mostrarGestao(this, 'cad')"><i class="fa-solid fa-building"></i> Cadastro</button>
@@ -32,8 +45,9 @@
         <button type="button" class="region-subtab" data-sub="fil" onclick="mostrarGestao(this, 'fil')"><i class="fa-solid fa-diagram-project"></i> Filiais x Regional</button>
     </div>
 
+    <!-- Cadastro de Gerentes -->
     <div class="region-tab-wrap header-bar tab" id="gestCad">
-        <h2 class="header_title">Área de Cadastro</h2>
+        <h2 class="header_title">Cadastro de Gerentes</h2>
         <div class="filter-form">
             <label for="fFilial">Filial:</label>
             <select class="region-select region-filial-select" id="fFilial">
@@ -58,8 +72,23 @@
         </table>
     </div>
 
+    <!-- Regionais -->
     <div class="region-tab-wrap header-bar tab" id="gestReg" hidden>
         <h2 class="header_title">Gerentes Regionais</h2>
+        <button type="button" class="btn-novo" id="btnNovaRegional" onclick="toggleFormRegional()"><i class="fa-solid fa-plus"></i> Nova Regional</button>
+    </div>
+
+    <div class="region-tab-wrap tab" id="formRegional" hidden>
+        <div class="region-inline-form" id="inlineFormRegional">
+            <label>Região:</label>
+            <input type="number" id="fNovaRegRegiao" min="1" placeholder="Nº">
+            <label>Nome:</label>
+            <input type="text" id="fNovaRegNome" placeholder="Nome da regional">
+            <label>CPF:</label>
+            <input type="text" id="fNovaRegCpf" placeholder="000.000.000-00" maxlength="14">
+            <button type="button" class="btn-novo-sm" onclick="salvarNovaRegional()"><i class="fa-solid fa-check"></i> Salvar</button>
+            <button type="button" class="btn-cancel-sm" onclick="toggleFormRegional()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+        </div>
     </div>
 
     <div class="region-tab-wrap table-wrapper tab" id="resultGer" hidden>
@@ -68,15 +97,32 @@
                 <tr>
                     <th scope="col">Região</th>
                     <th scope="col">Gerente</th>
-                    <th scope="col" hidden></th>
+                    <th scope="col">Ações</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
 
+    <!-- Filiais x Regional -->
     <div class="region-tab-wrap header-bar tab" id="gestFil" hidden>
         <h2 class="header_title">Filiais x Regional</h2>
+        <button type="button" class="btn-novo" id="btnNovaVinculo" onclick="toggleFormVinculo()"><i class="fa-solid fa-plus"></i> Vincular Filial</button>
+    </div>
+
+    <div class="region-tab-wrap tab" id="formVinculo" hidden>
+        <div class="region-inline-form" id="inlineFormVinculo">
+            <label>Filial:</label>
+            <select id="fNovaVincFilial" class="region-select" style="max-width:320px">
+                <option value="">Selecione</option>
+            </select>
+            <label>Regional:</label>
+            <select id="fNovaVincRegional" class="region-select" style="max-width:240px">
+                <option value="">Selecione</option>
+            </select>
+            <button type="button" class="btn-novo-sm" onclick="salvarNovoVinculo()"><i class="fa-solid fa-check"></i> Vincular</button>
+            <button type="button" class="btn-cancel-sm" onclick="toggleFormVinculo()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+        </div>
     </div>
 
     <div class="region-tab-wrap table-wrapper tab" id="resultReg" hidden>
@@ -86,6 +132,7 @@
                     <th scope="col">Cod. Filial</th>
                     <th scope="col">Filial</th>
                     <th scope="col">Regional</th>
+                    <th scope="col">Ações</th>
                     <th scope="col" hidden></th>
                 </tr>
             </thead>
@@ -94,25 +141,26 @@
     </div>
 </div>
 
-<?php
-ob_start();
-?>
-<div>
-    <p><i class="fa-regular fa-envelope"></i> <span id="reg_mail"></span></p>
-    <p><i class="fa-solid fa-phone"></i> <span id="reg_corp"></span></p>
+<!-- Modal de Confirmação -->
+<div class="region-confirm-overlay" id="confirmDialog">
+    <div class="region-confirm-box">
+        <div class="region-confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h3 class="region-confirm-title" id="confirmTitle">Confirmar exclusão</h3>
+        <p class="region-confirm-msg" id="confirmMsg">Tem certeza que deseja excluir?</p>
+        <div class="region-confirm-actions">
+            <button type="button" class="region-confirm-cancel" onclick="fecharConfirm()">Cancelar</button>
+            <button type="button" class="region-confirm-ok" id="confirmOk" onclick="executarConfirm()">Excluir</button>
+        </div>
+    </div>
 </div>
-<?php $content = ob_get_clean(); ?>
-
-<?php component('modal', [
-    'id' => 'modalRegional',
-    'title' => 'Dados de Contato',
-    'content' => $content,
-]); ?>
 
 <script>
 (function () {
     var API = '/regional/';
     var PERMITIDO_GESTAO = <?= !empty($permiteGestao) ? 'true' : 'false' ?>;
+    var _confirmCallback = null;
+
+    /* ===== UTILITÁRIOS ===== */
 
     function getJson(url, opts) {
         return fetch(url, opts).then(function (r) { return r.json(); });
@@ -125,11 +173,7 @@ ob_start();
     function check(res) {
         if (!res || !res.success) {
             var msg = res && res.error ? res.error.message : 'Erro na requisição.';
-            if (typeof mostrarToast === 'function') {
-                mostrarToast('error', msg);
-            } else {
-                console.error(msg);
-            }
+            toast('error', msg);
             throw new Error(msg);
         }
         return res.data;
@@ -143,10 +187,47 @@ ob_start();
         }).then(check);
     }
 
+    function toast(tipo, msg) {
+        if (typeof mostrarToast === 'function') {
+            mostrarToast(tipo, msg);
+        } else {
+            console.log('[' + tipo + '] ' + msg);
+        }
+    }
+
     function setVisible(id, visivel) {
         var el = document.getElementById(id);
         if (el) el.hidden = !visivel;
     }
+
+    function esc(s) {
+        var div = document.createElement('div');
+        div.textContent = s == null ? '' : String(s);
+        return div.innerHTML;
+    }
+
+    /* ===== CONFIRMAÇÃO ===== */
+
+    window.mostrarConfirm = function (titulo, msg, okLabel, callback) {
+        document.getElementById('confirmTitle').textContent = titulo;
+        document.getElementById('confirmMsg').textContent = msg;
+        document.getElementById('confirmOk').textContent = okLabel || 'Excluir';
+        _confirmCallback = callback;
+        document.getElementById('confirmDialog').classList.add('show');
+    };
+
+    window.fecharConfirm = function () {
+        document.getElementById('confirmDialog').classList.remove('show');
+        _confirmCallback = null;
+    };
+
+    window.executarConfirm = function () {
+        var cb = _confirmCallback;
+        fecharConfirm();
+        if (typeof cb === 'function') cb();
+    };
+
+    /* ===== NAVEGAÇÃO ===== */
 
     function mostrarAbaGlobal(botao, abaId) {
         var botoes = document.querySelectorAll('.region-tab');
@@ -156,11 +237,13 @@ ob_start();
 
         if (abaId === 'gestao') {
             if (!PERMITIDO_GESTAO) return;
+            setVisible('statsArea', false);
             setVisible('consultaArea', false);
             setVisible('cardsArea', false);
             setVisible('gestaoArea', true);
-            mostrarSubGestao('cad');
+            mostrarSubGestao(null, 'cad');
         } else {
+            setVisible('statsArea', true);
             setVisible('consultaArea', true);
             setVisible('cardsArea', true);
             setVisible('gestaoArea', false);
@@ -170,11 +253,15 @@ ob_start();
 
     window.mostrarAba = mostrarAbaGlobal;
 
-    function mostrarSubGestao(sub) {
+    function mostrarSubGestao(botao, sub) {
+        if (typeof sub === 'undefined' || sub === null) {
+            sub = botao;
+        }
+        sub = String(sub);
         var mapa = {
             'cad': ['gestCad', 'resultCad'],
-            'reg': ['gestReg', 'resultGer'],
-            'fil': ['gestFil', 'resultReg']
+            'reg': ['gestReg', 'formRegional', 'resultGer'],
+            'fil': ['gestFil', 'formVinculo', 'resultReg']
         };
         var visiveis = mapa[sub] || [];
 
@@ -193,9 +280,11 @@ ob_start();
             resetCadastro();
         }
         if (sub === 'reg') {
+            setFormRegional(false);
             regLista();
         }
         if (sub === 'fil') {
+            setFormVinculo(false);
             filialByregional();
         }
     }
@@ -211,6 +300,7 @@ ob_start();
             CONSULTA.lista = agrupar(rows);
             preencherFiltroRegional();
             renderConsulta();
+            atualizarStats(rows);
         });
     }
 
@@ -240,7 +330,11 @@ ob_start();
                     gerente: r.gerente || '',
                     subgerente: r.subgerente || '',
                     cpf_g1: r.cpf_g1 || '',
-                    cpf_g2: r.cpf_g2 || ''
+                    cpf_g2: r.cpf_g2 || '',
+                    email_g1: r.email_g1 || '',
+                    corp_g1: r.corp_g1 || '',
+                    email_g2: r.email_g2 || '',
+                    corp_g2: r.corp_g2 || ''
                 });
             }
         }
@@ -250,6 +344,29 @@ ob_start();
             lista.push(mapa[ordem[k]]);
         }
         return lista;
+    }
+
+    function atualizarStats(rows) {
+        var regionais = {};
+        var lojas = 0;
+        var gerentes = 0;
+
+        for (var i = 0; i < rows.length; i++) {
+            regionais[rows[i].regiao] = true;
+            if (rows[i].codfilial != null) {
+                lojas++;
+                if (rows[i].cpf_g1) gerentes++;
+                if (rows[i].cpf_g2) gerentes++;
+            }
+        }
+
+        var el;
+        el = document.getElementById('statRegionais');
+        if (el) el.textContent = Object.keys(regionais).length;
+        el = document.getElementById('statLojas');
+        if (el) el.textContent = lojas;
+        el = document.getElementById('statGerentes');
+        if (el) el.textContent = gerentes;
     }
 
     function preencherFiltroRegional() {
@@ -282,7 +399,7 @@ ob_start();
 
             nReg++;
             nLojas += reg.lojas.length;
-            container.appendChild(montaTable(reg));
+            container.appendChild(montaCard(reg));
         }
 
         regionCount(nReg, nLojas);
@@ -304,12 +421,12 @@ ob_start();
         return false;
     }
 
-    function montaTable(reg) {
+    function montaCard(reg) {
         var card = document.createElement('div');
         card.className = 'region-card';
 
         var head = document.createElement('div');
-        head.className = 'region-card-head';
+        head.className = 'region-card-head region-card-head--new';
 
         var headTitle = document.createElement('div');
         headTitle.className = 'region-card-head-title';
@@ -323,6 +440,11 @@ ob_start();
         title.className = 'region-card-title';
         title.textContent = reg.nome || '';
         headTitle.appendChild(title);
+
+        var countBadge = document.createElement('span');
+        countBadge.className = 'region-count';
+        countBadge.textContent = reg.lojas.length + ' loja' + (reg.lojas.length !== 1 ? 's' : '');
+        headTitle.appendChild(countBadge);
 
         head.appendChild(headTitle);
 
@@ -340,7 +462,7 @@ ob_start();
 
         var table = document.createElement('table');
         var thead = document.createElement('thead');
-        thead.innerHTML = '<tr><th scope="col">Loja</th><th scope="col">Gerente</th><th scope="col">Subgerente</th></tr>';
+        thead.innerHTML = '<tr><th scope="col">Loja</th><th scope="col">Gerente</th><th scope="col">Contato</th><th scope="col">Subgerente</th><th scope="col">Contato</th></tr>';
         var tbody = document.createElement('tbody');
         table.appendChild(thead);
         table.appendChild(tbody);
@@ -351,7 +473,7 @@ ob_start();
                 tbody.appendChild(montaRow(reg.lojas[i]));
             }
         } else {
-            tbody.innerHTML = '<tr><td colspan="3" class="region-empty">Nenhuma loja vinculada.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="region-empty">Nenhuma loja vinculada.</td></tr>';
         }
 
         card.appendChild(wrap);
@@ -362,26 +484,27 @@ ob_start();
     function montaRow(l) {
         var tr = document.createElement('tr');
 
-        var g1 = (l.gerente === '')
-            ? ''
-            : '<a class="region-link-contact" data-cpf="' + esc(l.cpf_g1) + '">' + esc(l.gerente) + '</a>';
-        var g2 = (l.subgerente === '')
-            ? ''
-            : '<a class="region-link-contact" data-cpf="' + esc(l.cpf_g2) + '">' + esc(l.subgerente) + '</a>';
+        var g1 = esc(l.gerente) || '<span class="region-empty">-</span>';
+        var g2 = esc(l.subgerente) || '<span class="region-empty">-</span>';
+
+        var contatoG1 = formatContato(l.email_g1, l.corp_g1);
+        var contatoG2 = formatContato(l.email_g2, l.corp_g2);
 
         tr.innerHTML =
             '<td>' + esc(l.codfilial) + ' - ' + esc(l.filial) + '</td>' +
             '<td>' + g1 + '</td>' +
-            '<td>' + g2 + '</td>';
-
-        var links = tr.querySelectorAll('.region-link-contact');
-        for (var i = 0; i < links.length; i++) {
-            links[i].addEventListener('click', function () {
-                mostraDados(this.getAttribute('data-cpf'));
-            });
-        }
+            '<td class="region-contact-cell">' + contatoG1 + '</td>' +
+            '<td>' + g2 + '</td>' +
+            '<td class="region-contact-cell">' + contatoG2 + '</td>';
 
         return tr;
+    }
+
+    function formatContato(email, corp) {
+        var parts = [];
+        if (email) parts.push('<span><i class="fa-regular fa-envelope"></i> ' + esc(email) + '</span>');
+        if (corp) parts.push('<span><i class="fa-solid fa-phone"></i> ' + esc(corp) + '</span>');
+        return parts.length > 0 ? parts.join(' ') : '<span class="region-empty">-</span>';
     }
 
     function regionCount(n, nLojas) {
@@ -395,30 +518,10 @@ ob_start();
         el.textContent = texto;
     }
 
-    function mostraDados(cpf) {
-        visitarModal();
-        if (!cpf) return;
-        get(API + 'usuario/' + cpf).then(function (res) {
-            document.getElementById('reg_mail').textContent = res.email || '-';
-            document.getElementById('reg_corp').textContent = res.corporativo || '-';
-            var modal = document.getElementById('modalRegional');
-            if (modal) modal.style.display = 'flex';
-        });
-    }
-
-    function visitarModal() {
-        var modal = document.getElementById('modalRegional');
-        if (modal) {
-            modal.style.display = 'flex';
-            document.getElementById('reg_mail').textContent = '...';
-            document.getElementById('reg_corp').textContent = '...';
-        }
-    }
-
     document.getElementById('fRegional').addEventListener('change', renderConsulta);
     document.getElementById('fBusca').addEventListener('input', renderConsulta);
 
-    /* ===================== GESTÃO (somente TI) ===================== */
+    /* ===================== GESTÃO: CADASTRO DE GERENTES ===================== */
 
     function listaFilial() {
         var sel = document.getElementById('fFilial');
@@ -479,7 +582,18 @@ ob_start();
             editar(obj.id, obj.regiao, obj.g1, obj.g2, obj.codfilial);
         });
         tr.querySelector('[data-act="deletar"]').addEventListener('click', function () {
-            deletar(obj.id, obj.codfilial);
+            mostrarConfirm(
+                'Excluir gerência',
+                'Deseja excluir o vínculo de gerente desta filial?',
+                'Excluir',
+                function () {
+                    enviar('DELETE', API + 'deletaGerente/' + obj.id).then(function () {
+                        document.querySelector('#tableResger tbody').innerHTML = '';
+                        getByFilial(obj.codfilial);
+                        toast('success', 'Gerência excluída.');
+                    });
+                }
+            );
         });
 
         return tr;
@@ -533,6 +647,7 @@ ob_start();
             }).then(function () {
                 document.querySelector('#tableResger tbody').innerHTML = '';
                 getByFilial(filial);
+                toast('success', 'Gerente gravado.');
                 if (btnNew) btnNew.disabled = false;
             });
         });
@@ -622,6 +737,7 @@ ob_start();
             }).then(function () {
                 document.querySelector('#tableResger tbody').innerHTML = '';
                 getByFilial(f);
+                toast('success', 'Registro atualizado.');
             });
         });
 
@@ -641,83 +757,53 @@ ob_start();
         });
     }
 
-    function deletar(id, f) {
-        enviar('DELETE', API + 'deletaGerente/' + id).then(function () {
-            document.querySelector('#tableResger tbody').innerHTML = '';
-            getByFilial(f);
+    /* ===================== GESTÃO: REGIONAIS ===================== */
+
+    function setFormRegional(aberto) {
+        var form = document.getElementById('formRegional');
+        var btn = document.getElementById('btnNovaRegional');
+        form.hidden = !aberto;
+        btn.innerHTML = aberto
+            ? '<i class="fa-solid fa-xmark"></i> Cancelar'
+            : '<i class="fa-solid fa-plus"></i> Nova Regional';
+    }
+
+    window.toggleFormRegional = function () {
+        var form = document.getElementById('formRegional');
+        var abrir = form.hidden;
+        setFormRegional(abrir);
+        if (abrir) {
+            document.getElementById('fNovaRegRegiao').value = '';
+            document.getElementById('fNovaRegNome').value = '';
+            document.getElementById('fNovaRegCpf').value = '';
+        }
+    };
+
+    window.salvarNovaRegional = function () {
+        var regiao = parseInt(document.getElementById('fNovaRegRegiao').value, 10);
+        var nome = document.getElementById('fNovaRegNome').value.trim();
+        var cpf = document.getElementById('fNovaRegCpf').value.replace(/\D/g, '');
+
+        if (!regiao || regiao <= 0) {
+            toast('error', 'Informe o número da regional.');
+            return;
+        }
+        if (!nome) {
+            toast('error', 'Informe o nome da regional.');
+            return;
+        }
+
+        enviar('POST', API + 'criaRegional', {
+            regiao: regiao,
+            nome: nome,
+            cpf: cpf || null
+        }).then(function () {
+            toast('success', 'Regional criada.');
+            toggleFormRegional();
+            regLista();
+            consulta();
         });
-    }
-
-    function filialByregional() {
-        var tbody = document.querySelector('#tableRegFil tbody');
-        tbody.innerHTML = '';
-        get(API + 'filialByRegional').then(function (result) {
-            for (var i = 0; i < result.length; i++) {
-                tbody.appendChild(montaFilialReg(result[i]));
-            }
-
-            var rows = tbody.querySelectorAll('tr');
-            for (var k = 0; k < rows.length; k++) {
-                (function (row) {
-                    var name = row.children[2].textContent;
-                    var gfilial = row.children[3].textContent;
-                    var codRegional = row.getAttribute('data-codregional') || '';
-
-                    var sel = document.createElement('select');
-                    sel.className = 'region-select';
-                    get(API + 'listaRegional').then(function (result) {
-                        for (var m = 0; m < result.length; m++) {
-                            sel.appendChild(optRegional(result[m]));
-                        }
-                        if (codRegional) sel.value = codRegional;
-                    });
-
-                    row.children[2].textContent = '';
-                    row.children[2].appendChild(sel);
-
-                    var cellAct = row.children[3];
-                    cellAct.className = 'region-actions';
-                    cellAct.innerHTML = '';
-
-                    var btnSave = document.createElement('button');
-                    btnSave.type = 'button';
-                    btnSave.className = 'region-btn-save';
-                    btnSave.innerHTML = '<i class="fa-regular fa-floppy-disk"></i>';
-                    btnSave.addEventListener('click', function () {
-                        enviar('PUT', API + 'updatefilialReg/' + gfilial, {
-                            cod_regional: sel.value
-                        }).then(function () {
-                            tbody.innerHTML = '';
-                            filialByregional();
-                        });
-                    });
-
-                    var btnCancel = document.createElement('button');
-                    btnCancel.type = 'button';
-                    btnCancel.className = 'region-btn-cancel';
-                    btnCancel.innerHTML = '<i class="fa-regular fa-circle-xmark"></i>';
-                    btnCancel.addEventListener('click', function () {
-                        tbody.innerHTML = '';
-                        filialByregional();
-                    });
-
-                    cellAct.appendChild(btnSave);
-                    cellAct.appendChild(btnCancel);
-                })(rows[k]);
-            }
-        });
-    }
-
-    function montaFilialReg(obj) {
-        var tr = document.createElement('tr');
-        tr.setAttribute('data-codregional', obj.cod_regional || '');
-        tr.innerHTML =
-            '<td>' + esc(obj.codfilial) + '</td>' +
-            '<td>' + esc(obj.filial) + '</td>' +
-            '<td>' + esc(obj.regional) + '</td>' +
-            '<td hidden>' + esc(obj.codgfilial) + '</td>';
-        return tr;
-    }
+    };
 
     function regLista() {
         var tbody = document.querySelector('#tableRegCad tbody');
@@ -754,20 +840,32 @@ ob_start();
                         }).then(function () {
                             tbody.innerHTML = '';
                             regLista();
+                            toast('success', 'Regional atualizada.');
                         });
                     });
 
-                    var btnCancel = document.createElement('button');
-                    btnCancel.type = 'button';
-                    btnCancel.className = 'region-btn-cancel';
-                    btnCancel.innerHTML = '<i class="fa-regular fa-circle-xmark"></i>';
-                    btnCancel.addEventListener('click', function () {
-                        tbody.innerHTML = '';
-                        regLista();
+                    var btnDel = document.createElement('button');
+                    btnDel.type = 'button';
+                    btnDel.className = 'region-btn-del';
+                    btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    btnDel.addEventListener('click', function () {
+                        mostrarConfirm(
+                            'Excluir regional',
+                            'Deseja excluir a regional ' + input.value + ' e todos os seus vínculos? Esta ação não pode ser desfeita.',
+                            'Excluir',
+                            function () {
+                                enviar('DELETE', API + 'excluiRegional/' + input.getAttribute('data-regiao')).then(function () {
+                                    tbody.innerHTML = '';
+                                    regLista();
+                                    consulta();
+                                    toast('success', 'Regional excluída.');
+                                });
+                            }
+                        );
                     });
 
                     cellAct.appendChild(btnSave);
-                    cellAct.appendChild(btnCancel);
+                    cellAct.appendChild(btnDel);
                 })(rows[k]);
             }
         });
@@ -776,15 +874,163 @@ ob_start();
     function tableRegional(obj) {
         var tr = document.createElement('tr');
         tr.setAttribute('data-nome', obj.nome || '');
-        tr.innerHTML = '<td>' + esc(obj.regiao) + '</td><td>' + esc(obj.nome) + '</td><td class="region-actions"></td><td hidden></td>';
+        tr.innerHTML = '<td>' + esc(obj.regiao) + '</td><td>' + esc(obj.nome) + '</td><td class="region-actions"></td>';
         return tr;
     }
 
-    function esc(s) {
-        var div = document.createElement('div');
-        div.textContent = s == null ? '' : String(s);
-        return div.innerHTML;
+    /* ===================== GESTÃO: FILIAIS X REGIONAL ===================== */
+
+    function setFormVinculo(aberto) {
+        var form = document.getElementById('formVinculo');
+        var btn = document.getElementById('btnNovaVinculo');
+        form.hidden = !aberto;
+        btn.innerHTML = aberto
+            ? '<i class="fa-solid fa-xmark"></i> Cancelar'
+            : '<i class="fa-solid fa-plus"></i> Vincular Filial';
     }
+
+    window.toggleFormVinculo = function () {
+        var form = document.getElementById('formVinculo');
+        var abrir = form.hidden;
+        setFormVinculo(abrir);
+        if (abrir) {
+            populaFormVinculo();
+        }
+    };
+
+    function populaFormVinculo() {
+        var selFil = document.getElementById('fNovaVincFilial');
+        var selReg = document.getElementById('fNovaVincRegional');
+
+        selFil.innerHTML = '<option value="">Selecione</option>';
+        selReg.innerHTML = '<option value="">Selecione</option>';
+
+        get(API + 'regionalFilial').then(function (res) {
+            for (var i = 0; i < res.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = res[i].codgfilial;
+                opt.textContent = res[i].filialS;
+                selFil.appendChild(opt);
+            }
+        });
+
+        get(API + 'listaRegional').then(function (res) {
+            for (var i = 0; i < res.length; i++) {
+                selReg.appendChild(optRegional(res[i]));
+            }
+        });
+    }
+
+    window.salvarNovoVinculo = function () {
+        var filial = document.getElementById('fNovaVincFilial').value;
+        var codRegional = document.getElementById('fNovaVincRegional').value;
+
+        if (!filial || filial === '') {
+            toast('error', 'Selecione a filial.');
+            return;
+        }
+        if (!codRegional || codRegional === '') {
+            toast('error', 'Selecione a regional.');
+            return;
+        }
+
+        enviar('POST', API + 'vinculaFilial', {
+            cod_regional: parseInt(codRegional, 10),
+            filial: filial
+        }).then(function () {
+            toast('success', 'Filial vinculada.');
+            toggleFormVinculo();
+            filialByregional();
+        });
+    };
+
+    function filialByregional() {
+        var tbody = document.querySelector('#tableRegFil tbody');
+        tbody.innerHTML = '';
+        get(API + 'filialByRegional').then(function (result) {
+            for (var i = 0; i < result.length; i++) {
+                tbody.appendChild(montaFilialReg(result[i]));
+            }
+
+            var rows = tbody.querySelectorAll('tr');
+            for (var k = 0; k < rows.length; k++) {
+                (function (row) {
+                    var id = row.getAttribute('data-id');
+                    var gfilial = row.children[3].textContent;
+                    var codRegional = row.getAttribute('data-codregional') || '';
+
+                    var cellRegional = row.children[2];
+                    var cellAcoes = row.children[4];
+
+                    var sel = document.createElement('select');
+                    sel.className = 'region-select';
+                    get(API + 'listaRegional').then(function (result) {
+                        for (var m = 0; m < result.length; m++) {
+                            sel.appendChild(optRegional(result[m]));
+                        }
+                        if (codRegional) sel.value = codRegional;
+                    });
+
+                    cellRegional.textContent = '';
+                    cellRegional.appendChild(sel);
+
+                    cellAcoes.className = 'region-actions';
+                    cellAcoes.innerHTML = '';
+
+                    var btnSave = document.createElement('button');
+                    btnSave.type = 'button';
+                    btnSave.className = 'region-btn-save';
+                    btnSave.innerHTML = '<i class="fa-regular fa-floppy-disk"></i>';
+                    btnSave.addEventListener('click', function () {
+                        enviar('PUT', API + 'updatefilialReg/' + gfilial, {
+                            cod_regional: sel.value
+                        }).then(function () {
+                            tbody.innerHTML = '';
+                            filialByregional();
+                            toast('success', 'Filial atualizada.');
+                        });
+                    });
+
+                    var btnDel = document.createElement('button');
+                    btnDel.type = 'button';
+                    btnDel.className = 'region-btn-del';
+                    btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    btnDel.addEventListener('click', function () {
+                        mostrarConfirm(
+                            'Desvincular filial',
+                            'Deseja desvincular esta filial da regional?',
+                            'Desvincular',
+                            function () {
+                                enviar('DELETE', API + 'desvinculaFilial/' + id).then(function () {
+                                    tbody.innerHTML = '';
+                                    filialByregional();
+                                    toast('success', 'Filial desvinculada.');
+                                });
+                            }
+                        );
+                    });
+
+                    cellAcoes.appendChild(btnSave);
+                    cellAcoes.appendChild(btnDel);
+                })(rows[k]);
+            }
+        });
+    }
+
+    function montaFilialReg(obj) {
+        var tr = document.createElement('tr');
+        tr.setAttribute('data-codregional', obj.cod_regional || '');
+        tr.setAttribute('data-id', obj.id || '');
+        tr.innerHTML =
+            '<td>' + esc(obj.codfilial) + '</td>' +
+            '<td>' + esc(obj.filial) + '</td>' +
+            '<td>' + esc(obj.regional) + '</td>' +
+            '<td hidden>' + esc(obj.codgfilial) + '</td>' +
+            '<td class="region-actions"></td>';
+        return tr;
+    }
+
+    /* ===================== EVENTOS ===================== */
 
     document.getElementById('fFilial').addEventListener('change', function () {
         var tbody = document.querySelector('#tableResger tbody');
@@ -798,6 +1044,26 @@ ob_start();
             if (addArea) addArea.hidden = true;
         }
     });
+
+    // Máscara CPF
+    var cpfInput = document.getElementById('fNovaRegCpf');
+    if (cpfInput) {
+        cpfInput.addEventListener('input', function () {
+            var v = this.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.slice(0, 11);
+            if (v.length > 9) {
+                this.value = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+            } else if (v.length > 6) {
+                this.value = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+            } else if (v.length > 3) {
+                this.value = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+            } else {
+                this.value = v;
+            }
+        });
+    }
+
+    /* ===================== INIT ===================== */
 
     function init() {
         consulta();

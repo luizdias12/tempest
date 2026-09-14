@@ -28,4 +28,12 @@ class FuncaoPaiModel
             ->orderBy('funcaopai')
             ->get();
     }
+
+    public static function listarFuncoesFilhas(): array
+    {
+        return QueryBuilder::table('vilrhfuncaofilho f', 'consinco')
+            ->select('f.codfuncaopai AS codfuncaopai', 'f.codfuncao AS codfuncao')
+            ->orderBy('f.codfuncaopai')
+            ->get();
+    }
 }

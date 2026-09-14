@@ -4,8 +4,7 @@ use App\Service\AuthService;
 
 $user = AuthService::getUser();
 $isSuporte = AuthService::hasPermission('ti');
-$userCpf = AuthService::getUserCpf();
-$admin = $userCpf === '08374281650';
+$isProcesso = AuthService::hasPermission('gestao de processos');
 
 ?>
 <aside class="sidebar" id="sidebar">
@@ -30,6 +29,7 @@ $admin = $userCpf === '08374281650';
     <nav class="sidebar-nav">
         <a href="/"><i class="fa-solid fa-house"></i> Início</a>
         <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
+        <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
         <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
 
         <?php if ($user): ?>
@@ -73,7 +73,7 @@ $admin = $userCpf === '08374281650';
                         <div class="sidebar-dropdown-menu">
                             <a href="/documentos"><i class="fa-solid fa-folder-open"></i> Documentos</a>
                         </div>
-                        <?php if ($isSuporte): ?>
+                        <?php if ($isSuporte || $isProcesso): ?>
                             <div class="sidebar-dropdown-menu">
                                 <a href="/documentos/gestao"><i class="fa-solid fa-gear"></i> Gestão de documentos</a>
                             </div>
@@ -86,9 +86,9 @@ $admin = $userCpf === '08374281650';
                         <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                     </a>
                     <!-- Gestao do Caroussel do Home -->
-                    <?php if (AuthService::hasPermission('lideres rh') || AuthService::isAdmin()): ?>
+                    <?php if (AuthService::hasPermission('lideres rh') || AuthService::isAdmin() === 'S'): ?>
                         <div class="sidebar-dropdown-menu">
-                            <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Carousel</a>
+                            <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
                         </div>
                     <?php endif; ?>
                 </div>

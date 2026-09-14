@@ -80,4 +80,39 @@ class RegionalService
     {
         return RegionalModel::deletaGerente($id);
     }
+
+    public static function regionalExiste(int $regiao): bool
+    {
+        return RegionalModel::regionalExiste($regiao);
+    }
+
+    public static function gravaRegional(int $regiao, string $nome, ?string $cpf): ?int
+    {
+        return RegionalModel::gravaRegional($regiao, $nome, $cpf);
+    }
+
+    public static function deletaRegional(int $regiao): bool
+    {
+        return RegionalModel::deletaRegional($regiao);
+    }
+
+    public static function filialVinculada(int $codRegional, string $filial): bool
+    {
+        return RegionalModel::filialVinculada($codRegional, $filial);
+    }
+
+    public static function gravaFilial(int $codRegional, string $filial): ?int
+    {
+        return RegionalModel::gravaFilial($codRegional, $filial);
+    }
+
+    public static function deletaFilial(int $id): bool
+    {
+        return RegionalModel::deletaFilial($id);
+    }
+
+    public static function deletaGerentesFilial(int $codRegional, string $codfilial): bool
+    {
+        return RegionalModel::deletaGerentesFilial($codRegional, $codfilial);
+    }
 }
