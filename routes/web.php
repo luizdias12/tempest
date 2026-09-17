@@ -4,6 +4,7 @@
 
 use App\Controller\AuthController;
 use App\Controller\CarouselController;
+use App\Controller\ChatController;
 use App\Controller\ContatoController;
 use App\Controller\DocController;
 use App\Controller\ErrorController;
@@ -17,11 +18,13 @@ use App\Controller\RegionalController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\GestaoRoleMiddleware;
 use App\Middleware\RoleMiddleware;
+use App\Middleware\RHMiddleware;
 
 //Middlewares
 $router->aliasMiddleware('auth', AuthMiddleware::class);
 $router->aliasMiddleware('gestaoRole', GestaoRoleMiddleware::class);
 $router->aliasMiddleware('role', RoleMiddleware::class);
+$router->aliasMiddleware('rh', RHMiddleware::class);
 
 /*----------------------------------- ROTAS PÚBLICAS -----------------------------------*/
 
@@ -49,9 +52,10 @@ $router->post('/login/redefinir', [AuthController::class, 'redefinir']);
 $router->get('/funcionarios/aniversariantes', [FuncionarioController::class, 'aniversariantesView']);
 
 //Rotas de teste
-$router->get('/ti/sessao', [FuncionarioController::class, 'sessaoView']);
-
-/*----------------------------------- GRUPO /financ (auth) -----------------------------------*/
+$router->group('/ti', function ($router) {
+    $router->get('/sessao', [FuncionarioController::class, 'sessaoView']);
+    $router->get('/teste', [FuncionarioController::class, 'testeView']);
+}, ['auth', 'role']);
 
 $router->group('/financ', function ($router) {
     $router->get('/holerite', [FinancController::class, 'holeriteView']);
@@ -115,14 +119,14 @@ $router->group('/logs', function ($router) {
     $router->post('/', [LogController::class, 'store']);
 }, ['auth']);
 
-/*----------------------------------- GRUPO /carousel (auth) -----------------------------------*/
+/*----------------------------------- GRUPO /carousel (auth + rh) -----------------------------------*/
 
 $router->group('/carousel', function ($router) {
-    $router->get('/gestao', [CarouselController::class, 'gestaoView']);
-    $router->post('/salvar', [CarouselController::class, 'salvar']);
-    $router->post('/ativo', [CarouselController::class, 'ativo']);
-    $router->post('/ordem', [CarouselController::class, 'ordem']);
-    $router->post('/excluir', [CarouselController::class, 'excluir']);
+    $router->get('/gestao', [CarouselController::class, 'gestaoView'], ['rh']);
+    $router->post('/salvar', [CarouselController::class, 'salvar'], ['rh']);
+    $router->post('/ativo', [CarouselController::class, 'ativo'], ['rh']);
+    $router->post('/ordem', [CarouselController::class, 'ordem'], ['rh']);
+    $router->post('/excluir', [CarouselController::class, 'excluir'], ['rh']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /online (auth) -----------------------------------*/
@@ -130,6 +134,14 @@ $router->group('/carousel', function ($router) {
 $router->group('/online', function ($router) {
     $router->get('/', [OnlineController::class, 'indexView'], ['role']);
     $router->post('/deslogar', [OnlineController::class, 'deslogar'], ['role']);
+}, ['auth']);
+
+/*----------------------------------- GRUPO /perfil (auth) -----------------------------------*/
+
+$router->group('/perfil', function ($router) {
+    $router->get('/', [AuthController::class, 'perfilView']);
+    $router->post('/', [AuthController::class, 'perfil']);
+    $router->post('/senha', [AuthController::class, 'senha']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /regional (auth) -----------------------------------*/
@@ -147,14 +159,36 @@ $router->group('/regional', function ($router) {
     $router->get('/regionalFilial', [RegionalController::class, 'regionalFilial']);
     $router->get('/usuario/{cpf}', [RegionalController::class, 'usuario']);
 
-    //Ações de escrita (auth + role)
-    $router->post('/gravaGerente', [RegionalController::class, 'gravaGerente'], ['role']);
-    $router->put('/updateRegional/{id}', [RegionalController::class, 'updateRegional'], ['role']);
-    $router->put('/updatefilialReg/{filial}', [RegionalController::class, 'updatefilialReg'], ['role']);
-    $router->put('/alteraRegional/{regiao}', [RegionalController::class, 'alteraRegional'], ['role']);
-    $router->post('/criaRegional', [RegionalController::class, 'criaRegional'], ['role']);
-    $router->delete('/excluiRegional/{regiao}', [RegionalController::class, 'excluiRegional'], ['role']);
-    $router->post('/vinculaFilial', [RegionalController::class, 'vinculaFilial'], ['role']);
-    $router->delete('/desvinculaFilial/{id}', [RegionalController::class, 'desvinculaFilial'], ['role']);
-    $router->delete('/deletaGerente/{id}', [RegionalController::class, 'deletaGerente'], ['role']);
+    //Ações de escrita (auth + rh)
+    $router->post('/gravaGerente', [RegionalController::class, 'gravaGerente'], ['rh']);
+    $router->put('/updateRegional/{id}', [RegionalController::class, 'updateRegional'], ['rh']);
+    $router->put('/updatefilialReg/{filial}', [RegionalController::class, 'updatefilialReg'], ['rh']);
+    $router->put('/alteraRegional/{regiao}', [RegionalController::class, 'alteraRegional'], ['rh']);
+    $router->post('/criaRegional', [RegionalController::class, 'criaRegional'], ['rh']);
+    $router->delete('/excluiRegional/{regiao}', [RegionalController::class, 'excluiRegional'], ['rh']);
+    $router->post('/vinculaFilial', [RegionalController::class, 'vinculaFilial'], ['rh']);
+    $router->delete('/desvinculaFilial/{id}', [RegionalController::class, 'desvinculaFilial'], ['rh']);
+    $router->delete('/deletaGerente/{id}', [RegionalController::class, 'deletaGerente'], ['rh']);
+}, ['auth']);
+
+/*----------------------------------- GRUPO /chat (auth) -----------------------------------*/
+
+$router->group('/chat', function ($router) {
+    $router->get('/', [ChatController::class, 'indexView']);
+    $router->get('/conversas', [ChatController::class, 'conversas']);
+    $router->get('/mensagens/{id}', [ChatController::class, 'mensagens']);
+    $router->get('/contatos', [ChatController::class, 'contatos']);
+    $router->get('/stream/{id}', [ChatController::class, 'stream']);
+    $router->get('/naoLidas', [ChatController::class, 'naoLidas']);
+    $router->get('/notificar', [ChatController::class, 'notificar']);
+    $router->post('/enviar', [ChatController::class, 'enviar']);
+    $router->post('/anexo', [ChatController::class, 'anexo']);
+    $router->post('/editar', [ChatController::class, 'editar']);
+    $router->post('/excluir', [ChatController::class, 'excluir']);
+    $router->post('/reacao', [ChatController::class, 'reacao']);
+    $router->post('/digitando', [ChatController::class, 'digitando']);
+    $router->post('/nova', [ChatController::class, 'nova']);
+    $router->post('/marcar', [ChatController::class, 'marcar']);
+    $router->post('/limpar', [ChatController::class, 'limpar']);
+    $router->post('/apagar', [ChatController::class, 'apagar']);
 }, ['auth']);

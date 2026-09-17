@@ -345,6 +345,23 @@ class AuthService
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+
+        LogService::store([
+            'nivel' => 'INFO',
+            'tipo' => 'LOGOUT',
+            'modulo' => 'auth',
+            'acao' => 'desconectar_usuario',
+            'usuario_id' => $user['id'] ?? null,
+            'chapa' => $user['chapa'] ?? null,
+            'usuario_nome' => $user['name'] ?? $user['username'] ?? null,
+            'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+            'rota' => $_SERVER['REQUEST_URI'] ?? null,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            'mensagem' => "usuário desconectado com sucesso ({$_SESSION['auth']['username']})",
+            'contexto' => json_encode($_SESSION['auth'] ?? []),
+        ]);
+
         unset($_SESSION['auth']);
         session_destroy();
     }
@@ -440,5 +457,11 @@ class AuthService
     {
         return self::hasPermission('ti')
             || self::hasPermission('gestao de processos');
+    }
+
+    public static function canManageCarousel(): bool
+    {
+        return self::hasPermission('ti')
+            || self::hasPermission('lideres rh');
     }
 }

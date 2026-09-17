@@ -13,10 +13,11 @@ class LogService
         ?string $tipo = null,
         ?string $modulo = null,
         ?string $busca = null,
-        ?string $data = null
+        ?string $data = null,
+        ?string $ip = null
     ): array
     {
-        return LogModel::index($page, $limit, $nivel, $tipo, $modulo, $busca, $data);
+        return LogModel::index($page, $limit, $nivel, $tipo, $modulo, $busca, $data, $ip);
     }
 
     public static function store(array $data): ?int

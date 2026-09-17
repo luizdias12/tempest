@@ -11,6 +11,7 @@ use App\Core\Response;
 use App\Service\AuthService;
 use App\Service\DocService;
 use App\Service\LogService;
+use Auth;
 use Throwable;
 
 class DocController extends BaseController
@@ -23,7 +24,7 @@ class DocController extends BaseController
                 'diretorios' => DocService::listarDiretorios(),
                 'subdiretorios' => DocService::listarSubdiretorios(),
                 'funcoes' => DocService::listarFuncoes(),
-                'isGestao' => AuthService::hasPermission('gestao de processos') || AuthService::hasPermission('ti'),
+                'isGestao' => AuthService::canManageDocuments(),
                 'title' => 'Documentos'
             ]);
         } catch (Throwable $e) {
@@ -257,11 +258,6 @@ class DocController extends BaseController
     public function upload(Request $request): void
     {
         try {
-            if (!AuthService::hasPermission('ti')) {
-                AlertManager::add('error', 'Você não tem permissão para enviar documentos.');
-                redirect('/documentos/gestao');
-                return;
-            }
 
             $idDir = (int) $request->post('id_dir', 0);
             $idSubdir = (int) $request->post('id_subdir', 0);

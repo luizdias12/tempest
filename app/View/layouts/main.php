@@ -19,6 +19,7 @@
 
     <?php partial('footer'); ?>
     <script src="<?= asset('js/app.js') ?>"></script>
+    <script src="<?= asset('js/notificacoes.js') ?>"></script>
 
     <?php
     use App\Core\Alerts\AlertManager;

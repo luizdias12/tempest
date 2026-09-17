@@ -17,6 +17,7 @@ class HelpdeskModel
         ?string $local = null,
         ?string $idResp = null,
         ?string $idMeu = null,
+        ?string $tecnico = null,
         ?bool $isSuporte = false,
         ?bool $isExterno = false
     ): array|null {
@@ -46,7 +47,7 @@ class HelpdeskModel
                 'hc.codmotivo',
                 "(SELECT MAX(hh.data_hist) FROM help_hist hh WHERE hh.id_help = h.id AND hh.status <> 'A') AS data_hist",
                 'hs.date as data_status',
-                "(SELECT dtview FROM help_hist hh WHERE hh.id_help = h.id AND hh.status = 'A' AND hh.view = 'S') AS dtview"
+                "(SELECT MAX(dtview) FROM help_hist hh WHERE hh.id_help = h.id AND hh.status = 'A' AND hh.view = 'S') AS dtview"
             )
             ->leftJoin('func f', 'f.cpf', '=', 'h.cpf_ab')
             ->leftJoin('func f2', 'f2.cpf', '=', 'h.id_resp')
@@ -83,6 +84,7 @@ class HelpdeskModel
             ->when(!empty($status), fn($q) => $q->where('h.status', $status))
             ->when(!empty($local), fn($q) => $q->where('o.local', $local))
             ->when(!empty($idResp), fn($q) => $q->where('h.id_resp', $idResp)->whereNotNull('h.status'))
+            ->when(!empty($tecnico), fn($q) => $q->where('h.id_resp', $tecnico)->whereNotNull('h.status'))
             ->when(!empty($idMeu), fn($q) => $q->where('h.cpf_ab', $idMeu)->whereNotNull('h.status'))
             ->when($isExterno === true, fn($q) => $q->where('h.id_resp', AuthService::getUserCpf()))
             ->when(empty($status) && empty($idMeu) && $isSuporte && empty($id), fn($q) => $q->whereNotIn('h.status', ['R', 'C']));
@@ -166,6 +168,20 @@ class HelpdeskModel
             'id' => $idHelp,
             'status' => $statusValue,
             'statusNovo' => $statusValue,
+        ]);
+    }
+
+    public static function updateHelpResp(int $idHelp, string $idResp): bool
+    {
+        $stmt = DB::connect('mysql')->prepare("
+            UPDATE helpdesk
+            SET id_resp = :idResp
+            WHERE id = :id
+        ");
+
+        return $stmt->execute([
+            'id' => $idHelp,
+            'idResp' => $idResp
         ]);
     }
 
@@ -275,15 +291,13 @@ class HelpdeskModel
 
     public static function chamadosPendentesUsuario(): array|null
     {
-        return QueryBuilder::table('helpdesk h', 'mysql')
-        ->select('h.id', 'h.status',
-        "(SELECT MAX(hh.data_hist) FROM help_hist hh WHERE hh.id_help = h.id AND hh.status <> 'A') AS data_hist",
-        'hs.date as data_status')
-        ->leftJoinOn('help_status hs', function ($join) {
-                $join->on('hs.id_help', '=', 'h.id')
-                    ->onValue('hs.status', '<>', 'A');
-        })
-        ->where('h.status', 'PU')
-        ->get();
+        return DB::select("SELECT h.id, h.status,
+            (SELECT MAX(hh.data_hist) FROM help_hist hh
+                WHERE hh.id_help = h.id AND hh.status <> 'A') AS data_hist,
+            (SELECT hs.date FROM help_status hs
+                WHERE hs.id_help = h.id AND hs.status <> 'A'
+                ORDER BY hs.date DESC LIMIT 1) AS data_status
+            FROM helpdesk h
+            WHERE h.status = 'PU'", [], 'mysql');
     }
 }

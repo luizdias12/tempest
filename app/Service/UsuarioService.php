@@ -21,6 +21,58 @@ class UsuarioService
         return UsuarioModel::getUsuario($cpf);
     }
 
+    public static function perfil(string $cpf): array|null
+    {
+        return UsuarioModel::perfil($cpf);
+    }
+
+    public static function atualizarPerfil(string $cpf, ?string $email = null, ?string $ramal = null, ?int $idSetor = null): bool
+    {
+        if (!$cpf || ($email === null && $ramal === null && $idSetor === null)) {
+            return false;
+        }
+
+        $data = [];
+
+        if ($email !== null) {
+            $data['email'] = trim($email) !== '' ? trim($email) : null;
+        }
+
+        if ($ramal !== null) {
+            $data['ramal'] = trim($ramal) !== '' ? mb_substr(trim($ramal), 0, 5) : null;
+        }
+
+        if ($idSetor !== null && $idSetor > 0) {
+            $data['id_setor'] = $idSetor;
+        }
+
+        if (empty($data)) {
+            return false;
+        }
+
+        $data['suporte'] = ($data['id_setor'] ?? null) === 17 ? 'S' : 'N';
+
+        return UsuarioModel::atualizarPerfil($cpf, $data);
+    }
+
+    public static function alterarSenha(string $cpf, string $senhaAtual, string $novaSenha): bool
+    {
+        if (!$cpf || $senhaAtual === '' || $novaSenha === '') {
+            return false;
+        }
+
+        $row = \App\Core\QueryBuilder::table('usuarios', 'mysql')
+            ->select('senha')
+            ->where('cpf', $cpf)
+            ->first();
+
+        if ($row === null || !hash_equals((string) ($row['senha'] ?? ''), md5($senhaAtual))) {
+            return false;
+        }
+
+        return UsuarioModel::redefinirSenha($cpf, md5($novaSenha));
+    }
+
     public static function existeLogin(string $usuario): bool
     {
         return UsuarioModel::existeLogin($usuario);

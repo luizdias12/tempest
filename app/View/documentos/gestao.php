@@ -1,4 +1,6 @@
 <?php
+
+use App\Service\AuthService;
 use App\Service\DocService;
 ?>
 
@@ -9,6 +11,8 @@ use App\Service\DocService;
     <a href="#" class="btn-novo btn-novo-secondary" data-modal-open="modal-copiar-permissoes"><i class="fa-solid fa-copy"></i> Copiar permissões</a>
     <a href="/documentos" class="btn-novo btn-novo-outline"><i class="fa-solid fa-eye"></i> Visualização</a>
 </div>
+
+<button type="button" class="scroll-top-btn" id="scrollTopBtn" title="Voltar ao topo" aria-label="Voltar ao topo"><i class="fa-solid fa-arrow-up"></i></button>
 
 <div class="filter-bar">
     <form method="GET" class="filter-form">
@@ -125,6 +129,7 @@ use App\Service\DocService;
     </table>
 </div>
 
+<?php if (AuthService::hasPermission('ti')): ?>
 <div class="doc-acoes-dirs">
     <?php foreach ($diretorios as $dir): ?>
         <div class="doc-dir-admin">
@@ -149,6 +154,7 @@ use App\Service\DocService;
         </div>
     <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <?php ob_start(); ?>
     <form method="POST" action="/documentos/upload" enctype="multipart/form-data" class="doc-upload-form">
@@ -423,7 +429,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dados.funcoes.length === 0) {
             html = '<span class="doc-chip doc-chip-vazio">Nenhuma função com acesso</span>';
         } else {
-            dados.funcoes.forEach(function(cod) { html += chipPermissao(idDoc, cod); });
+            dados.funcoes
+                .slice()
+                .sort(function(a, b) {
+                    var na = (funcoesMap[a] || a).toLowerCase();
+                    var nb = (funcoesMap[b] || b).toLowerCase();
+                    return na.localeCompare(nb);
+                })
+                .forEach(function(cod) { html += chipPermissao(idDoc, cod); });
         }
 
         container.innerHTML = html;
@@ -677,4 +690,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+(function() {
+    var btn = document.getElementById('scrollTopBtn');
+    if (!btn) return;
+
+    window.addEventListener('scroll', function() {
+        btn.classList.toggle('scroll-top-btn--visivel', window.scrollY > 300);
+    });
+
+    btn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+})();
 </script>

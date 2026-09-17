@@ -311,7 +311,7 @@ class DocModel
         }
 
         if ($nome !== null && $nome !== '') {
-            $sql .= " AND doc.titulo LIKE :nome";
+            $sql .= " AND LOWER(doc.titulo) LIKE LOWER(:nome)";
             $params['nome'] = '%' . addcslashes($nome, '\\%_') . '%';
         }
 

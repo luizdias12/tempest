@@ -30,10 +30,12 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
         <a href="/"><i class="fa-solid fa-house"></i> Início</a>
         <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
         <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
+        <a href="/chat"><i class="fa-solid fa-comments"></i> Chat<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
         <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
 
         <?php if ($user): ?>
             <div class="sidebar-area-protegida">
+                <a href="/perfil"><i class="fa-solid fa-id-badge"></i> Meu Perfil</a>
                 <a href="/helpdesk/index"><i class="fa-solid fa-desktop"></i> Helpdesk</a>
                 <?php if (!AuthService::isExterno() && AuthService::hasPermission('ti')): ?>
                         <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
@@ -58,7 +60,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                 <?php endif; ?>
                     <div class="sidebar-dropdown">
                         <a href="#" class="sidebar-dropdown-toggle">
-                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-wallet"></i> Financeiro</span>
+                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-address-card"></i> Área do Funcionário</span>
                             <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                         </a>
                         <div class="sidebar-dropdown-menu">
@@ -80,13 +82,13 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         <?php endif; ?>
                     </div>
                 <!-- Configuraçoes -->
-                <div class="sidebar-dropdown">
+                <div <?php if (!$isSuporte): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
                     <a href="#" class="sidebar-dropdown-toggle">
                         <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
                         <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                     </a>
                     <!-- Gestao do Caroussel do Home -->
-                    <?php if (AuthService::hasPermission('lideres rh') || AuthService::isAdmin() === 'S'): ?>
+                    <?php if (AuthService::canManageCarousel() || AuthService::isAdmin() === 'S'): ?>
                         <div class="sidebar-dropdown-menu">
                             <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
                         </div>

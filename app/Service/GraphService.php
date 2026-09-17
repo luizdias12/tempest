@@ -66,7 +66,7 @@ class GraphService
     public static function mensagensNaoLidas(string $mailbox, int $top = 50): array
     {
         try {
-            $response = self::client()->get("users/{$mailbox}/messages", [
+            $response = self::client()->get("users/{$mailbox}/mailFolders/Inbox/messages", [
                 'query' => [
                     '$filter'   => 'isRead eq false',
                     '$select'   => 'id,subject,from,receivedDateTime,body,hasAttachments,bodyPreview,conversationId',

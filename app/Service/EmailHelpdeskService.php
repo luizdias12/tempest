@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Core\Logger;
 use App\Model\Mysql\HelpdeskEmailModel;
+use App\Model\Mysql\HelpdeskModel;
 use RuntimeException;
 use Throwable;
 
@@ -103,8 +104,53 @@ class EmailHelpdeskService
         return null;
     }
 
+    private static function notificarChamadoEncerrado(int $helpId, string $status, array $m): void
+    {
+        $statusMap = [
+            'R' => 'já foi resolvido',
+            'C' => 'já foi cancelado',
+        ];
+
+        $frase = $statusMap[$status] ?? 'já se encontra encerrado';
+
+        [$fromEmail] = self::remetenteMensagem($m);
+
+        if ($fromEmail === '') {
+            return;
+        }
+
+        $dados = HelpdeskModel::obterDadosNotificacao($helpId);
+
+        $assunto = trim((string) ($dados['cab_problema'] ?? ''));
+        if ($assunto === '') {
+            $assunto = '(sem assunto)';
+        }
+
+        $corpo = '<p>Olá!</p>'
+            . '<p>Não foi possível registrar a sua resposta, pois o chamado <strong>Nº ' . $helpId . '</strong> ' . $frase . '.</p>'
+            . '<ul>'
+            . '<li><strong>Assunto:</strong> ' . htmlspecialchars($assunto, ENT_QUOTES, 'UTF-8') . '</li>'
+            . '<li><strong>Número:</strong> ' . $helpId . '</li>'
+            . '<li><strong>Situação:</strong> Encerrado</li>'
+            . '</ul>'
+            . '<p>Caso necessário, abra um novo chamado.</p>';
+
+        MailService::enviar(
+            $fromEmail,
+            'Chamado Nº ' . $helpId . ' já encerrado - ' . $assunto,
+            $corpo
+        );
+    }
+
     private static function registrarResposta(int $helpId, array $m, string $mailbox): void
     {
+        $statusAtual = HelpdeskService::obterStatus($helpId);
+
+        if (in_array($statusAtual, ['R', 'C'], true)) {
+            self::notificarChamadoEncerrado($helpId, $statusAtual, $m);
+            return;
+        }
+
         [$fromEmail, $fromName] = self::remetenteMensagem($m);
         $corpo = self::corpoMensagem($m);
         $messageId = $m['id'] ?? '';

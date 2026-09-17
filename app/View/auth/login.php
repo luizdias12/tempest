@@ -29,10 +29,29 @@
     const toggle = document.getElementById('toggle-password');
     const senha = document.getElementById('password');
 
-    toggle.addEventListener('click', function () {
+    toggle.addEventListener('click', function() {
         const mostrar = senha.type === 'password';
         senha.type = mostrar ? 'text' : 'password';
         this.querySelector('i').className = mostrar ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
         this.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+    });
+
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form || form.tagName !== 'FORM') return;
+        if (!form.classList.contains('login-form')) return;
+
+        var action = form.getAttribute('action') || '';
+
+        if (action.indexOf('/login') !== -1) {
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span> Conectando...';
+            }
+            return;
+        }
+
+        e.preventDefault();
     });
 </script>

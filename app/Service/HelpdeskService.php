@@ -7,22 +7,35 @@ use App\Model\Mysql\HelpdeskModel;
 class HelpdeskService
 {
     public static function chamadosAbertos(
-        int $page = 1,
-        int $limit = 10,
-        ?int $id = null,
-        ?string $emitente = null,
-        ?string $status = null,
-        ?string $local = null,
-        ?string $idResp = null,
-        ?string $idMeu = null,
-        ?bool $isSuporte = false,
-        ?bool $isExterno = false
+            int $page = 1,
+            int $limit = 10,
+            ?int $id = null,
+            ?string $emitente = null,
+            ?string $status = null,
+            ?string $local = null,
+            ?string $idResp = null,
+            ?string $idMeu = null,
+            ?string $tecnico = null,
+            ?bool $isSuporte = false,
+            ?bool $isExterno = false
         ): array|null
     {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
         
-        return HelpdeskModel::chamadosAbertos($page, $limit, $id, $emitente, $status, $local, $idResp, $idMeu, $isSuporte, $isExterno);
+        return HelpdeskModel::chamadosAbertos(
+            $page,
+            $limit,
+            $id,
+            $emitente,
+            $status,
+            $local,
+            $idResp,
+            $idMeu,
+            $tecnico,
+            $isSuporte,
+            $isExterno
+        );
     }
 
     public static function obterSla(int $idgrupo, int $idsubgrupo): ?int
@@ -63,6 +76,11 @@ class HelpdeskService
     public static function upsertHelpStatus(int $idHelp, string $statusValue): bool
     {
         return HelpdeskModel::upsertHelpStatus($idHelp, $statusValue);
+    }
+
+    public static function updateHelpResp(int $idHelp, string $idResp): bool
+    {
+        return HelpdeskModel::updateHelpResp($idHelp, $idResp);
     }
 
     public static function obterEmailsNotificacao(int $id, ?string $idUsuExcluir = null): array

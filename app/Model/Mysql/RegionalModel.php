@@ -29,6 +29,7 @@ class RegionalModel
             LEFT JOIN func f2 ON f2.cpf = ge.g2
             LEFT JOIN usuarios ug1 ON ug1.cpf = ge.g1
             LEFT JOIN usuarios ug2 ON ug2.cpf = ge.g2
+            WHERE (ge.g1 IS NOT NULL OR ge.g2 IS NOT NULL)
             ORDER BY gr.regiao, fi.codfilial * 1", [], 'mysql');
     }
 
@@ -58,13 +59,17 @@ class RegionalModel
     public static function byFilial(int $filial): array
     {
         return DB::select("SELECT ge.id, ge.codfilial, COALESCE(fi.abreviado, fi.nome) AS filial, gr.regiao, gr.nome AS regional,
-                ge.g1, f1.nome AS gerente, ge.g2, f2.nome AS subgerente
+                ge.g1, f1.nome AS gerente, ge.g2, f2.nome AS subgerente,
+                ug1.email AS email_g1, ug1.corporativo AS corp_g1,
+                ug2.email AS email_g2, ug2.corporativo AS corp_g2
             FROM gerentes ge
             INNER JOIN ger_regional gr ON gr.regiao = ge.codregional
             INNER JOIN filial fi ON fi.codgfilial = ge.codfilial
             INNER JOIN regional_filial rf ON rf.cod_regional = gr.regiao AND rf.filial = ge.codfilial
             LEFT JOIN func f1 ON f1.cpf = ge.g1
             LEFT JOIN func f2 ON f2.cpf = ge.g2
+            LEFT JOIN usuarios ug1 ON ug1.cpf = ge.g1
+            LEFT JOIN usuarios ug2 ON ug2.cpf = ge.g2
             WHERE ge.codfilial = :filial", ['filial' => $filial], 'mysql');
     }
 
@@ -86,7 +91,7 @@ class RegionalModel
     public static function regionalFilial(): array
     {
         return DB::select("SELECT codfilial, codgfilial, CONCAT(codfilial, ' - ', nome) AS filialS
-            FROM filial WHERE exibir = 'S'
+            FROM filial WHERE exibe_regional = 'S'
             ORDER BY filialS * 1", [], 'mysql');
     }
 
@@ -196,5 +201,48 @@ class RegionalModel
         $stmt->execute(['codregional' => $codRegional, 'codfilial' => $codfilial]);
 
         return $stmt->rowCount() > 0;
+    }
+
+    public static function atualizarContato(string $cpf, ?string $email, ?string $corporativo): bool
+    {
+        if ($cpf === '' || ($email === null && $corporativo === null)) {
+            return false;
+        }
+
+        $conn = DB::connect('mysql');
+
+        $existe = DB::first("SELECT cpf FROM usuarios WHERE cpf = :cpf", ['cpf' => $cpf], 'mysql');
+
+        if ($existe) {
+            $sets = [];
+            $params = ['cpf' => $cpf];
+            if ($email !== null) {
+                $sets[] = 'email = :email';
+                $params['email'] = $email;
+            }
+            if ($corporativo !== null) {
+                $sets[] = 'corporativo = :corp';
+                $params['corp'] = $corporativo;
+            }
+            $stmt = $conn->prepare("UPDATE usuarios SET " . implode(', ', $sets) . " WHERE cpf = :cpf");
+            return $stmt->execute($params);
+        }
+
+        $data = [
+            'cpf' => $cpf,
+            'usuario' => $cpf,
+            'senha' => '',
+            'filial_cad' => 0,
+            'ativo' => 'N',
+        ];
+        if ($email !== null) {
+            $data['email'] = $email;
+        }
+        if ($corporativo !== null) {
+            $data['corporativo'] = $corporativo;
+        }
+
+        DB::insert('usuarios', $data, 'mysql');
+        return true;
     }
 }

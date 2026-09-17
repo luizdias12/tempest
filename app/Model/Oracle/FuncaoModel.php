@@ -10,8 +10,8 @@ class FuncaoModel extends DB
     public static function listAllFuncoes(): array
     {
         return QueryBuilder::table('pfuncao')
-            ->select('codfuncao', 'descricao')
-            ->orderBy('descricao', 'asc')
+            ->select('codigo', 'nome')
+            ->orderBy('nome', 'asc')
             ->get();
     }
 }

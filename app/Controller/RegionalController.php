@@ -84,12 +84,23 @@ class RegionalController extends BaseController
             $codfilial = (int) $request->input('codfilial', 0);
             $g1 = $request->input('g1', null);
             $g2 = $request->input('g2', null);
+            $emailG1 = trim((string) $request->input('email_g1', ''));
+            $corpG1 = trim((string) $request->input('corp_g1', ''));
+            $emailG2 = trim((string) $request->input('email_g2', ''));
+            $corpG2 = trim((string) $request->input('corp_g2', ''));
 
             if ($codregional <= 0 || $codfilial <= 0) {
                 return $this->error('Regional e filial são obrigatórios.', 400);
             }
 
             RegionalService::gravaGerente($codregional, $codfilial, $g1 ?: null, $g2 ?: null);
+
+            if ($g1) {
+                RegionalService::atualizarContato($g1, $emailG1 !== '' ? $emailG1 : null, $corpG1 !== '' ? $corpG1 : null);
+            }
+            if ($g2) {
+                RegionalService::atualizarContato($g2, $emailG2 !== '' ? $emailG2 : null, $corpG2 !== '' ? $corpG2 : null);
+            }
 
             return $this->success(['codregional' => $codregional], [], 'Registro gravado.');
         });
@@ -101,12 +112,23 @@ class RegionalController extends BaseController
             $codregional = (int) $request->input('codregional', 0);
             $g1 = $request->input('g1', null);
             $g2 = $request->input('g2', null);
+            $emailG1 = trim((string) $request->input('email_g1', ''));
+            $corpG1 = trim((string) $request->input('corp_g1', ''));
+            $emailG2 = trim((string) $request->input('email_g2', ''));
+            $corpG2 = trim((string) $request->input('corp_g2', ''));
 
             if ($codregional <= 0) {
                 return $this->error('Regional é obrigatória.', 400);
             }
 
             RegionalService::updateRegional($id, $codregional, $g1 ?: null, $g2 ?: null);
+
+            if ($g1) {
+                RegionalService::atualizarContato($g1, $emailG1 !== '' ? $emailG1 : null, $corpG1 !== '' ? $corpG1 : null);
+            }
+            if ($g2) {
+                RegionalService::atualizarContato($g2, $emailG2 !== '' ? $emailG2 : null, $corpG2 !== '' ? $corpG2 : null);
+            }
 
             return $this->success(['codregional' => $codregional], [], 'Registro atualizado.');
         });

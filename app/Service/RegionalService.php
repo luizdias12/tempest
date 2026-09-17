@@ -115,4 +115,9 @@ class RegionalService
     {
         return RegionalModel::deletaGerentesFilial($codRegional, $codfilial);
     }
+
+    public static function atualizarContato(string $cpf, ?string $email, ?string $corporativo): bool
+    {
+        return RegionalModel::atualizarContato($cpf, $email, $corporativo);
+    }
 }

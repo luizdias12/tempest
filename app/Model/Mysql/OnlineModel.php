@@ -78,10 +78,12 @@ class OnlineModel
                    o.ip,
                    o.sessionid,
                    o.local,
-                   COALESCE(f.nome, fe.nome, 'Nao Identificado') AS nome
+                   COALESCE(f.nome, fe.nome, 'Nao Identificado') AS nome,
+                   fu.nome AS funcao
             FROM online o
             LEFT JOIN func f ON f.cpf = o.cpf
             LEFT JOIN func_externo fe ON fe.cpf = o.cpf
+            LEFT JOIN funcao fu ON fu.codigo = f.codfuncao
             WHERE o.status = '1'
         ", [], 'mysql');
 

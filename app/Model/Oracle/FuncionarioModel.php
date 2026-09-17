@@ -422,8 +422,7 @@ class FuncionarioModel extends DB
                 "TO_CHAR(p.dtnascimento, 'YYYY-MM-DD') dtnascimento",
                 "TO_CHAR(f.dataadmissao, 'YYYY-MM-DD') dataadmissao",
                 "TO_CHAR(f.datademissao, 'YYYY-MM-DD') datademissao",
-                'f.codsituacao',
-                'f.pisepasep'
+                'f.codsituacao'
             )
             ->join('ppessoa p', 'p.codigo', '=', 'f.codpessoa')
             ->whereNotIn('f.codsituacao', ['I','D','L'])

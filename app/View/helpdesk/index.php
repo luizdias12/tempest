@@ -2,6 +2,7 @@
 
 use App\Service\StatusService;
 use App\Service\GenericService;
+use App\Service\HelpdeskService;
 use App\Service\HelpHistoricoService;
 
 // dd($chamados);
@@ -41,18 +42,32 @@ use App\Service\HelpHistoricoService;
                 'selected' => $local,
             ]); ?>
         <?php endif; ?>
-        <label for="meus" class="filter-toggle">
-            <input type="checkbox" id="meus" name="meus" value="1" <?= !empty($meus) ? 'checked' : '' ?>>
-            Atribuídos a mim
-        </label>
-        <label for="openbyme" class="filter-toggle">
-            <input type="checkbox" id="openbyme" name="openbyme" value="1" <?= !empty($openbyme) ? 'checked' : '' ?>>
-            Meus chamados
-        </label>
+        <?php if ($isSuporte): ?>
+            <label for="tecnico">Tecnico:</label>
+            <?php if (!empty($tecnicos = HelpdeskService::listarResponsaveis())): ?>   
+                <?php component('select', [
+                    'id' => 'tecnico',
+                    'name' => 'tecnico',
+                    'placeholder' => 'Todos os técnicos',
+                    'options' => $tecnicos,
+                    'valueKey' => 'cpf',
+                    'labelKey' => 'nome',
+                    'selected' => $tecnico,
+                ]); ?>
+            <?php endif; ?>
+            <label for="meus" class="filter-toggle">
+                <input type="checkbox" id="meus" name="meus" value="1" <?= !empty($meus) ? 'checked' : '' ?>>
+                Atribuídos a mim
+            </label>
+            <label for="openbyme" class="filter-toggle">
+                <input type="checkbox" id="openbyme" name="openbyme" value="1" <?= !empty($openbyme) ? 'checked' : '' ?>>
+                Meus chamados
+            </label>
+        <?php endif; ?>
         <button type="submit">Filtrar</button>
 
         <?php
-        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local) || !empty($meus) || !empty($openbyme)): ?>
+        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local) || !empty($meus) || !empty($tecnico) ||!empty($openbyme)): ?>
             <a href="?" class="btn-clear">Limpar filtro</a>
         <?php endif; ?>
     </form>
@@ -598,12 +613,29 @@ ob_start();
         });
     }
 
+    var novoChamadoEnviando = false;
+
     document.addEventListener('submit', function(e) {
         var form = e.target;
         if (!form || form.tagName !== 'FORM') return;
         if (!form.classList.contains('chamado-form')) return;
 
         var action = form.getAttribute('action') || '';
+
+        if (action.indexOf('/helpdesk/novo') !== -1) {
+            if (novoChamadoEnviando) {
+                e.preventDefault();
+                return;
+            }
+            novoChamadoEnviando = true;
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span> Enviando...';
+            }
+            return;
+        }
+
         if (action.indexOf('/helpdesk/update') === -1 && action.indexOf('/helpdesk/interacao') === -1) return;
 
         e.preventDefault();
@@ -762,7 +794,7 @@ ob_start();
 
         form.submit();
     });
-    
+
     document.addEventListener('change', function(e) {
         var select = e.target;
         if (!select || select.tagName !== 'SELECT') return;

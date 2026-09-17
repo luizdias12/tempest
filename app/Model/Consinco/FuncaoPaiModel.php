@@ -24,7 +24,7 @@ class FuncaoPaiModel
     public static function listarFuncoes(): array
     {
         return QueryBuilder::table('vilrhfuncaopai', 'consinco')
-            ->select('codfuncaopai AS codigo', 'initcap(funcaopai) AS nome')
+            ->select('codfuncaopai AS codigo', 'funcaopai AS nome')
             ->orderBy('funcaopai')
             ->get();
     }

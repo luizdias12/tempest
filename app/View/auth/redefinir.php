@@ -20,6 +20,7 @@ $etapa = $filtroCpf !== '' ? 2 : 1;
 
             <form method="POST" action="/login/redefinir" class="login-form">
                 <input type="hidden" name="cpf" value="<?= htmlspecialchars($filtroCpf) ?>">
+                <h4><?= htmlspecialchars($nomeEncontrado) ?></h4>
 
                 <label for="senha">Nova senha</label>
                 <input type="password" id="senha" name="senha" placeholder="Mínimo 6 caracteres" required autofocus>

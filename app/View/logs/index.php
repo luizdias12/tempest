@@ -13,11 +13,13 @@
         <input type="text" id="modulo" name="modulo" value="<?= htmlspecialchars($modulo ?? '') ?>" placeholder="Módulo">
         <label for="busca">Busca:</label>
         <input type="text" id="busca" name="busca" value="<?= htmlspecialchars($busca ?? '') ?>" placeholder="Mensagem, rota ou usuário">
+        <label for="ip">IP:</label>
+        <input type="text" id="ip" name="ip" value="<?= htmlspecialchars($ip ?? '') ?>" placeholder="Endereço IP">
         <label for="data">Data:</label>
         <input type="date" id="data" name="data" value="<?= htmlspecialchars($data ?? '') ?>">
         <button type="submit">Filtrar</button>
 
-        <?php if (!empty($nivel) || !empty($tipo) || !empty($modulo) || !empty($busca) || !empty($data)): ?>
+        <?php if (!empty($nivel) || !empty($tipo) || !empty($modulo) || !empty($busca) || !empty($data) || !empty($ip)): ?>
             <a href="?" class="btn-clear">Limpar filtro</a>
         <?php endif; ?>
     </form>
@@ -88,3 +90,12 @@
     'busca' => $busca ?? '',
     'data' => $data ?? '',
 ])) ?>
+
+<script>
+
+setInterval(function() {
+    if (document.hidden) return;
+    window.location.reload();
+}, 30000);
+
+</script>

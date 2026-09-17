@@ -96,6 +96,21 @@ class FuncionarioController extends BaseController
         }
     }
 
+public function testeView(Request $request): void
+    {
+        try {
+
+            view('ti/teste', [
+                'data' => [],
+                'title' => 'TESTE VIEW'
+            ]);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+            
+            ErrorHandler::handle(500, $e->getMessage());
+        }
+    }
+
     public function listaView(Request $request): void
     {
         $permitidos = ['405','0318'];

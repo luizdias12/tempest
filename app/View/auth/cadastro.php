@@ -25,8 +25,8 @@ $etapa = $nomeEncontrado !== '' ? 2 : 1;
                 <label for="usuario">Usuário</label>
                 <input type="text" id="usuario" name="usuario" placeholder="Nome de usuário" required autofocus>
 
-                <label for="email">E-mail</label>
-                <input type="email" id="email" name="email" placeholder="E-mail corporativo" required>
+                <label for="email">E-mail <span class="login-opcional">(opcional)</span></label>
+                <input type="email" id="email" name="email" placeholder="E-mail corporativo">
 
                 <label for="ramal">Ramal <span class="login-opcional">(opcional)</span></label>
                 <input type="text" id="ramal" name="ramal" placeholder="Ex.: 7300" maxlength="5">

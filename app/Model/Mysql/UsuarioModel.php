@@ -41,6 +41,29 @@ class UsuarioModel
             ->first();
     }
 
+    public static function perfil(string $cpf): array|null
+    {
+        return QueryBuilder::table('usuarios', 'mysql')
+            ->leftJoin('setor', 'setor.id', '=', 'usuarios.id_setor')
+            ->select(
+                'usuarios.cpf',
+                'usuarios.usuario',
+                'usuarios.email',
+                'usuarios.ramal',
+                'usuarios.corporativo',
+                'usuarios.id_setor',
+                'usuarios.filial_cad',
+                'setor.setor'
+            )
+            ->where('usuarios.cpf', $cpf)
+            ->first();
+    }
+
+    public static function atualizarPerfil(string $cpf, array $data): bool
+    {
+        return DB::update('usuarios', 'cpf', $cpf, $data, 'mysql');
+    }
+
     public static function existeLogin(string $usuario): bool
     {
         $row = QueryBuilder::table('usuarios', 'mysql')

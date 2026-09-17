@@ -25,8 +25,9 @@ class LogController extends BaseController
             $modulo = trim((string) $request->query('modulo', ''));
             $busca = trim((string) $request->query('busca', ''));
             $data = trim((string) $request->query('data', ''));
+            $ip = trim((string) $request->query('ip', ''));
 
-            $result = LogService::index($page, $limit, $nivel, $tipo, $modulo, $busca, $data);
+            $result = LogService::index($page, $limit, $nivel, $tipo, $modulo, $busca, $data, $ip);
 
             view('logs/index', [
                 'logs' => $result['data'],
@@ -36,6 +37,7 @@ class LogController extends BaseController
                 'modulo' => $modulo,
                 'busca' => $busca,
                 'data' => $data,
+                'ip' => $ip,
                 'title' => 'Logs',
             ]);
         } catch (Throwable $e) {

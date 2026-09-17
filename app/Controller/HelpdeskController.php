@@ -31,6 +31,7 @@ class HelpdeskController extends BaseController
             $status = $request->input('status', $request->query('status', ''));
             $local = $request->input('local', $request->query('local', ''));
             $meus = $request->input('meus', $request->query('meus', ''));
+            $tecnico = $request->input('tecnico', $request->query('tecnico', ''));
             $openbyme = $request->input('openbyme', $request->query('openbyme', ''));
             $open = max(0, (int) $request->query('open', 0));
 
@@ -39,7 +40,7 @@ class HelpdeskController extends BaseController
 
             $isSuporte = AuthService::hasPermission('ti');
             $isExterno = AuthService::isExterno();
-            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $idMeu, $isSuporte, $isExterno);
+            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $idMeu, $tecnico, $isSuporte, $isExterno);
 
             $grupos = HelpdeskService::listarGrupos();
             $subgrupos = HelpdeskService::listarSubgrupos();
@@ -77,6 +78,7 @@ class HelpdeskController extends BaseController
                         'label' => formatBusinessHours($decorrido) . ' / ' . formatBusinessHours($slaHoras),
                     ];
                 } catch (Throwable $e) {
+                    Logger::exception($e);
                     continue;
                 }
             }
@@ -89,6 +91,7 @@ class HelpdeskController extends BaseController
                 'status' => $status,
                 'local' => $local,
                 'meus' => $meus,
+                'tecnico' => $tecnico,
                 'openbyme' => $openbyme,
                 'open' => $open,
                 'grupos' => $grupos,
@@ -134,9 +137,11 @@ class HelpdeskController extends BaseController
 
             $data = [];
 
+            $statusValue = $request->post('status');
+
             $respValue = $request->post('id_resp');
             if ($respValue !== null) {
-                if ($respValue === '') {
+                if ($respValue === '' && $statusValue !== 'A') {
                     $respValue = AuthService::getUserCpf() ?? '';
                 }
                 $data['id_resp'] = $respValue;
@@ -149,7 +154,6 @@ class HelpdeskController extends BaseController
                 $data['chapa'] = $chapa ?? '';
             }
 
-            $statusValue = $request->post('status');
             if ($statusValue !== null && $statusValue !== '') {
                 $data['status'] = $statusValue;
                 $data['dt_solucao'] = in_array($statusValue, ['R', 'C'], true) ? date('Y-m-d H:i:s') : null;
@@ -183,14 +187,6 @@ class HelpdeskController extends BaseController
             HelpdeskService::atualizar($id, $data);
 
             $user = AuthService::getUser() ?? [];
-            LogService::store([
-                'nivel' => 'INFO',
-                'tipo' => 'UPDATE',
-                'modulo' => 'helpdesk',
-                'acao' => 'alterar_chamado',
-                'mensagem' => "chamado {$id} " . (in_array($statusValue, ['R'], true) ? 'finalizado' : 'alterado'),
-                'contexto' => $data
-            ]);
 
             if ($statusValue !== null && $statusValue !== '' && $statusAtual !== $statusValue) {
                 HelpdeskService::notificarFinalizacao($id, $statusValue);
@@ -215,6 +211,15 @@ class HelpdeskController extends BaseController
                 $responder(true, "Chamado Nº {$id} cancelado.", $this->redirectBack($request, $id));
                 return;
             }
+
+            LogService::store([
+                'nivel' => 'INFO',
+                'tipo' => 'UPDATE',
+                'modulo' => 'helpdesk',
+                'acao' => 'alterar_chamado',
+                'mensagem' => "chamado {$id} " . (in_array($statusValue, ['R'], true) ? 'finalizado' : 'alterado'),
+                'contexto' => $data
+            ]);
 
             $responder(true, "Chamado Nº {$id} atualizado.", $this->redirectBack($request, $id));
         } catch (Throwable $e) {
@@ -329,6 +334,15 @@ class HelpdeskController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
+            LogService::store([
+                'nivel' => 'ERROR',
+                'tipo' => 'INSERT',
+                'modulo' => 'helpdesk',
+                'acao' => 'abrir_chamado',
+                'mensagem' => $e->getMessage(),
+                'contexto' => $dadosAbertura
+            ]);
+
             AlertManager::add('error', 'Erro ao abrir o chamado.');
             redirect('/helpdesk/index');
         }
@@ -347,9 +361,15 @@ class HelpdeskController extends BaseController
             redirect($url ?? '/helpdesk/index');
         };
 
+        $status = '';
+        $idUsu = '';
+        $cpfAb = '';
+
         try {
             $id = (int) $request->post('id', 0);
             $mensagem = trim((string) $request->post('mensagem', ''));
+
+            $statusAtual = HelpdeskService::obterStatus($id);
 
             if ($id <= 0) {
                 $responder(false, 'Chamado inválido.');
@@ -364,7 +384,21 @@ class HelpdeskController extends BaseController
             $idUsu = $this->cpfUsuarioAtual();
 
             $cpfAb = HelpdeskService::obterCpfAbertura($id);
-            $status = !empty($cpfAb) && $idUsu === $cpfAb ? 'PS' : 'PU';
+
+            if ($statusAtual !== 'A' && !empty($cpfAb) && $idUsu === $cpfAb) {
+                $status = 'PS';
+            } else if ($statusAtual === 'A' && !empty($cpfAb) && $idUsu !== $cpfAb) {
+                $status = 'PU';
+                HelpdeskService::atualizaStatusChamado($id, $status);
+                HelpdeskService::upsertHelpStatus($id, $status);
+                HelpdeskService::updateHelpResp($id, $idUsu);
+            } else if ($statusAtual !== 'A' && !empty($cpfAb) && $idUsu !== $cpfAb) {
+                $status = 'PU';
+                HelpdeskService::atualizaStatusChamado($id, $status);
+                HelpdeskService::upsertHelpStatus($id, $status);
+            } else {
+                $status = $statusAtual;
+            }
 
             $upload = null;
 
@@ -374,6 +408,15 @@ class HelpdeskController extends BaseController
                 } catch (Throwable $e) {
                     Logger::exception($e);
 
+                    LogService::store([
+                        'nivel' => 'ERROR',
+                        'tipo' => 'FILE_UPLOAD',
+                        'modulo' => 'helpdesk',
+                        'acao' => 'registro_interacao',
+                        'mensagem' => $e->getMessage(),
+                        'contexto' => ['file' => $request->file('helpAttach')]
+                    ]);
+
                     $responder(false, $e->getMessage());
                     return;
                 }
@@ -381,19 +424,33 @@ class HelpdeskController extends BaseController
 
             $idHist = HelpHistoricoService::registrarInteracao($id, $mensagem, $idUsu, $status);
 
+            LogService::store([
+                'nivel' => 'INFO',
+                'tipo' => 'UPDATE',
+                'modulo' => 'helpdesk',
+                'acao' => 'interacao_chamado',
+                'mensagem' => "Interaçao registrada no chamado {$id}",
+                'contexto' => ['id' => $id, 'mensagem' => $mensagem, 'idUsu' => $idUsu, 'status' => $status]
+            ]);
+
             if ($upload !== null && $idHist !== null) {
                 try {
                     HelpHistoricoService::atualizarFileStr($idHist, FileService::finalize($upload, $idHist));
                 } catch (Throwable $e) {
                     Logger::exception($e);
 
+                    LogService::store([
+                        'nivel' => 'WARNING',
+                        'tipo' => 'FILE_UPLOAD',
+                        'modulo' => 'helpdesk',
+                        'acao' => 'interacao_chamado',
+                        'mensagem' => "Interação registrada no chamado {$id}, mas o anexo não pôde ser salvo: " . $e->getMessage()
+                    ]);
+
                     $responder(true, 'Interação registrada, mas o anexo não pôde ser salvo.', $this->redirectBack($request, $id));
                     return;
                 }
             }
-
-            HelpdeskService::atualizaStatusChamado($id, $status);
-            HelpdeskService::upsertHelpStatus($id, $status);
 
             $this->notificarInteracao($id, $mensagem, $idUsu);
 
@@ -425,7 +482,15 @@ class HelpdeskController extends BaseController
                 return;
             }
 
-            HelpHistoricoService::marcarVisualizado($id, $this->cpfUsuarioAtual());
+            $statusAtual = HelpdeskService::obterStatus($id);
+            $usuarioAb = HelpdeskService::obterCpfAbertura($id);
+            $usuarioAtual = $this->cpfUsuarioAtual();
+
+            if ($statusAtual === 'PU' && $usuarioAb === $usuarioAtual) {
+                HelpHistoricoService::marcarVisualizado($id);
+            } else if (($statusAtual === 'PS' || $statusAtual !== 'PU') && $usuarioAb !== $usuarioAtual) {
+                HelpHistoricoService::marcarVisualizado($id);
+            }
 
             $hist = HelpHistoricoService::obterHistoricoHelpdesk($id);
 

@@ -14,7 +14,8 @@ class LogModel
         ?string $tipo = null,
         ?string $modulo = null,
         ?string $busca = null,
-        ?string $data = null
+        ?string $data = null,
+        ?string $ip = null
     ): array
     {
         $query = QueryBuilder::table('logs', 'mysql');
@@ -41,6 +42,10 @@ class LogModel
 
         if (!empty($data)) {
             $query->whereLike('created_at', $data);
+        }
+
+        if (!empty($ip)) {
+            $query->where('ip', $ip);
         }
 
         return $query->orderBy('id', 'DESC')->paginate($page, $limit);

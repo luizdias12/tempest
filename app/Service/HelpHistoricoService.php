@@ -41,9 +41,9 @@ class HelpHistoricoService
         return HelpHistoricoModel::atualizarFileStr($idHist, $fileStr);
     }
 
-    public static function marcarVisualizado(int $helpId, string $idUsu): bool
+    public static function marcarVisualizado(int $helpId): bool
     {
-        return HelpHistoricoModel::marcarVisualizado($helpId, $idUsu);
+        return HelpHistoricoModel::marcarVisualizado($helpId);
     }
 
     public static function anexosAbertura(array $helpIds): array

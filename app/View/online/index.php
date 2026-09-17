@@ -27,6 +27,7 @@
         <thead>
             <tr>
                 <th>Nome</th>
+                <th>Função</th>
                 <th>CPF</th>
                 <th>Local</th>
                 <th>IP</th>
@@ -43,6 +44,7 @@
             <?php foreach ($usuarios as $usuario): ?>
                 <tr>
                     <td><?= htmlspecialchars($usuario['nome'] ?? '-') ?></td>
+                    <td><?= htmlspecialchars($usuario['funcao'] ?? '-') ?></td>
                     <td><?= htmlspecialchars(maskCpf($usuario['cpf'] ?? '')) ?></td>
                     <td><?= htmlspecialchars($usuario['local'] ?? 'Nao Identificado') ?></td>
                     <td><?= htmlspecialchars($usuario['ip'] ?? '-') ?></td>
@@ -50,7 +52,7 @@
                     <td>
                         <form method="POST" action="/online/deslogar" onsubmit="return confirm('Desconectar este usuário?');">
                             <input type="hidden" name="cpf" value="<?= htmlspecialchars($usuario['cpf']) ?>">
-                            <button type="submit" class="btn btn-danger">Deslogar</button>
+                            <button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Deslogar</button>
                         </form>
                     </td>
                 </tr>

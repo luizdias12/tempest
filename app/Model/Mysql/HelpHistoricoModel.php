@@ -103,17 +103,16 @@ class HelpHistoricoModel
         return DB::update('help_hist', 'id_hist', $idHist, ['file_str' => $fileStr], 'mysql');
     }
 
-    public static function marcarVisualizado(int $helpId, string $idUsu): bool
+    public static function marcarVisualizado(int $helpId): bool
     {
         $stmt = DB::connect('mysql')->prepare("
             UPDATE help_hist
             SET view = 'S', dtview = NOW()
             WHERE id_help = :id
             AND view = 'N'
-            AND id_usu <> :idUsu
         ");
 
-        return $stmt->execute(['id' => $helpId, 'idUsu' => $idUsu]);
+        return $stmt->execute(['id' => $helpId]);
     }
 
     public static function anexosAbertura(array $helpIds): array

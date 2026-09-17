@@ -59,4 +59,13 @@ class GenericModel
         ->first();
         return $externo ?? [];
     }
+
+    public static function buscaFuncPorCpf(string $cpf): array|null
+    {
+        $func = QueryBuilder::table('func', 'mysql')
+        ->select('chapa', 'nome', 'cpf')
+        ->where('cpf', $cpf)
+        ->first();
+        return $func ?? [];
+    }
 }

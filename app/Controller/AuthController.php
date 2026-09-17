@@ -149,7 +149,7 @@ class AuthController extends BaseController
                 return;
             }
 
-            if ($email === '' || !str_ends_with(mb_strtolower($email), '@villefort.com.br')) {
+            if ($email !== '' && !str_ends_with(mb_strtolower($email), '@villefort.com.br')) {
                 AlertManager::add('error', 'Informe um e-mail corporativo válido (@villefort.com.br).');
                 redirect('/login/cadastro');
                 return;
@@ -243,10 +243,13 @@ class AuthController extends BaseController
             return;
         }
 
+        $nome = GenericService::buscaFuncPorCpf((string) ($_SESSION['redefinir_cpf']))['nome'] ?? 'Nome não encontrado';
+
         view(
             'auth/redefinir',
             [
                 'filtroCpf' => (string) ($_SESSION['redefinir_cpf'] ?? ''),
+                'nomeEncontrado' => $nome,
                 'title' => 'Redefinir Senha',
             ]
         );
@@ -308,6 +311,89 @@ class AuthController extends BaseController
         $_SESSION['redefinir_cpf'] = $cpf;
 
         redirect('/login/redefinir');
+    }
+
+    public function perfilView(Request $request): void
+    {
+        $cpf = AuthService::getUserCpf();
+
+        if ($cpf === null) {
+            redirect('/login');
+            return;
+        }
+
+        $perfil = UsuarioService::perfil($cpf) ?? [];
+
+        view(
+            'perfil/index',
+            [
+                'perfil' => $perfil,
+                'setores' => ContatoModel::listarSetores(),
+                'title' => 'Meu Perfil',
+            ]
+        );
+    }
+
+    public function perfil(Request $request): void
+    {
+        $cpf = AuthService::getUserCpf();
+
+        if ($cpf === null) {
+            redirect('/login');
+            return;
+        }
+
+        $email = trim((string) $request->post('email', ''));
+        $ramal = trim((string) $request->post('ramal', ''));
+        $idSetor = max(0, (int) $request->post('id_setor', 0));
+
+        if ($email !== '' && !str_ends_with(mb_strtolower($email), '@villefort.com.br')) {
+            AlertManager::add('error', 'Informe um e-mail corporativo válido (@villefort.com.br).');
+            redirect('/perfil');
+            return;
+        }
+
+        if (UsuarioService::atualizarPerfil($cpf, $email, $ramal, $idSetor)) {
+            AlertManager::add('success', 'Perfil atualizado com sucesso.');
+        } else {
+            AlertManager::add('error', 'Não foi possível atualizar o perfil.');
+        }
+
+        redirect('/perfil');
+    }
+
+    public function senha(Request $request): void
+    {
+        $cpf = AuthService::getUserCpf();
+
+        if ($cpf === null) {
+            redirect('/login');
+            return;
+        }
+
+        $senhaAtual = (string) $request->post('senha_atual', '');
+        $novaSenha = (string) $request->post('nova_senha', '');
+        $confirmar = (string) $request->post('confirmar_senha', '');
+
+        if ($senhaAtual === '' || mb_strlen($novaSenha) < 6) {
+            AlertManager::add('error', 'A nova senha deve ter no mínimo 6 caracteres.');
+            redirect('/perfil');
+            return;
+        }
+
+        if ($novaSenha !== $confirmar) {
+            AlertManager::add('error', 'As senhas informadas não conferem.');
+            redirect('/perfil');
+            return;
+        }
+
+        if (UsuarioService::alterarSenha($cpf, $senhaAtual, $novaSenha)) {
+            AlertManager::add('success', 'Senha alterada com sucesso.');
+        } else {
+            AlertManager::add('error', 'Senha atual incorreta ou não foi possível alterar.');
+        }
+
+        redirect('/perfil');
     }
 
     public function logout(Request $request): void

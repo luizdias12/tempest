@@ -35,4 +35,9 @@ class GenericService
     {
         return GenericModel::buscaFuncExternoPorCpf($cpf);
     }
+
+    public static function buscaFuncPorCpf(string $cpf): array|null
+    {
+        return GenericModel::buscaFuncPorCpf($cpf);
+    }
 }
