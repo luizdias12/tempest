@@ -46,7 +46,7 @@ class HelpdeskController extends BaseController
             $subgrupos = HelpdeskService::listarSubgrupos();
             $responsaveis = HelpdeskService::listarResponsaveis();
             $funcionarios = HelpdeskService::listarFuncionarios();
-            $historico = $open > 0 ? HelpHistoricoService::obterHistoricoHelpdesk($open) : [];
+            $historico = $open > 0 ? HelpHistoricoService::obterHistoricoHelpdesk($open, $this->cpfUsuarioAtual(), $isSuporte) : [];
             $contagemHistoricos = HelpHistoricoService::contagemHistoricos(array_column($result['data'], 'id'));
             $openCpf = $open > 0 ? HelpdeskService::obterCpfAbertura($open) : null;
             $anexosAbertura = HelpHistoricoService::anexosAbertura(array_column($result['data'], 'id'));
@@ -369,6 +369,14 @@ class HelpdeskController extends BaseController
             $id = (int) $request->post('id', 0);
             $mensagem = trim((string) $request->post('mensagem', ''));
 
+            $privadoFlag = (string) $request->post('privado', '');
+            $privado = in_array($privadoFlag, ['1', 'on', 'true', 'yes'], true);
+
+            if ($privado && !AuthService::hasPermission('ti')) {
+                $responder(false, 'Apenas o suporte pode registrar uma interação privada.');
+                return;
+            }
+
             $statusAtual = HelpdeskService::obterStatus($id);
 
             if ($id <= 0) {
@@ -387,6 +395,22 @@ class HelpdeskController extends BaseController
 
             if ($statusAtual !== 'A' && !empty($cpfAb) && $idUsu === $cpfAb) {
                 $status = 'PS';
+                HelpdeskService::atualizaStatusChamado($id, $status);
+                HelpdeskService::upsertHelpStatus($id, $status);
+
+                LogService::store([
+                    'nivel' => 'DEBUG',
+                    'tipo' => 'UPDATE',
+                    'modulo' => 'helpdesk',
+                    'acao' => 'registro_interacao_usuario',
+                    'mensagem' => 'Chamado ' . $id . ' atualizado para status PS pelo usuário ' . $idUsu,
+                    'contexto' => [
+                        'idUsu' => $idUsu,
+                        'cpfAb' => $cpfAb,
+                        'statusAtual' => $statusAtual,
+                        'statusNovo' => $status
+                    ]
+                ]);
             } else if ($statusAtual === 'A' && !empty($cpfAb) && $idUsu !== $cpfAb) {
                 $status = 'PU';
                 HelpdeskService::atualizaStatusChamado($id, $status);
@@ -422,7 +446,7 @@ class HelpdeskController extends BaseController
                 }
             }
 
-            $idHist = HelpHistoricoService::registrarInteracao($id, $mensagem, $idUsu, $status);
+            $idHist = HelpHistoricoService::registrarInteracao($id, $mensagem, $idUsu, $status, '', $privado);
 
             LogService::store([
                 'nivel' => 'INFO',
@@ -430,7 +454,7 @@ class HelpdeskController extends BaseController
                 'modulo' => 'helpdesk',
                 'acao' => 'interacao_chamado',
                 'mensagem' => "Interaçao registrada no chamado {$id}",
-                'contexto' => ['id' => $id, 'mensagem' => $mensagem, 'idUsu' => $idUsu, 'status' => $status]
+                'contexto' => ['id' => $id, 'mensagem' => $mensagem, 'idUsu' => $idUsu, 'status' => $status, 'privado' => $privado]
             ]);
 
             if ($upload !== null && $idHist !== null) {
@@ -452,7 +476,9 @@ class HelpdeskController extends BaseController
                 }
             }
 
-            $this->notificarInteracao($id, $mensagem, $idUsu);
+            if (!$privado) {
+                $this->notificarInteracao($id, $mensagem, $idUsu);
+            }
 
             $responder(true, "Interação registrada no chamado Nº {$id}.", $this->redirectBack($request, $id));
         } catch (Throwable $e) {
@@ -492,7 +518,7 @@ class HelpdeskController extends BaseController
                 HelpHistoricoService::marcarVisualizado($id);
             }
 
-            $hist = HelpHistoricoService::obterHistoricoHelpdesk($id);
+            $hist = HelpHistoricoService::obterHistoricoHelpdesk($id, $usuarioAtual, AuthService::hasPermission('ti'));
 
             $items = array_map(static fn(array $item): array => [
                 'nome' => $item['nome'] ?? 'Sistema',
@@ -502,6 +528,7 @@ class HelpdeskController extends BaseController
                 'id_usu' => $item['id_usu'] ?? '',
                 'file_str' => handleAttach($item['file_str'] ?? '', $id),
                 'dtview' => !empty($item['dtview']) ? date('d-m-Y H:i', strtotime($item['dtview'])) : '',
+                'privado' => (($item['privado'] ?? '') === 'S'),
             ], $hist);
 
             Response::json(['id' => $id, 'hist' => $items]);

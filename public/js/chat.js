@@ -117,7 +117,7 @@
     function carregarConversas() {
         return get(API + 'conversas').then(function(lista) {
             estado.conversas = lista;
-            if (estado.aberta) {
+            if (estado.aberta && abaVisivel()) {
                 var aberta = getConversa(estado.aberta);
                 if (aberta) aberta.nao_lidas = 0;
             }
@@ -500,6 +500,36 @@
         });
     }
 
+    function enviarImagemPaste(file) {
+        if (!estado.aberta || els.enviar.disabled) return;
+
+        if (file.size > 5242880) {
+            toast('error', 'Imagem/GIF excede o limite de 5 MB.');
+            return;
+        }
+
+        var texto = els.texto.value.trim();
+        var ext = String(file.type || 'image/png').split('/')[1] || 'png';
+        var nome = (file.name && file.name.trim()) ? file.name : ('clipboard.' + ext);
+
+        var fd = new FormData();
+        fd.append('conversa_id', String(estado.aberta));
+        if (texto) fd.append('texto', texto);
+        fd.append('anexo', file, nome);
+
+        els.enviar.disabled = true;
+
+        getJson(API + 'anexo', { method: 'POST', body: fd }).then(check).then(function(msg) {
+            appendMensagens([msg], true);
+            carregarConversas();
+        }).catch(function() {}).finally(function() {
+            els.texto.value = '';
+            els.texto.style.height = '';
+            els.enviar.disabled = false;
+            els.texto.focus();
+        });
+    }
+
     /* ===== EDIÇÃO / EXCLUSÃO / REAÇÕES ===== */
 
     function atualizarThreadEditavel() {
@@ -809,6 +839,7 @@
     /* ===== INIT ===== */
 
     document.addEventListener('DOMContentLoaded', function() {
+        els.app = document.querySelector('.chat-app');
         els.conversas = document.getElementById('chatConversas');
         els.msgs = document.getElementById('chatMsgs');
         els.titulo = document.getElementById('chatTitulo');
@@ -841,6 +872,53 @@
                 enviarMensagem();
             }
         });
+
+        els.texto.addEventListener('paste', function(e) {
+            var items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (item.kind === 'file' && item.type && item.type.indexOf('image/') === 0) {
+                    e.preventDefault();
+                    var file = item.getAsFile();
+                    if (file) enviarImagemPaste(file);
+                    return;
+                }
+            }
+        });
+
+        if (els.app) {
+            var arrastando = 0;
+
+            els.app.addEventListener('dragenter', function() {
+                arrastando++;
+            });
+
+            els.app.addEventListener('dragleave', function() {
+                arrastando--;
+                if (arrastando <= 0) arrastando = 0;
+            });
+
+            els.app.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+
+            els.app.addEventListener('drop', function(e) {
+                e.preventDefault();
+                arrastando = 0;
+                var arquivos = e.dataTransfer && e.dataTransfer.files;
+                if (!arquivos || !arquivos.length) return;
+
+                for (var i = 0; i < arquivos.length; i++) {
+                    var file = arquivos[i];
+                    if (file.type && file.type.indexOf('image/') === 0) {
+                        enviarImagemPaste(file);
+                        break;
+                    }
+                }
+            });
+        }
 
         els.texto.addEventListener('input', function() {
             this.style.height = '';

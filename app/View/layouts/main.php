@@ -6,6 +6,7 @@
     <title><?= $title ?? '嵐' ?></title>
 
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/vivi.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body>
@@ -18,8 +19,10 @@
     </main>
 
     <?php partial('footer'); ?>
+    <?php partial('vivi'); ?>
     <script src="<?= asset('js/app.js') ?>"></script>
     <script src="<?= asset('js/notificacoes.js') ?>"></script>
+    <script src="<?= asset('js/vivi.js') ?>"></script>
 
     <?php
     use App\Core\Alerts\AlertManager;

@@ -93,7 +93,7 @@ class EmailHelpdeskService
             }
         }
 
-        if (preg_match('/N[º°]?\s*(\d+)/iu', $subject, $m) && isset($m[1])) {
+        if (preg_match('/N[ÂºÂ°]?\s*(\d+)/iu', $subject, $m) && isset($m[1])) {
             $helpId = (int) $m[1];
 
             if ($helpId > 0 && HelpdeskService::obterStatus($helpId) !== null) {
@@ -107,11 +107,11 @@ class EmailHelpdeskService
     private static function notificarChamadoEncerrado(int $helpId, string $status, array $m): void
     {
         $statusMap = [
-            'R' => 'já foi resolvido',
-            'C' => 'já foi cancelado',
+            'R' => 'jÃ¡ foi resolvido',
+            'C' => 'jÃ¡ foi cancelado',
         ];
 
-        $frase = $statusMap[$status] ?? 'já se encontra encerrado';
+        $frase = $statusMap[$status] ?? 'jÃ¡ se encontra encerrado';
 
         [$fromEmail] = self::remetenteMensagem($m);
 
@@ -126,18 +126,18 @@ class EmailHelpdeskService
             $assunto = '(sem assunto)';
         }
 
-        $corpo = '<p>Olá!</p>'
-            . '<p>Não foi possível registrar a sua resposta, pois o chamado <strong>Nº ' . $helpId . '</strong> ' . $frase . '.</p>'
+        $corpo = '<p>OlÃ¡!</p>'
+            . '<p>NÃ£o foi possÃ­vel registrar a sua resposta, pois o chamado <strong>NÂº ' . $helpId . '</strong> ' . $frase . '.</p>'
             . '<ul>'
             . '<li><strong>Assunto:</strong> ' . htmlspecialchars($assunto, ENT_QUOTES, 'UTF-8') . '</li>'
-            . '<li><strong>Número:</strong> ' . $helpId . '</li>'
-            . '<li><strong>Situação:</strong> Encerrado</li>'
+            . '<li><strong>NÃºmero:</strong> ' . $helpId . '</li>'
+            . '<li><strong>SituaÃ§Ã£o:</strong> Encerrado</li>'
             . '</ul>'
-            . '<p>Caso necessário, abra um novo chamado.</p>';
+            . '<p>Caso necessÃ¡rio, abra um novo chamado.</p>';
 
         MailService::enviar(
             $fromEmail,
-            'Chamado Nº ' . $helpId . ' já encerrado - ' . $assunto,
+            'Chamado NÂº ' . $helpId . ' jÃ¡ encerrado - ' . $assunto,
             $corpo
         );
     }
@@ -279,14 +279,54 @@ class EmailHelpdeskService
 
         $anexos = GraphService::anexos($mailbox, $messageId);
 
+        Logger::info('GraphService::anexos devolveu', [
+            'qtd'     => count($anexos),
+            'mailbox' => $mailbox,
+            'anexos'  => array_map(static function (array $a): array {
+                return [
+                    'nome'        => (string) ($a['name'] ?? ''),
+                    'isInline'    => !empty($a['isInline']),
+                    'contentType' => (string) ($a['contentType'] ?? ''),
+                    'contentId'   => (string) ($a['contentId'] ?? ''),
+                    'id'          => (string) ($a['id'] ?? ''),
+                ];
+            }, $anexos),
+        ]);
+
+        Logger::info('GraphService::anexos do Graph', [
+            'count'     => count($anexos),
+            'mailbox'   => $mailbox,
+            'messageId' => $messageId,
+        ]);
+
         foreach ($anexos as $anexo) {
-            $nome = $anexo['name'] ?? '';
-            if ($nome === '') {
+            $inline = !empty($anexo['isInline']);
+            $nome   = (string) ($anexo['name'] ?? '');
+
+            if ($nome === '' && $inline) {
+                $cid    = strtolower((string) ($anexo['contentId'] ?? ''));
+                $tipo   = strtolower((string) ($anexo['contentType'] ?? ''));
+                $eImagem = strpos($tipo, 'image/') === 0
+                    || in_array(pathinfo($cid, PATHINFO_EXTENSION), ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tif', 'tiff'], true);
+                if (!$eImagem) {
+                    continue;
+                }
+                $ext  = pathinfo($cid, PATHINFO_EXTENSION) !== ''
+                    ? pathinfo($cid, PATHINFO_EXTENSION)
+                    : (strpos($tipo, 'png') !== false ? 'png' : 'jpg');
+                $nome = 'imagem_inline_' . substr(hash('md5', $anexo['id'] ?? $cid), 0, 6) . '.' . $ext;
+            } elseif ($nome === '') {
                 continue;
             }
 
-            if (!empty($anexo['isInline'])) {
-                continue;
+            if ($inline) {
+                $tipo      = strtolower((string) ($anexo['contentType'] ?? ''));
+                $nomeBaixo = strtolower((string) $nome);
+                $eImagem   = strpos($tipo, 'image/') === 0
+                    || in_array(pathinfo($nomeBaixo, PATHINFO_EXTENSION), ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tif', 'tiff'], true);
+                if (!$eImagem) {
+                    continue;
+                }
             }
 
             $conteudo = GraphService::baixarAnexo($mailbox, $messageId, $anexo['id'] ?? '');

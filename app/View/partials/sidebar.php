@@ -37,13 +37,15 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
             <div class="sidebar-area-protegida">
                 <a href="/perfil"><i class="fa-solid fa-id-badge"></i> Meu Perfil</a>
                 <a href="/helpdesk/index"><i class="fa-solid fa-desktop"></i> Helpdesk</a>
-                <?php if (!AuthService::isExterno() && AuthService::hasPermission('ti')): ?>
-                        <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
+                <?php if (!AuthService::isExterno() && $isSuporte): ?>
                         <div class="sidebar-dropdown">
                             <a href="#" class="sidebar-dropdown-toggle">
                                 <span class="sidebar-dropdown-label"><i class="fa-solid fa-computer"></i> TI</span>
                                 <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                             </a>
+                            <div class="sidebar-drodown-menu">
+                                <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
+                            </div>
                             <div class="sidebar-dropdown-menu">
                                 <a href="/ti/lista"><i class="fa-solid fa-list"></i> Lista TI</a>
                             </div>
@@ -58,6 +60,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                             </div>
                         </div>
                 <?php endif; ?>
+                <?php if (!AuthService::isExterno()): ?>
                     <div class="sidebar-dropdown">
                         <a href="#" class="sidebar-dropdown-toggle">
                             <span class="sidebar-dropdown-label"><i class="fa-solid fa-address-card"></i> Área do Funcionário</span>
@@ -94,6 +97,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         </div>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

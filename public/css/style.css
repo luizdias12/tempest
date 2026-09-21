@@ -854,6 +854,35 @@ td.valor {
     font-style: italic;
 }
 
+.historico-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.historico-badge.privado {
+    background: rgba(155, 89, 182, 0.2);
+    color: #c98fe0;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+}
+
+.privado-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.privado-hint {
+    font-size: 0.75rem;
+    color: #9a9a9a;
+    font-style: italic;
+}
+
 .close {
     float: right;
     cursor: pointer;

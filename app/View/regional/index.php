@@ -8,7 +8,7 @@ use App\Service\AuthService;
     <div class="region-tabs">
         <button type="button" class="region-tab active" id="consulta" onclick="mostrarAba(this, 'consulta')"><i class="fa-solid fa-magnifying-glass"></i> Consulta</button>
         <?php
-            if (AuthService::canManageCarousel()): ?>
+            if (AuthService::canManageCarousel() && !AuthService::isExterno()): ?>
             <button type="button" class="region-tab region-tab--gestao" id="gestao" onclick="mostrarAba(this, 'gestao')"><i class="fa-solid fa-gear"></i> Gestão</button>
         <?php endif; ?>
     </div>

@@ -341,7 +341,7 @@ class ChatModel
     {
         $conn = DB::connect('mysql');
         $update = $conn->prepare("UPDATE chat_participantes
-            SET ultimo_lido = GREATEST(COALESCE(ultimo_lido, 0), :mensagem_id)
+            SET ultimo_lido = GREATEST(COALESCE(ultimo_lido, 0), CAST(:mensagem_id AS UNSIGNED))
             WHERE conversa_id = :conversa_id AND cpf = :cpf");
         $check = $conn->prepare("SELECT COALESCE(ultimo_lido, 0) AS ultimo
             FROM chat_participantes WHERE conversa_id = :conversa_id AND cpf = :cpf");

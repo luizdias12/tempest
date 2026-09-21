@@ -7,21 +7,28 @@ use App\Core\QueryBuilder;
 
 class HelpHistoricoModel
 {
-    public static function obterHistoricoHelpdesk(int $helpId): array
+    public static function obterHistoricoHelpdesk(int $helpId, string $cpfUsuario = '', bool $isSuporte = false): array
     {
-        $historico = QueryBuilder::table('help_hist h', 'mysql')
+        $query = QueryBuilder::table('help_hist h', 'mysql')
             ->select('h.id_hist', 'h.id_help', 'h.historico', 'h.status',
-            'h.data_hist', 'h.id_usu', 'h.file_str',
+            'h.data_hist', 'h.id_usu', 'h.file_str', 'h.privado',
             'COALESCE(f.nome, fe.nome) as nome', 'h.dtview')
             ->join('helpdesk hd', 'hd.id', '=', 'h.id_help')
             ->leftJoin('func f', 'f.cpf', '=', 'h.id_usu')
             ->leftJoin('func_externo as fe', 'fe.cpf', '=', 'h.id_usu')
             ->where('h.id_help', $helpId)
-            ->where('h.status', '<>', 'A')
-            ->orderBy('h.data_hist', 'ASC')
-            ->get();
+            ->where('h.status', '<>', 'A');
 
-        return $historico;
+        if (!$isSuporte) {
+            $query->whereRaw(
+                '(h.privado IS NULL OR h.id_usu = :privUsu)',
+                ['privUsu' => $cpfUsuario]
+            );
+        }
+
+        $query->orderBy('h.data_hist', 'ASC');
+
+        return $query->get();
     }
 
     public static function verificaVisualizacao(int $helpId): array|null
@@ -84,9 +91,9 @@ class HelpHistoricoModel
         return array_map('intval', array_column($contagemHistoricos, 'total', 'id_help'));
     }
 
-    public static function registrarInteracao(int $helpId, string $historico, string $idUsu, string $status, string $fileStr = ''): ?int
+    public static function registrarInteracao(int $helpId, string $historico, string $idUsu, string $status, string $fileStr = '', bool $privado = false): ?int
     {
-        return DB::insert('help_hist', [
+        $data = [
             'id_help' => $helpId,
             'historico' => $historico,
             'data_hist' => date('Y-m-d H:i:s'),
@@ -95,7 +102,13 @@ class HelpHistoricoModel
             'view' => 'N',
             'file_str' => $fileStr,
             'dtview' => null,
-        ], 'mysql');
+        ];
+
+        if ($privado) {
+            $data['privado'] = 'S';
+        }
+
+        return DB::insert('help_hist', $data, 'mysql');
     }
 
     public static function atualizarFileStr(int $idHist, string $fileStr): bool

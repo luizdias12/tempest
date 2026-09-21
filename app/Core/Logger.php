@@ -40,7 +40,7 @@ class Logger
     {
         $dir = self::$dir;
         if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
+            @mkdir($dir, 0775, true);
         }
 
         $file = $dir . '/' . date('Y-m-d') . '.log';
@@ -57,6 +57,13 @@ class Logger
             PHP_EOL
         );
 
-        file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        $matches = @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        if ($matches === false) {
+            @error_log(trim($line));
+
+            if (defined('STDERR')) {
+                @fwrite(STDERR, $line);
+            }
+        }
     }
 }

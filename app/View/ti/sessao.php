@@ -4,12 +4,14 @@ use App\Service\AuthService;
 
 dumper($data);
 
-if (
-    !AuthService::hasPermission('lideres rh') &&
-    !AuthService::hasPermission('gestao de processos') &&
-    !AuthService::hasPermission('ti')
-) {
-    echo 'Acesso não permitido!';
-} else {
+echo '<pre>';
+echo 'permitido: ' . (!AuthService::isExterno() && AuthService::hasPermission('ti'));
+echo '</pre>';
+echo '<br>';
+
+
+if (!AuthService::isExterno() && AuthService::hasPermission('ti')) {
     echo 'Acesso permitido!';
+} else {
+    echo 'Acesso não permitido!';
 }

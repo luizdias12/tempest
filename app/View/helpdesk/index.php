@@ -297,6 +297,11 @@ ob_start();
         <label>Anexo (máx. 5 MB):
             <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
         </label>
+        <?php if ($isSuporte): ?>
+        <label class="privado-toggle">
+            <input type="checkbox" name="privado" value="1"> Interação privada <span class="privado-hint">(visível apenas para você e o suporte)</span>
+        </label>
+        <?php endif; ?>
         <button type="submit" class="btn">Registrar histórico</button>
     </form>
     <div class="historico-list">
@@ -310,6 +315,9 @@ ob_start();
                         <span><?= date('d-m-Y H:i', strtotime($item['data_hist'])) ?></span>
                     </div>
                     <p><?= htmlspecialchars($item['historico']) ?></p>
+                    <?php if (!empty($item['privado'])): ?>
+                        <span class="historico-badge privado">Privado</span>
+                    <?php endif; ?>
                     <?php if (!empty($item['file_str'])): ?>
                         <p><a href="<?= htmlspecialchars(handleAttach($item['file_str'], (int) $open)) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> Anexo</a></p>
                     <?php endif; ?>
@@ -670,6 +678,13 @@ ob_start();
             var p = document.createElement('p');
             p.textContent = item.historico || '';
             div.appendChild(p);
+
+            if (item.privado) {
+                var spanP = document.createElement('span');
+                spanP.className = 'historico-badge privado';
+                spanP.textContent = 'Privado';
+                div.appendChild(spanP);
+            }
 
             if (item.file_str) {
                 var pa = document.createElement('p');

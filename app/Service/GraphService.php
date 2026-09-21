@@ -77,7 +77,8 @@ class GraphService
 
             $data = json_decode((string) $response->getBody(), true);
 
-            return $data['value'] ?? [];
+            $itens = $data['value'] ?? [];
+            return $itens;
         } catch (Throwable $e) {
             Logger::exception($e);
             return [];
