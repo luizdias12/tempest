@@ -77,8 +77,24 @@ class GraphService
 
             $data = json_decode((string) $response->getBody(), true);
 
-            $itens = $data['value'] ?? [];
-            return $itens;
+            $mensagens = $data['value'] ?? [];
+
+            $remetentesIgnorados = [
+                'no-reply@outlook.mail.microsoft',
+            ];
+
+            return array_values(array_filter(
+                $mensagens,
+                function (array $message) use ($remetentesIgnorados): bool {
+                    $remetente = strtolower(
+                        trim($message['from']['emailAddress']['address'] ?? '')
+                    );
+
+                    return !in_array($remetente, $remetentesIgnorados, true);
+                }
+            ));
+
+            // return $data['value'] ?? [];
         } catch (Throwable $e) {
             Logger::exception($e);
             return [];
@@ -88,11 +104,14 @@ class GraphService
     public static function anexos(string $mailbox, string $messageId): array
     {
         try {
-            $response = self::client()->get("users/{$mailbox}/messages/{$messageId}/attachments", [
-                'query' => [
-                    '$select' => 'id,name,contentType,size,isInline,contentId',
-                ],
-            ]);
+            $response = self::client()->get(
+                'users/' . rawurlencode($mailbox) . '/messages/' . rawurlencode($messageId) . '/attachments',
+                [
+                    'query' => [
+                        '$select' => 'id,name,contentType,size,isInline,microsoft.graph.fileAttachment/contentId',
+                    ],
+                ]
+            );
             $data     = json_decode((string) $response->getBody(), true);
 
             return $data['value'] ?? [];
@@ -105,7 +124,9 @@ class GraphService
     public static function baixarAnexo(string $mailbox, string $messageId, string $attachmentId): ?string
     {
         try {
-            $response = self::client()->get("users/{$mailbox}/messages/{$messageId}/attachments/{$attachmentId}");
+            $response = self::client()->get(
+                'users/' . rawurlencode($mailbox) . '/messages/' . rawurlencode($messageId) . '/attachments/' . rawurlencode($attachmentId)
+            );
             $data     = json_decode((string) $response->getBody(), true);
 
             if (!isset($data['contentBytes'])) {

@@ -189,7 +189,7 @@ class EmailHelpdeskService
             ],
         ]);
 
-        self::salvarAnexos($helpId, $messageId, $mailbox, $fromEmail);
+        self::salvarAnexos($helpId, $messageId, $mailbox, $fromEmail, $cpfAb !== '' ? $cpfAb : '0', (string) ($m['body']['content'] ?? ''));
     }
 
     private static function criarChamado(array $m, string $mailbox): int
@@ -264,14 +264,14 @@ class EmailHelpdeskService
             ],
         ]);
 
-        self::salvarAnexos($helpId, $m['id'] ?? '', $mailbox, $fromEmail);
+        self::salvarAnexos($helpId, $m['id'] ?? '', $mailbox, $fromEmail, $cpfAb !== '' ? $cpfAb : '0', (string) ($m['body']['content'] ?? ''));
 
         HelpdeskService::notificarAbertura($helpId, $cab, $fromEmail);
 
         return $helpId;
     }
 
-    private static function salvarAnexos(int $helpId, string $messageId, string $mailbox, string $fromEmail): void
+    private static function salvarAnexos(int $helpId, string $messageId, string $mailbox, string $fromEmail, string $idUsu = '0', string $bodyHtml = ''): void
     {
         if ($messageId === '') {
             return;
@@ -288,6 +288,7 @@ class EmailHelpdeskService
                     'isInline'    => !empty($a['isInline']),
                     'contentType' => (string) ($a['contentType'] ?? ''),
                     'contentId'   => (string) ($a['contentId'] ?? ''),
+                    'size'        => (int) ($a['size'] ?? 0),
                     'id'          => (string) ($a['id'] ?? ''),
                 ];
             }, $anexos),
@@ -299,67 +300,177 @@ class EmailHelpdeskService
             'messageId' => $messageId,
         ]);
 
-        foreach ($anexos as $anexo) {
-            $inline = !empty($anexo['isInline']);
-            $nome   = (string) ($anexo['name'] ?? '');
+        $anexo = self::escolherAnexo($anexos, $bodyHtml);
 
-            if ($nome === '' && $inline) {
-                $cid    = strtolower((string) ($anexo['contentId'] ?? ''));
-                $tipo   = strtolower((string) ($anexo['contentType'] ?? ''));
-                $eImagem = strpos($tipo, 'image/') === 0
-                    || in_array(pathinfo($cid, PATHINFO_EXTENSION), ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tif', 'tiff'], true);
-                if (!$eImagem) {
-                    continue;
-                }
-                $ext  = pathinfo($cid, PATHINFO_EXTENSION) !== ''
-                    ? pathinfo($cid, PATHINFO_EXTENSION)
-                    : (strpos($tipo, 'png') !== false ? 'png' : 'jpg');
-                $nome = 'imagem_inline_' . substr(hash('md5', $anexo['id'] ?? $cid), 0, 6) . '.' . $ext;
-            } elseif ($nome === '') {
-                continue;
+        if ($anexo === null) {
+            return;
+        }
+
+        $inline = !empty($anexo['isInline']);
+        $nome   = (string) ($anexo['name'] ?? '');
+
+        if ($nome === '' && $inline) {
+            $cid     = strtolower((string) ($anexo['contentId'] ?? ''));
+            $tipo    = strtolower((string) ($anexo['contentType'] ?? ''));
+            $eImagem = self::eImagem($tipo, $cid);
+
+            if (!$eImagem) {
+                return;
             }
 
-            if ($inline) {
-                $tipo      = strtolower((string) ($anexo['contentType'] ?? ''));
-                $nomeBaixo = strtolower((string) $nome);
-                $eImagem   = strpos($tipo, 'image/') === 0
-                    || in_array(pathinfo($nomeBaixo, PATHINFO_EXTENSION), ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tif', 'tiff'], true);
-                if (!$eImagem) {
-                    continue;
-                }
+            $ext = self::extensaoImagem($tipo, $cid);
+
+            if ($ext === '') {
+                return;
             }
 
-            $conteudo = GraphService::baixarAnexo($mailbox, $messageId, $anexo['id'] ?? '');
-            if ($conteudo === null) {
-                continue;
-            }
+            $nome = 'imagem_inline_' . substr(hash('md5', $anexo['id'] ?? $cid), 0, 6) . '.' . $ext;
+        } elseif ($nome === '') {
+            return;
+        }
 
-            $ext = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
+        if ($inline) {
+            $tipo      = strtolower((string) ($anexo['contentType'] ?? ''));
+            $nomeBaixo = strtolower((string) $nome);
+            $eImagem   = self::eImagem($tipo, $nomeBaixo);
 
-            if (in_array($ext, ['exe', 'bat', 'cmd', 'ps1', 'vbs', 'js'], true)) {
-                continue;
-            }
-
-            try {
-                $upload = FileService::salvarConteudo($nome, $conteudo);
-
-                $idHist = HelpHistoricoService::registrarInteracao(
-                    $helpId,
-                    "Anexo recebido por e-mail: {$nome}",
-                    $fromEmail !== '' ? $fromEmail : '0',
-                    'A'
-                );
-
-                if ($idHist !== null) {
-                    HelpHistoricoService::atualizarFileStr(
-                        $idHist,
-                        FileService::finalize($upload, $idHist)
-                    );
-                }
-            } catch (Throwable $e) {
-                Logger::exception($e, ['help_id' => $helpId, 'anexo' => $nome]);
+            if (!$eImagem) {
+                return;
             }
         }
+
+        $conteudo = GraphService::baixarAnexo($mailbox, $messageId, $anexo['id'] ?? '');
+        if ($conteudo === null) {
+            return;
+        }
+
+        $ext = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['exe', 'bat', 'cmd', 'ps1', 'vbs', 'js'], true)) {
+            return;
+        }
+
+        try {
+            $upload = FileService::salvarConteudo($nome, $conteudo);
+
+            $idHist = HelpHistoricoService::registrarInteracao(
+                $helpId,
+                "Anexo recebido por e-mail: {$nome}",
+                $idUsu !== '' ? $idUsu : '0',
+                'A'
+            );
+
+            if ($idHist !== null) {
+                HelpHistoricoService::atualizarFileStr(
+                    $idHist,
+                    FileService::finalize($upload, $idHist)
+                );
+            }
+        } catch (Throwable $e) {
+            Logger::exception($e, ['help_id' => $helpId, 'anexo' => $nome]);
+        }
+    }
+
+    private static function escolherAnexo(array $anexos, string $bodyHtml): ?array
+    {
+        $inline = [];
+        $images = [];
+
+        foreach ($anexos as $a) {
+            if (!self::eImagem(strtolower((string) ($a['contentType'] ?? '')), strtolower((string) ($a['name'] ?? '')))) {
+                continue;
+            }
+
+            $images[] = $a;
+
+            if (!empty($a['isInline'])) {
+                $inline[] = $a;
+            }
+        }
+
+        $candidatos = $inline !== [] ? $inline : $images;
+
+        if ($candidatos === []) {
+            return null;
+        }
+
+        $cids = self::extrairCids($bodyHtml);
+
+        usort($candidatos, static function (array $a, array $b) use ($cids): int {
+            $posA = self::posNoCorpo($a, $cids);
+            $posB = self::posNoCorpo($b, $cids);
+
+            if ($posA === $posB) {
+                return (int) ($b['size'] ?? 0) <=> (int) ($a['size'] ?? 0);
+            }
+
+            return $posA <=> $posB;
+        });
+
+        return $candidatos[0];
+    }
+
+    private static function extrairCids(string $html): array
+    {
+        $cids = [];
+
+        if ($html !== '' && preg_match_all('/cid\s*:\s*([^"\'<>\s]+)/i', $html, $m)) {
+            foreach ($m[1] as $cid) {
+                $cids[] = strtolower(trim($cid, " <>\"'"));
+            }
+        }
+
+        return $cids;
+    }
+
+    private static function posNoCorpo(array $anexo, array $cids): int
+    {
+        $contentId = strtolower(trim((string) ($anexo['contentId'] ?? ''), " <>\""));
+
+        if ($contentId === '') {
+            return PHP_INT_MAX;
+        }
+
+        foreach ($cids as $i => $cid) {
+            if ($contentId === $cid || str_ends_with($contentId, $cid) || str_ends_with($cid, $contentId)) {
+                return $i;
+            }
+        }
+
+        return PHP_INT_MAX;
+    }
+
+    private static function eImagem(string $tipo, string $nome): bool
+    {
+        if (strpos($tipo, 'image/') === 0) {
+            return true;
+        }
+
+        $base = strtolower((string) preg_replace('/@.*$/i', '', $nome));
+
+        return in_array(
+            pathinfo($base, PATHINFO_EXTENSION),
+            ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'webp', 'tif', 'tiff'],
+            true
+        );
+    }
+
+    private static function extensaoImagem(string $tipo, string $nome): string
+    {
+        $base = strtolower((string) preg_replace('/@.*$/i', '', $nome));
+        $ext  = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'bmp'], true)) {
+            return $ext === 'jpeg' ? 'jpg' : $ext;
+        }
+
+        $map = [
+            'image/png'  => 'png',
+            'image/jpeg' => 'jpg',
+            'image/bmp'  => 'bmp',
+        ];
+
+        return $map[$tipo] ?? '';
     }
 
     private static function remetenteMensagem(array $m): array

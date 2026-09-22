@@ -35,10 +35,12 @@ class FileService
         $safe = substr(sha1((string) $file['name'] . microtime()), 7, 14);
         $dir = basePath('public/files/helpdesk/' . $safe . '/');
 
-        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+        if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
             $err = error_get_last();
             throw new RuntimeException('Falha ao criar o diretório de upload: ' . $dir . ($err['message'] ?? ''));
         }
+
+        @chmod($dir, 0775);
 
         $tmp = $dir . $safe . '.' . $ext;
 
@@ -72,10 +74,12 @@ class FileService
         $safe = substr(sha1($nomeArquivo . microtime()), 7, 14);
         $dir = basePath('public/files/helpdesk/' . $safe . '/');
 
-        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+        if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
             $err = error_get_last();
             throw new RuntimeException('Falha ao criar o diretório de upload: ' . $dir . ($err['message'] ?? ''));
         }
+
+        @chmod($dir, 0775);
 
         $dest = $dir . $safe . '.' . $ext;
 

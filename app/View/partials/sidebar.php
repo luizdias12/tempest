@@ -30,7 +30,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
         <a href="/"><i class="fa-solid fa-house"></i> Início</a>
         <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
         <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
-        <a href="/chat"><i class="fa-solid fa-comments"></i> Chat<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
+        <a href="/chat"><i class="fa-solid fa-comments"></i> Chat (Em Teste)<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
         <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
 
         <?php if ($user): ?>
@@ -43,7 +43,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                                 <span class="sidebar-dropdown-label"><i class="fa-solid fa-computer"></i> TI</span>
                                 <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                             </a>
-                            <div class="sidebar-drodown-menu">
+                            <div class="sidebar-dropdown-menu">
                                 <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
                             </div>
                             <div class="sidebar-dropdown-menu">
@@ -85,7 +85,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         <?php endif; ?>
                     </div>
                 <!-- Configuraçoes -->
-                <div <?php if (!$isSuporte): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
+                <div <?php if (!$isSuporte || !AuthService::canManageCarousel()): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
                     <a href="#" class="sidebar-dropdown-toggle">
                         <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
                         <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>

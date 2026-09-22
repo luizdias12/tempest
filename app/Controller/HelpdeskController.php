@@ -137,14 +137,21 @@ class HelpdeskController extends BaseController
 
             $data = [];
 
+            $statusAtual = HelpdeskService::obterStatus($id);
+
             $statusValue = $request->post('status');
 
             $respValue = $request->post('id_resp');
+
             if ($respValue !== null) {
                 if ($respValue === '' && $statusValue !== 'A') {
                     $respValue = AuthService::getUserCpf() ?? '';
                 }
                 $data['id_resp'] = $respValue;
+            }
+
+            if ($respValue !== null && $statusAtual === 'A') {
+                $statusValue = 'E';
             }
 
             $cpfAb = trim((string) $request->post('cpf_ab', ''));
@@ -160,7 +167,6 @@ class HelpdeskController extends BaseController
             }
 
             $motivo = trim((string) $request->post('motivo', ''));
-            $statusAtual = HelpdeskService::obterStatus($id);
             $cancelando = $statusValue === 'C' && $statusAtual !== 'C';
 
             if ($cancelando && ($motivo === '' || !ctype_digit($motivo))) {

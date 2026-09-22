@@ -69,7 +69,7 @@ class ChatService
                 'tipo' => $r['tipo'],
                 'titulo' => $titulo,
                 'subtitulo' => $sub,
-                'ultima_msg' => (string) ($r['ultima_msg'] ?? ''),
+                'ultima_msg' => (string) CryptoService::descriptografar($r['ultima_msg'] ?? ''),
                 'ultima_em' => $r['ultima_em'] ?? null,
                 'nao_lidas' => (int) ($r['nao_lidas'] ?? 0),
                 'participantes' => $pessoas,
@@ -87,7 +87,14 @@ class ChatService
             throw new \RuntimeException('Conversa não encontrada.', 404);
         }
 
-        return ChatModel::mensagens((int) $conversaId, max(0, $apos), 100, $cpf);
+        $rows = ChatModel::mensagens((int) $conversaId, max(0, $apos), 100, $cpf);
+
+        foreach ($rows as &$m) {
+            $m['texto'] = CryptoService::descriptografar((string) ($m['texto'] ?? ''));
+        }
+        unset($m);
+
+        return $rows;
     }
 
     public static function enviar(int $conversaId, string $cpf, string $texto, string $tipo = 'texto', ?string $anexo = null, ?string $anexoNome = null): array
@@ -117,7 +124,7 @@ class ChatService
             $texto = mb_substr($texto, 0, 2000);
         }
 
-        $id = ChatModel::enviar((int) $conversaId, $cpf, $texto, $tipo, $anexo !== null ? (string) $anexo : null, $anexoNome);
+        $id = ChatModel::enviar((int) $conversaId, $cpf, CryptoService::criptografar($texto), $tipo, $anexo !== null ? (string) $anexo : null, $anexoNome);
 
         if ($id === null) {
             throw new \RuntimeException('Não foi possível gravar a mensagem.', 500);
@@ -135,7 +142,7 @@ class ChatService
             ChatModel::reativarParticipantes((int) $conversaId);
         }
 
-        return $msg;
+        return self::descriptografaMensagem($msg);
     }
 
     public static function enviarAnexo(int $conversaId, string $cpf, array $file, string $texto = ''): array
@@ -203,7 +210,7 @@ class ChatService
             $texto = mb_substr($texto, 0, 2000);
         }
 
-        if (!ChatModel::editar($mensagemId, $cpf, $texto)) {
+        if (!ChatModel::editar($mensagemId, $cpf, CryptoService::criptografar($texto))) {
             throw new \RuntimeException('Não foi possível editar a mensagem.', 500);
         }
 
@@ -216,7 +223,7 @@ class ChatService
             'editado_em' => $nova['editado_em'],
         ]);
 
-        return $nova;
+        return self::descriptografaMensagem($nova);
     }
 
     public static function excluir(int $conversaId, int $mensagemId, string $cpf): array
@@ -398,6 +405,17 @@ class ChatService
 
         foreach ($rows as &$r) {
             $r['dados'] = json_decode((string) ($r['dados'] ?? '{}'), true) ?: [];
+
+            if (($r['evento'] ?? '') === 'novidade') {
+                foreach (($r['dados']['mensagens'] ?? []) as &$m) {
+                    $m['texto'] = CryptoService::descriptografar((string) ($m['texto'] ?? ''));
+                }
+                unset($m);
+            }
+
+            if (($r['evento'] ?? '') === 'edicao' && isset($r['dados']['texto'])) {
+                $r['dados']['texto'] = CryptoService::descriptografar((string) $r['dados']['texto']);
+            }
         }
         unset($r);
 
@@ -472,7 +490,7 @@ class ChatService
                 'conversa_id' => (int) $ultima['conversa_id'],
                 'titulo' => $titulo,
                 'remetente' => $ultima['remetente_nome'] ?? 'Funcionário',
-                'texto' => self::resumoTexto((string) ($ultima['texto'] ?? ''), (string) ($ultima['tipo'] ?? 'texto')),
+                'texto' => self::resumoTexto((string) CryptoService::descriptografar($ultima['texto'] ?? ''), (string) ($ultima['tipo'] ?? 'texto')),
                 'tipo' => $ultima['tipo'] ?? 'texto',
                 'criado_em' => $ultima['criado_em'] ?? null,
             ],
@@ -536,6 +554,13 @@ class ChatService
         }
 
         return $msg;
+    }
+
+    private static function descriptografaMensagem(array $m): array
+    {
+        $m['texto'] = CryptoService::descriptografar((string) ($m['texto'] ?? ''));
+
+        return $m;
     }
 
     private static function montaIdentificacao(array $conversa, array $pessoas, string $cpf): array
