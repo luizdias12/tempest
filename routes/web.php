@@ -15,7 +15,9 @@ use App\Controller\HomeController;
 use App\Controller\LogController;
 use App\Controller\OnlineController;
 use App\Controller\RegionalController;
+use App\Controller\ComercialController;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ComercialRoleMiddleware;
 use App\Middleware\GestaoRoleMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Middleware\RHMiddleware;
@@ -23,6 +25,7 @@ use App\Middleware\RHMiddleware;
 //Middlewares
 $router->aliasMiddleware('auth', AuthMiddleware::class);
 $router->aliasMiddleware('gestaoRole', GestaoRoleMiddleware::class);
+$router->aliasMiddleware('comercialRole', ComercialRoleMiddleware::class);
 $router->aliasMiddleware('role', RoleMiddleware::class);
 $router->aliasMiddleware('rh', RHMiddleware::class);
 
@@ -55,7 +58,17 @@ $router->get('/funcionarios/aniversariantes', [FuncionarioController::class, 'an
 $router->group('/ti', function ($router) {
     $router->get('/sessao', [FuncionarioController::class, 'sessaoView']);
     $router->get('/teste', [FuncionarioController::class, 'testeView']);
-}, ['auth', 'role']);
+}, ['auth']);
+
+//ComercialController (publico)
+$router->get('/comercial', [ComercialController::class, 'indexView']);
+
+//ComercialController (gestão da escala de plantões)
+$router->group('/comercial', function ($router) {
+    $router->get('/gestao', [ComercialController::class, 'gestaoView'], ['comercialRole']);
+    $router->post('/salvar', [ComercialController::class, 'salvar'], ['comercialRole']);
+    $router->post('/excluir', [ComercialController::class, 'excluir'], ['comercialRole']);
+}, ['auth']);
 
 $router->group('/financ', function ($router) {
     $router->get('/holerite', [FinancController::class, 'holeriteView']);

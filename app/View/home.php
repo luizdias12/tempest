@@ -1,4 +1,30 @@
-<h2><?= $data ?></h2>
+<?php
+
+use App\Service\AuthService;
+?>
+<?php if (!empty($msgDia)): ?>
+    <div class="modal" id="modal-mensagem-dia" style="display:flex">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Mensagem do dia</h2>
+                <span class="close" data-close>&times;</span>
+            </div>
+            <div class="modal-body">
+                <p><?= nl2br(htmlspecialchars($msgDia)) ?></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="close btn-novo" data-close>Entendi</button>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+<?php if (AuthService::canManageCarousel()): ?>
+    <div class="header-bar">
+            <a href="/carousel/gestao" class="btn-novo"><i class="fa-solid fa-gear"></i> Gestão</a>
+    </div>
+<?php endif; ?>
+
+<h2><?= $usuario ?></h2>
 
 <?php if (!empty($slides)): ?>
     <div class="carousel" id="homeCarousel">

@@ -110,7 +110,7 @@ class HelpdeskController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -140,7 +140,6 @@ class HelpdeskController extends BaseController
             $statusAtual = HelpdeskService::obterStatus($id);
 
             $statusValue = $request->post('status');
-
             $respValue = $request->post('id_resp');
 
             if ($respValue !== null) {
@@ -150,7 +149,7 @@ class HelpdeskController extends BaseController
                 $data['id_resp'] = $respValue;
             }
 
-            if ($respValue !== null && $statusAtual === 'A') {
+            if ($respValue !== null && $statusAtual === 'A' && $statusValue !== 'C') {
                 $statusValue = 'E';
             }
 

@@ -203,7 +203,7 @@ class FuncionarioModel extends DB
                 's.descricao as secao',
                 'f.codfuncao',
                 'fu.nome as funcaorm',
-                'initcap(pai.funcaopai) as funcao'
+                'VIL_AJUSTANOME(pai.funcaopai) as funcao'
             )
             ->join('pfunc f', 'f.codpessoa', '=', 'p.codigo')
             ->leftJoin('pfuncao fu', 'f.codfuncao', '=', 'fu.codigo')
@@ -396,14 +396,14 @@ class FuncionarioModel extends DB
 
     public static function admissoes(): array
     {
-        $query = QueryBuilder::table('pesocialeventos e')
-        ->select('count(f.chapa) as pendentes', 'f.dataadmissao', "TO_CHAR(max(e.dataevento), 'YYYY-MM-DD HH24:MI:SS') as dataevento")
+        return QueryBuilder::table('pesocialeventos e')
+        ->select('count(f.chapa) as pendentes', 'f.dataadmissao', "TO_CHAR(max(e.dataevento),
+        'YYYY-MM-DD HH24:MI:SS') as dataevento")
         ->join('pfunc f', 'f.chapa', '=', 'e.chapa')
         ->where('e.tipoevento', 'S-2200')
         ->whereIn('e.status', [0,1,2,6,9])
         ->groupBy('f.dataadmissao')
         ->get();
-        return $query;
     }
 
     public static function listAllFuncs(): array
@@ -430,5 +430,44 @@ class FuncionarioModel extends DB
             ->whereNotNull('p.cpf')
             ->orderBy('f.nome', 'ASC')
             ->get();
+    }
+
+    public static function listaCompradores(): array|null
+    {
+        return QueryBuilder::table('pfunc f')
+        ->select('f.chapa', 'p.cpf', 'VIL_AJUSTANOME(f.nome) as nome', 'g.vilnomefilial as filial',
+        'f.codfuncao', 'fu.nome as funcao','s.descricao as secao')
+        ->join('ppessoa p', 'p.codigo', '=', 'f.codpessoa')
+        ->join('psecao s', 's.codigo', '=', 'f.codsecao')
+        ->join('gfilial g', 'g.codfilial', '=', 'f.codfilial')
+        ->join('pfuncao fu', 'fu.codigo', '=', 'f.codfuncao')
+        ->whereNotIn('f.codsituacao', ['I','L','Q','D'])
+        ->whereNotIn('f.codfuncao', ['256','926'])
+        ->where('s.descricao', 'COMERCIAL')
+        ->orderBy('g.vilnomefilial', 'ASC')
+        ->orderBy('f.nome', 'ASC')
+        ->get();
+    }
+
+    public static function feriasComercial(): array|null
+    {
+        return DB::select("SELECT 
+        f.chapa, f.nome, g.vilnomefilial as filial, f.codfuncao, fu.nome as funcao, s.descricao as secao,
+        fp.datainicio, fp.datafim
+        from pfunc f
+        inner join psecao s on s.codigo = f.codsecao
+        inner join gfilial g on g.codfilial = f.codfilial
+        inner join pfuncao fu on fu.codigo = f.codfuncao
+        inner join pfuferiasper fp on fp.chapa = f.chapa
+        where f.codsituacao not in ('I','L','Q','D')
+        and s.descricao = 'COMERCIAL'
+        and f.codfuncao not in ('256','926')
+        and (
+        TO_CHAR(fp.datainicio, 'MM-YYYY') = (select LPAD(extract(MONTH FROM SYSDATE),2,'0')||'-'||extract(YEAR FROM SYSDATE) as MES FROM DUAL)
+        or
+        TO_CHAR(fp.datafim, 'MM-YYYY') = (select LPAD(extract(MONTH FROM SYSDATE),2,'0')||'-'||extract(YEAR FROM SYSDATE) as MES FROM DUAL)
+        )
+        and (trunc(sysdate) > fp.datainicio and trunc(sysdate) < fp.datafim)
+        order by g.vilnomefilial, f.nome");
     }
 }

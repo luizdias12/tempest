@@ -11,10 +11,14 @@ class HomeController
     {
         $user = AuthService::getUserName();
 
+        $msgDia = $_SESSION['msg_dia'] ?? null;
+        unset($_SESSION['msg_dia']);
+
         view('home', [
             'title' => 'Home',
-            'data' => 'Olá, ' . htmlspecialchars(initcap($user ?? 'Visitante')),
+            'usuario' => 'Olá, ' . htmlspecialchars(initcap($user ?? 'Visitante')),
             'slides' => CarouselService::slidesAtivos(),
+            'msgDia' => $msgDia,
         ]);
     }
 }

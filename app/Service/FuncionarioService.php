@@ -103,4 +103,14 @@ class FuncionarioService
         return FuncaoModel::listAllFuncoes();
     }
 
+    public static function listaCompradores(): array|null
+    {
+        return FuncionarioModel::listaCompradores();
+    }
+
+    public static function feriasComercial(): array|null
+    {
+        return FuncionarioModel::feriasComercial();
+    }
+
 }

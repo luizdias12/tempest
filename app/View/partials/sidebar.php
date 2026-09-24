@@ -31,7 +31,8 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
         <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
         <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
         <a href="/chat"><i class="fa-solid fa-comments"></i> Chat (Em Teste)<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
-        <a href="/regional/index"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
+        <a href="/regional"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
+        <a href="/comercial"><i class="fa-solid fa-calendar-days"></i> Escala Comercial</a>
 
         <?php if ($user): ?>
             <div class="sidebar-area-protegida">
@@ -85,17 +86,15 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         <?php endif; ?>
                     </div>
                 <!-- Configuraçoes -->
-                <div <?php if (!$isSuporte || !AuthService::canManageCarousel()): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
+                <div <?php if (!AuthService::canManageCarousel()): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
                     <a href="#" class="sidebar-dropdown-toggle">
                         <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
                         <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                     </a>
                     <!-- Gestao do Caroussel do Home -->
-                    <?php if (AuthService::canManageCarousel() || AuthService::isAdmin() === 'S'): ?>
-                        <div class="sidebar-dropdown-menu">
-                            <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
-                        </div>
-                    <?php endif; ?>
+                    <div class="sidebar-dropdown-menu">
+                        <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
+                    </div>
                 </div>
                 <?php endif; ?>
             </div>

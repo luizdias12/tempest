@@ -77,7 +77,7 @@ class FuncionarioController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
             
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -92,7 +92,7 @@ class FuncionarioController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
             
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -107,7 +107,7 @@ public function testeView(Request $request): void
         } catch (Throwable $e) {
             Logger::exception($e);
             
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -134,7 +134,7 @@ public function testeView(Request $request): void
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -157,7 +157,7 @@ public function testeView(Request $request): void
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -209,7 +209,7 @@ public function testeView(Request $request): void
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -225,7 +225,7 @@ public function testeView(Request $request): void
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 

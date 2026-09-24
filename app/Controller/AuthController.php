@@ -12,6 +12,7 @@ use App\Service\AuthService;
 use App\Service\FuncionarioService;
 use App\Service\GenericService;
 use App\Service\LogService;
+use App\Service\MessageService;
 use App\Service\OnlineService;
 use App\Service\UsuarioService;
 
@@ -62,6 +63,8 @@ class AuthController extends BaseController
             $ip = $_SERVER['REMOTE_ADDR'] ?? '';
             OnlineService::registrarLogin((string) ($user['cpf'] ?? ''), session_id(), $ip, localPorIp($ip));
 
+            $this->mensagemDoDia($username);
+
             redirect('/');
         } else {
 
@@ -84,6 +87,30 @@ class AuthController extends BaseController
 
             redirect('/login');
         }
+    }
+
+    private function mensagemDoDia(string $username): void
+    {
+        $hoje = date('Y-m-d');
+        $cookie = 'msg_vista_' . md5($username);
+
+        if (($_COOKIE[$cookie] ?? '') === $hoje) {
+            return;
+        }
+
+        $msg = MessageService::aleatoria();
+
+        if ($msg === null) {
+            return;
+        }
+
+        $_SESSION['msg_dia'] = $msg['mensagem'];
+        setcookie($cookie, $hoje, [
+            'expires' => strtotime('tomorrow') - 1,
+            'path' => '/',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
     }
 
     public function cadastroView(Request $request): void

@@ -119,7 +119,8 @@ class Router
             ErrorHandler::handle(
                 500,
                 'Erro interno do servidor',
-                str_starts_with($path ?? '', '/api')
+                str_starts_with($path ?? '', '/api'),
+                $e
             );
         }
     }

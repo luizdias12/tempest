@@ -35,7 +35,7 @@ class OnlineController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 

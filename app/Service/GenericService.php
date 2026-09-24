@@ -40,4 +40,9 @@ class GenericService
     {
         return GenericModel::buscaFuncPorCpf($cpf);
     }
+
+    public static function escalaComercial(string $mesRef): array|null
+    {
+        return GenericModel::escalaComercial($mesRef);
+    }
 }

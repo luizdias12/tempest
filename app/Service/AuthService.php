@@ -465,4 +465,12 @@ class AuthService
             || self::hasPermission('lideres rh')
             || self::getUserCpf() == '11820308669';
     }
+
+    public static function canManageComercial(): bool
+    {
+        return self::hasPermission('ti')
+            || self::getUserCpf() == '14224326612';
+    }
 }
+
+

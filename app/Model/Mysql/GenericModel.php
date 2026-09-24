@@ -68,4 +68,16 @@ class GenericModel
         ->first();
         return $func ?? [];
     }
+
+    public static function escalaComercial(string $mesRef): array|null
+    {
+        $escala = DB::select("SELECT
+            e.id, e.mesref, e.comprador, f.nome, e.data, IFNULL(e.feriado, 'Sabado') as referencia
+        from escalacom e
+        inner join func f on f.cpf = e.comprador
+        where e.mesref = :mesref",
+        ['mesref' => $mesRef], 'mysql');
+        return $escala;
+    }
 }
+

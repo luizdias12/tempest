@@ -43,7 +43,7 @@ class LogController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -88,7 +88,7 @@ class LogController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 }

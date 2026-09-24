@@ -5,11 +5,11 @@ namespace App\Middleware;
 use App\Core\ErrorHandler;
 use App\Service\AuthService;
 
-class RHMiddleware
+class ComercialRoleMiddleware
 {
     public function handle(): bool
     {
-        if (!AuthService::canManageCarousel()) {
+        if (!AuthService::canManageComercial()) {
             ErrorHandler::handle(403, 'Acesso não permitido!', false);
             return false;
         }

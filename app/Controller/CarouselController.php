@@ -25,18 +25,13 @@ class CarouselController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
     public function salvar(Request $request): void
     {
         try {
-            if (!AuthService::hasPermission('ti')) {
-                AlertManager::add('error', 'Acesso não permitido.');
-                redirect('/carousel/gestao');
-                return;
-            }
 
             $mensagem = CarouselService::salvarNovo(
                 $request->file('slideArquivo') ?? [],
@@ -90,17 +85,6 @@ class CarouselController extends BaseController
     private function acaoGestao(Request $request, callable $acao, string $acaoNome, bool $json = false): void
     {
         try {
-            if (!AuthService::hasPermission('ti')) {
-                if ($json) {
-                    Response::json(['success' => false, 'message' => 'Acesso não permitido.'], 403);
-                    return;
-                }
-
-                AlertManager::add('error', 'Acesso não permitido.');
-                redirect('/carousel/gestao');
-                return;
-            }
-
             $mensagem = $acao();
 
             $this->logAcao($request, $acaoNome, $mensagem, $request->post());

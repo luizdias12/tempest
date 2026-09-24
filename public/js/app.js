@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var indicators = carousel.querySelectorAll('.carousel-indicator');
         var current = 0;
         var intervalId = null;
-        var INTERVAL = 150000;
+        var INTERVAL = 30000;
         var PAUSED = false;
 
         function goToSlide(index) {

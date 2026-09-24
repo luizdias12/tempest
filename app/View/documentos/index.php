@@ -1,8 +1,8 @@
-<div class="header-bar">
-    <?php if (!empty($isGestao)): ?>
+<?php if (!empty($isGestao)): ?>
+    <div class="header-bar">
         <a href="/documentos/gestao" class="btn-novo"><i class="fa-solid fa-gear"></i> Gestão</a>
-    <?php endif; ?>
-</div>
+    </div>
+<?php endif; ?>
 
 <div class="doc-tree">
     <?php if (empty($arvore)): ?>

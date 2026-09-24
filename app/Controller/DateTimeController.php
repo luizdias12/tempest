@@ -30,6 +30,12 @@ class DateTimeController extends BaseController
                 'datetime' => $date->format('Y-m-d H:i:s'),
                 'br_date' => $date->format('d/m/Y'),
                 'br_datetime' => $date->format('d/m/Y H:i:s'),
+                'day_lead_zero' => $date->format('d'),
+                'day' => $date->format('j'),
+                'month_lead_zero' => $date->format('m'),
+                'month' => $date->format('n'),
+                'year_simple' => $date->format('y'),
+                'year_full' => $date->format('Y'),
             ]
         ]);
     }

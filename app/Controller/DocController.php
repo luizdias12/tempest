@@ -30,7 +30,7 @@ class DocController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
@@ -88,15 +88,33 @@ class DocController extends BaseController
 
     private function streamArquivo(array $arquivo): void
     {
+        $caminho = $arquivo['caminho_absoluto'];
+        $tamanho = @filesize($caminho);
+
+        if ($tamanho === false || $tamanho <= 0 || !is_readable($caminho)) {
+            throw new \RuntimeException('Arquivo inacessível no servidor.');
+        }
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
         header('Content-Type: ' . DocService::mimeTipo($arquivo['tipo']));
-        header('Content-Length: ' . $arquivo['tamanho']);
+        header('Content-Length: ' . $tamanho);
+        header('X-Content-Type-Options: nosniff');
         header(
             "Content-Disposition: " . ($arquivo['inline'] ? 'inline' : 'attachment')
                 . '; filename="' . rawurlencode($arquivo['basename'])
                 . '"; filename*=UTF-8\'\'' . rawurlencode($arquivo['basename'])
         );
 
-        readfile($arquivo['caminho_absoluto']);
+        $enviados = readfile($caminho);
+
+        if ($enviados === false || $enviados < $tamanho) {
+            throw new \RuntimeException('Falha ao transmitir o arquivo.');
+        }
+
+        exit;
     }
 
     public function gestaoView(Request $request): void
@@ -128,7 +146,7 @@ class DocController extends BaseController
         } catch (Throwable $e) {
             Logger::exception($e);
 
-            ErrorHandler::handle(500, $e->getMessage());
+            ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 

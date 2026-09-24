@@ -66,8 +66,32 @@ h1, h2, h3 {
     text-align: center;
 }
 
+.container-wrapper {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(0.88rem);
+    -webkit-backdrop-filter: blur(0.88rem);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    text-align: center; 
+}
 
+.w-primary {
+    color: #4fc3f7;
+}
 
+.w-alternative {
+    color: #e74c3c
+}
+
+@media only screen and (min-width: 1367px) {
+
+    .two-grids-table {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+}
 .container {
     min-height: calc(100vh - 18rem); /* altura da tela - header/footer */
     display: flex;
