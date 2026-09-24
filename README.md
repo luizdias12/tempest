@@ -68,19 +68,19 @@ Infraestrutura do sistema:
 ```bash
 app/
 ├── Controller/       # Controllers web + API
-├── Core/             # Infraestrutura (DB, Router, Request, Response, Logger...)
-├── Middleware/       # Auth, Role, CORS, API
+├── Core/             # Infraestrutura (DB, Router, QueryBuilder, Auth/JWT, Logger...)
+├── Middleware/       # Auth, Role, RH, Gestão, Comercial, CORS, API
 ├── Model/            # Mysql / Oracle (RM) / Consinco
+├── Query/            # Query Layer (em andamento)
 ├── Service/          # Regras de negócio
+├── Validator/        # Validação de dados
 ├── View/             # Templates (por módulo + partials + components)
-├── Facades/
-├── DTO/
 routes/
 ├── api.php           # Rotas da API
 ├── web.php           # Rotas web
 public/
 ├── index.php         # Front controller
-├── css/ js/ assets/  # Estilos, scripts e arquivos públicos
+├── assets/ css/ js/  # Estilos, scripts e arquivos públicos
 resources/
 ├── functions/        # Helpers globais (view, asset, initcap, pagination...)
 ```
@@ -89,12 +89,13 @@ resources/
 
 ## ⚙️ Stack Utilizada
 
-* 🐘 PHP 8+ (PDO)
+* 🐘 PHP 8.2 (PDO + pdo_oci)
 * 🛢️ MySQL — dados operacionais
 * 🛢️ Oracle RM (TOTVS) — RH, financeiro e funções
 * 🛢️ Oracle Consinco — funções pai
-* 🔐 LDAP / Active Directory — autenticação
-* 📦 Composer: `vlucas/phpdotenv`, `phpoffice/phpspreadsheet`, `phpmailer/phpmailer`
+* 🔐 LDAP / Active Directory — autenticação (web)
+* 🔑 JWT — autenticação de API (implementação própria)
+* 📦 Composer: `vlucas/phpdotenv`, `phpoffice/phpspreadsheet`, `phpmailer/phpmailer`, `guzzlehttp/guzzle`
 * 🌐 JavaScript Vanilla + HTML + CSS (tema dark, sem frameworks de frontend)
 
 ---
@@ -102,13 +103,18 @@ resources/
 ## 🧩 Módulos
 
 * 🏠 **Home** — carousel de banners/vídeos gerenciável pela tabela `carousel` (imagens em `public/assets/caroussel/`)
-* 🖥️ **Helpdesk** — abertura de chamados, histórico com anexos, filtros (por Nº, nome, status, local, "atribuídos a mim"), SLA, cancelamento com motivo, notificações por e-mail e visualização de anexos
+* 🖥️ **Helpdesk** — abertura de chamados, histórico com anexos, filtros (por Nº, nome, status, local, "atribuídos a mim"), SLA, cancelamento com motivo, notificações por e-mail, importação automática de e-mails e visualização de anexos
 * 📄 **Documentos** — árvore de diretórios/subpastas, versões de documentos, permissões por função, download inline e gestão administrativa
 * 💰 **Financeiro** — holerite com totais e impressão em PDF (dados do RM)
-* 👥 **Funcionários** — listagem com filtros e aniversariantes do mês em cards por dia (dados do RM)
+* 👥 **Funcionários** — listagem com filtros, admissões e aniversariantes do mês em cards por dia (dados do RM)
 * 🛠️ **TI** — lista de funcionários da TI com exportação Excel (PhpSpreadsheet)
 * 📶 **Usuários Online** — presença em tempo real via heartbeat (tabela `online`) com força de deslogamento
 * 📜 **Logs** — auditoria centralizada das ações no sistema (`log_user`)
+* 💬 **Chat** — mensagens em tempo real (stream), conversas, reações, "digitando", anexos e notificações (tabelas em `database/chat.sql`)
+* 🗺️ **Regional** — estrutura de regional/filial/gerentes com gestão RH
+* 📅 **Comercial** — escala de plantões e sua gestão (role comercial)
+* 📞 **Contatos** — lista de contatos corporativos
+* 👤 **Perfil** — dados pessoais e troca de senha
 
 ---
 
@@ -126,7 +132,15 @@ resources/
 }
 ```
 
-Destaques: autenticação JWT, consulta de funcionários (por chapa/nome), totais de holerite e utilitários de data.
+Destaques: autenticação JWT (Bearer Token via `ApiMiddleware`) e os seguintes endpoints:
+
+* `POST /api/auth/login` — autenticação e emissão de JWT
+* `GET /api/auth/me` — dados do usuário autenticado
+* `GET /api/datetime/formats` — utilitários de data
+* `GET /api/funcionarios` — listagem
+* `GET /api/funcionarios/chapa/{chapa}` — consulta por chapa
+* `GET /api/funcionarios/nome/{nome}` — consulta por nome
+* `GET /api/financ/holerite/{chapa}/{mescomp}/{anocomp}/{periodo}` — totais de holerite
 
 ---
 
@@ -140,8 +154,12 @@ Destaques: autenticação JWT, consulta de funcionários (por chapa/nome), totai
 ## 🛠️ Funcionalidades
 
 * ✔ Autenticação LDAP com sessão
+* ✔ Autenticação JWT para API
 * ✔ CRUD e gestão administrativa de documentos com permissões por função
 * ✔ Carousel administrável (upload, ordem, ativar/inativar, excluir)
+* ✔ Chat em tempo real com anexos e reações
+* ✔ Gestão de regional/filial e escala comercial com roles
+* ✔ Importação automática de e-mails no helpdesk
 * ✔ Upload de anexos (validado por tipo e tamanho)
 * ✔ Paginação nativa
 * ✔ Notificação por e-mail (PHPMailer)
@@ -154,21 +172,21 @@ Destaques: autenticação JWT, consulta de funcionários (por chapa/nome), totai
 
 ## 🚀 Roadmap
 
-* [ ] Validator estilo Laravel
+* [x] Logger estruturado
+* [x] Validator
+* [x] Autenticação JWT para API
+* [ ] Cache
 * [ ] DTO completo
 * [ ] Query Layer (joins complexos)
-* [ ] Autenticação JWT para frontend mobile
-* [x] Logger estruturado
-* [x] Cache
 
 ---
 
 ## 🔧 Configuração
 
-1. `composer install`
-2. Copie `.env.example` → `.env` e preencha as conexões (LDAP, Oracle RM, Oracle Consinco, MySQL e e-mail)
+1. `composer install` (requer PHP 8.2)
+2. Copie `.env.example` → `.env` e preencha as conexões (LDAP, Oracle RM, Oracle Consinco, MySQL, e-mail e JWT)
 3. Aponte o servidor web para `public/`
-4. Crie a tabela `carousel` (id, filename, ord, dtinicio, dtfim, ativo) e registre os slides
+4. Crie as tabelas de carousel (`id`, `filename`, `ord`, `dtinicio`, `dtfim`, `ativo`) e as de chat a partir de `database/chat.sql`; as demais tabelas são criadas manualmente nos bancos legados
 
 ---
 
