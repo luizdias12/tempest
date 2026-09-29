@@ -31,6 +31,11 @@ class OnlineService
         return OnlineModel::situacaoSessao($sessionId, $cpf);
     }
 
+    public static function encerrarSeInativa(string $sessionId, string $cpf, int $limiteMin): bool
+    {
+        return OnlineModel::encerrarSeInativa($sessionId, $cpf, $limiteMin);
+    }
+
     public static function listarOnline(int $page = 1, int $limit = 20, ?string $busca = null, ?string $local = null): array
     {
         return OnlineModel::listarOnline($page, $limit, $busca, $local);

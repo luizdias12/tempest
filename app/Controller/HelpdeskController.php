@@ -60,7 +60,7 @@ class HelpdeskController extends BaseController
                     continue;
                 }
 
-                if (in_array($chamado['status'], ['R', 'C', 'EA', 'D'])) {
+                if (in_array($chamado['status'], ['R', 'C', 'EA', 'D', 'ST'])) {
                     continue;
                 }
 
@@ -149,7 +149,7 @@ class HelpdeskController extends BaseController
                 $data['id_resp'] = $respValue;
             }
 
-            if ($respValue !== null && $statusAtual === 'A' && $statusValue !== 'C') {
+            if ($respValue !== null && $respValue !== '' && $statusAtual === 'A' && !in_array($statusValue, ['R','C'], true)) {
                 $statusValue = 'E';
             }
 
@@ -597,25 +597,32 @@ class HelpdeskController extends BaseController
         }
     }
 
+    private static ?string $cpfCache = null;
+
     private function cpfUsuarioAtual(): string
     {
+        if (self::$cpfCache !== null) return self::$cpfCache;
+
         try {
             $user = AuthService::getUser();
 
             if (!empty($user['name'])) {
-                $func = FuncionarioService::findByNome($user['name']);
+                $func = FuncionarioService::findByNome(removeAccents($user['name']));
+
+                if (empty($func['cpf'])) {
+                    $func = GenericService::buscaFuncExterno(removeAccents($user['name']));
+                }
 
                 if (!empty($func['cpf'])) {
-                    return $func['cpf'];
-                } else {
-                    $func = GenericService::buscaFuncExterno($user['name']);
-                    return $func['cpf'];
+                    self::$cpfCache = (string) $func['cpf'];
+                    return self::$cpfCache;
                 }
             }
-
-            return $user['username'] ?? 'sistema';
         } catch (Throwable $e) {
-            return $_SESSION['auth']['username'] ?? 'sistema';
+            Logger::exception($e);
         }
+
+        self::$cpfCache = '';
+        return '';
     }
 }

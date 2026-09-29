@@ -144,7 +144,7 @@ class AuthController extends BaseController
         if (($request->post('usuario') ?? null) !== null && !empty($_SESSION['cadastro_cpf'])) {
             $cpf = (string) $_SESSION['cadastro_cpf'];
             $usuario = trim((string) $request->post('usuario', ''));
-            $email = trim((string) $request->post('email', ''));
+            $email = sanitizarEmail((string) $request->post('email', ''));
             $ramal = trim((string) $request->post('ramal', ''));
             $corporativo = trim((string) $request->post('corporativo', ''));
             $idSetor = max(0, (int) $request->post('id_setor', 0));
@@ -194,6 +194,16 @@ class AuthController extends BaseController
                 return;
             }
 
+            $foto = null;
+
+            try {
+                $foto = UsuarioService::salvarFoto($request->file('foto') ?? []);
+            } catch (\RuntimeException $e) {
+                AlertManager::add('error', $e->getMessage());
+                redirect('/login/cadastro');
+                return;
+            }
+
             if (UsuarioService::criarConta(
                 $cpf,
                 $usuario,
@@ -202,13 +212,18 @@ class AuthController extends BaseController
                 (int) ($_SESSION['cadastro_filial'] ?? 0),
                 $ramal,
                 $corporativo,
-                $idSetor
+                $idSetor,
+                $foto
             )) {
                 unset($_SESSION['cadastro_cpf'], $_SESSION['cadastro_nome'], $_SESSION['cadastro_filial']);
 
                 AlertManager::add('success', 'Cadastro realizado com sucesso. Faça login.');
                 redirect('/login');
                 return;
+            }
+
+            if ($foto !== null) {
+                @unlink(basePath('public/assets/fotos/' . $foto));
             }
 
             AlertManager::add('error', 'Não foi possível realizar o cadastro.');
@@ -229,12 +244,6 @@ class AuthController extends BaseController
             redirect('/login');
             return;
         }
-
-        // if (UsuarioService::existe($cpf)) {
-        //     AlertManager::add('error', 'Este CPF já possui acesso à Intranet.');
-        //     redirect('/login');
-        //     return;
-        // }
 
         $funcionario = FuncionarioService::findByCpfDados($cpf);
 
@@ -370,9 +379,24 @@ class AuthController extends BaseController
             return;
         }
 
-        $email = trim((string) $request->post('email', ''));
+        $email = sanitizarEmail((string) $request->post('email', ''));
         $ramal = trim((string) $request->post('ramal', ''));
+        $corporativo = trim((string) $request->post('corporativo', ''));
         $idSetor = max(0, (int) $request->post('id_setor', 0));
+
+        $arquivoFoto = $request->file('foto');
+
+        if (!empty($arquivoFoto['name'])) {
+            try {
+                if (UsuarioService::trocarFoto($cpf, $arquivoFoto)) {
+                    AlertManager::add('success', 'Foto atualizada.');
+                } else {
+                    AlertManager::add('error', 'Não foi possível atualizar a foto.');
+                }
+            } catch (\RuntimeException $e) {
+                AlertManager::add('error', $e->getMessage());
+            }
+        }
 
         if ($email !== '' && !str_ends_with(mb_strtolower($email), '@villefort.com.br')) {
             AlertManager::add('error', 'Informe um e-mail corporativo válido (@villefort.com.br).');
@@ -380,7 +404,7 @@ class AuthController extends BaseController
             return;
         }
 
-        if (UsuarioService::atualizarPerfil($cpf, $email, $ramal, $idSetor)) {
+        if (UsuarioService::atualizarPerfil($cpf, $email, $ramal, $corporativo, $idSetor)) {
             AlertManager::add('success', 'Perfil atualizado com sucesso.');
         } else {
             AlertManager::add('error', 'Não foi possível atualizar o perfil.');

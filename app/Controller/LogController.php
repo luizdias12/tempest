@@ -29,7 +29,7 @@ class LogController extends BaseController
 
             $result = LogService::index($page, $limit, $nivel, $tipo, $modulo, $busca, $data, $ip);
 
-            view('logs/index', [
+            view('logger/index', [
                 'logs' => $result['data'],
                 'meta' => $result['meta'],
                 'nivel' => $nivel,

@@ -17,6 +17,14 @@ $cpfMasc = maskCpf($perfil['cpf'] ?? '');
             <i class="fa-solid fa-user"></i>
             <span>Dados de acesso</span>
         </div>
+        <?php $foto = $perfil['foto'] ?? ''; ?>
+        <div class="perfil-foto">
+            <?php if ($foto !== ''): ?>
+                <img src="<?= asset('assets/fotos/' . rawurlencode($foto)) ?>" alt="Foto de <?= htmlspecialchars($nome) ?>">
+            <?php else: ?>
+                <i class="fa-solid fa-circle-user"></i>
+            <?php endif; ?>
+        </div>
         <dl class="perfil-list">
             <div class="perfil-list-item">
                 <dt>Nome</dt>
@@ -33,6 +41,10 @@ $cpfMasc = maskCpf($perfil['cpf'] ?? '');
             <div class="perfil-list-item">
                 <dt>Ramal</dt>
                 <dd><?= htmlspecialchars($perfil['ramal'] ?? '-') ?></dd>
+            </div>
+            <div class="perfil-list-item">
+                <dt>Corporativo</dt>
+                <dd><?= htmlspecialchars($perfil['corporativo'] ?? '-') ?></dd>
             </div>
             <div class="perfil-list-item">
                 <dt>Setor</dt>
@@ -52,12 +64,18 @@ $cpfMasc = maskCpf($perfil['cpf'] ?? '');
             <i class="fa-solid fa-pen-to-square"></i>
             <span>Editar dados</span>
         </div>
-        <form method="POST" action="/perfil" class="perfil-form">
+        <form method="POST" action="/perfil" class="perfil-form" enctype="multipart/form-data">
+            <label for="perfil-foto">Foto <span class="login-opcional">(opcional)</span></label>
+            <input type="file" id="perfil-foto" name="foto" accept="image/*">
+
             <label for="perfil-email">E-mail</label>
             <input type="email" id="perfil-email" name="email" value="<?= htmlspecialchars($perfil['email'] ?? '') ?>" placeholder="E-mail corporativo">
 
             <label for="perfil-ramal">Ramal</label>
             <input type="text" id="perfil-ramal" name="ramal" value="<?= htmlspecialchars($perfil['ramal'] ?? '') ?>" maxlength="5" placeholder="Ex.: 7300">
+
+            <label for="perfil-corporativo">Corporativo</label>
+            <input type="text" id="perfil-corporativo" name="corporativo" value="<?= htmlspecialchars($perfil['corporativo'] ?? '') ?>" maxlength="11" placeholder="Ex.: 31999999999">
 
             <label for="perfil-setor">Setor</label>
             <select name="id_setor" id="perfil-setor">

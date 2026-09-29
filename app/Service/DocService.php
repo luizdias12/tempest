@@ -152,6 +152,41 @@ class DocService
         ];
     }
 
+    public static function abrirVersaoAdmin(int $idDoc, int $idVersao): ?array
+    {
+        if ($idDoc <= 0 || $idVersao <= 0) {
+            return null;
+        }
+
+        $versao = DocModel::versaoArquivo($idDoc, $idVersao);
+
+        if ($versao === null) {
+            return null;
+        }
+
+        $caminho = self::caminhoAbsoluto($versao['caminho']);
+
+        if (!is_file($caminho)) {
+            return null;
+        }
+
+        $tipo = strtolower(pathinfo((string) $versao['caminho'], PATHINFO_EXTENSION));
+
+        if ($tipo === '' || !isset(self::MIMES[$tipo])) {
+            $tipo = strtolower((string) $versao['tipo']);
+        }
+
+        return [
+            'id_doc' => $idDoc,
+            'titulo' => $versao['titulo'],
+            'caminho_absoluto' => $caminho,
+            'basename' => basename($caminho),
+            'tipo' => $tipo,
+            'tamanho' => (int) $versao['tamanho'],
+            'inline' => in_array($tipo, self::INLINE_EXTENSIONS, true),
+        ];
+    }
+
     public static function processarUpload(array $file, int $idDir, int $idSubdir, bool $geral, array $funcoes = []): array
     {
         $arquivo = self::validarArquivo($file);
@@ -244,7 +279,7 @@ class DocService
             self::registrarPermissoes($idDoc, $funcoes);
         }
 
-        return ['mensagem' => "Documento {$titulo} cadastrado com sucesso."];
+        return ['mensagem' => "Documento {$idDoc} - {$titulo} cadastrado com sucesso"];
     }
 
     public static function processarNovaVersao(int $idDoc, array $file): array
@@ -394,7 +429,7 @@ class DocService
             throw new RuntimeException('Documento inválido.');
         }
 
-        return $geral ? 'Acesso geral ativado para o documento.' : 'Acesso geral desativado para o documento.';
+        return $geral ? 'Acesso geral ativado para o documento: ' . $idDoc : 'Acesso geral desativado para o documento: ' . $idDoc;
     }
 
     public static function copiarPermissoes(int $funcaoOrigem, int $funcaoDestino): string

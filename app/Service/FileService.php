@@ -6,7 +6,12 @@ use RuntimeException;
 
 class FileService
 {
-    public const MAX_SIZE = 5242880;
+    public const MAX_SIZE = 10485760;
+    /*
+    5 MB = 5242880
+    8 MB = 8388608
+    10 MB = 10485760
+    */
 
     private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'bmp', 'pdf', 'xls', 'xlsx', 'doc', 'docx'];
 
@@ -23,7 +28,7 @@ class FileService
         }
 
         if ((int) ($file['size'] ?? 0) > self::MAX_SIZE) {
-            throw new RuntimeException('Tamanho máximo do arquivo deve ser de 5 MB.');
+            throw new RuntimeException('Tamanho máximo do arquivo deve ser de 10 MB.');
         }
 
         $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
@@ -112,7 +117,7 @@ class FileService
         switch ($code) {
             case UPLOAD_ERR_INI_SIZE:
             case UPLOAD_ERR_FORM_SIZE:
-                return 'O arquivo excede o limite de 5 MB.';
+                return 'O arquivo excede o limite de 10 MB.';
             case UPLOAD_ERR_PARTIAL:
                 return 'O upload do arquivo foi feito parcialmente.';
             case UPLOAD_ERR_NO_FILE:

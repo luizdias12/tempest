@@ -4,6 +4,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebarToggle = document.getElementById('sidebarToggle');
     const headerToggleBtn = document.getElementById('headerToggleBtn');
 
+    // Rastreia atividade real do usuário para a expiração de sessão por inatividade
+    window.__atividadeUsuario = false;
+    ['pointerdown', 'keydown', 'touchstart'].forEach(function(tipo) {
+        document.addEventListener(tipo, function() {
+            window.__atividadeUsuario = true;
+        }, { passive: true });
+    });
+
     function toggleSidebar() {
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');

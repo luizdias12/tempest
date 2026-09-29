@@ -3,6 +3,13 @@
         <h1>Intranet</h1>
         <p>Faça login com suas credenciais de rede</p>
 
+        <?php if (!empty($error)): ?>
+            <div class="login-error" role="alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
+
         <form method="POST" action="/login" class="login-form">
             <label for="username">Usuário</label>
             <input type="text" id="username" name="username" placeholder="Seu usuário" required autofocus>

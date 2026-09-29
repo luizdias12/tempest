@@ -19,7 +19,7 @@ $etapa = $nomeEncontrado !== '' ? 2 : 1;
         <?php else: ?>
             <p>Olá, <strong><?= htmlspecialchars(initcap($nomeEncontrado)) ?></strong>! Defina seus dados de acesso:</p>
 
-            <form method="POST" action="/login/cadastro" class="login-form">
+            <form method="POST" action="/login/cadastro" class="login-form" enctype="multipart/form-data">
                 <input type="hidden" name="cpf" value="<?= htmlspecialchars($filtroCpf) ?>">
 
                 <label for="usuario">Usuário</label>
@@ -33,6 +33,9 @@ $etapa = $nomeEncontrado !== '' ? 2 : 1;
 
                 <label for="corporativo">Corporativo <span class="login-opcional">(opcional)</span></label>
                 <input type="text" id="corporativo" name="corporativo" placeholder="Somente números">
+
+                <label for="foto">Foto <span class="login-opcional">(opcional)</span></label>
+                <input type="file" id="foto" name="foto" accept="image/*">
 
                 <label for="id_setor">Setor</label>
                 <select name="id_setor" id="id_setor">

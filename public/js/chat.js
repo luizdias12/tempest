@@ -141,6 +141,9 @@
             item.setAttribute('data-id', c.id);
 
             item.innerHTML =
+                '<div class="chat-conv-avatar">' +
+                    (c.foto ? '<img src="/assets/fotos/' + encodeURIComponent(c.foto) + '" alt="' + esc(c.titulo) + '">' : '<i class="fa-solid fa-user"></i>') +
+                '</div>' +
                 '<div class="chat-conv-info">' +
                     '<span class="chat-conv-nome">' + esc(c.titulo) + '</span>' +
                     '<span class="chat-conv-preview">' + esc(c.ultima_msg || 'Sem mensagens') + '</span>' +
@@ -725,7 +728,9 @@
                 var item = document.createElement('div');
                 item.className = 'chat-contato';
                 item.innerHTML =
-                    '<div class="chat-contato-avatar"><i class="fa-solid fa-user"></i></div>' +
+                    '<div class="chat-contato-avatar">' +
+                        (c.foto ? '<img src="/assets/fotos/' + encodeURIComponent(c.foto) + '" alt="' + esc(c.nome) + '">' : '<i class="fa-solid fa-user"></i>') +
+                    '</div>' +
                     '<div class="chat-contato-info">' +
                         '<span class="chat-contato-nome">' + esc(c.nome) + '</span>' +
                         '<span class="chat-contato-meta">' + esc(meta) + '</span>' +

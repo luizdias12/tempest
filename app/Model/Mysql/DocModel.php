@@ -158,6 +158,23 @@ class DocModel
         ", ['id' => $idDoc], 'mysql');
     }
 
+    public static function versaoArquivo(int $idDoc, int $idVersao): ?array
+    {
+        return DB::first("
+            SELECT
+                doc.titulo,
+                doc.tipo,
+                v.versao,
+                v.caminho,
+                v.tamanho
+            FROM doc_versao v
+            JOIN doc_documento doc ON doc.id_doc = v.id_doc
+            WHERE v.id_doc = :doc
+              AND v.id = :versao
+              AND doc.ativo = 1
+        ", ['doc' => $idDoc, 'versao' => $idVersao], 'mysql');
+    }
+
     public static function temPermissao(int $idDoc, ?int $codfuncaoPai): bool
     {
         $row = DB::first("

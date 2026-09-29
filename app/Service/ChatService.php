@@ -34,7 +34,7 @@ class ChatService
         if ($ids) {
             $in = implode(',', array_fill(0, count($ids), '?'));
             $participantes = DB::select(
-                "SELECT p.conversa_id, p.cpf, p.apagado_em, f.nome, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor
+                "SELECT p.conversa_id, p.cpf, p.apagado_em, f.nome, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto
                  FROM chat_participantes p
                  LEFT JOIN func f ON f.cpf = p.cpf
                  LEFT JOIN filial fi ON fi.codgfilial = f.codfilial
@@ -53,6 +53,7 @@ class ChatService
                 'nome' => $p['nome'] ?? 'Sem nome',
                 'filial' => $p['filial'] ?? '',
                 'setor' => $p['setor'] ?? '',
+                'foto' => $p['foto'] ?? '',
                 'apagado' => !empty($p['apagado_em']),
             ];
         }
@@ -62,13 +63,14 @@ class ChatService
         foreach ($rows as $r) {
             $id = (int) $r['id'];
             $pessoas = $porConversa[$id] ?? [];
-            [$titulo, $sub] = self::montaIdentificacao($r, $pessoas, $cpf);
+            [$titulo, $sub, $foto] = self::montaIdentificacao($r, $pessoas, $cpf);
 
             $lista[] = [
                 'id' => $id,
                 'tipo' => $r['tipo'],
                 'titulo' => $titulo,
                 'subtitulo' => $sub,
+                'foto' => $foto,
                 'ultima_msg' => (string) CryptoService::descriptografar($r['ultima_msg'] ?? ''),
                 'ultima_em' => $r['ultima_em'] ?? null,
                 'nao_lidas' => (int) ($r['nao_lidas'] ?? 0),
@@ -573,6 +575,7 @@ class ChatService
             return [
                 $conversa['titulo'] ?: 'Grupo',
                 count($ativos) . ' participante' . (count($ativos) !== 1 ? 's' : ''),
+                '',
             ];
         }
 
@@ -586,12 +589,13 @@ class ChatService
         }
 
         if ($outro === null) {
-            $outro = ['cpf' => $cpf, 'nome' => 'Conversa direta', 'setor' => '', 'filial' => ''];
+            $outro = ['cpf' => $cpf, 'nome' => 'Conversa direta', 'setor' => '', 'filial' => '', 'foto' => ''];
         }
 
         return [
             $outro['nome'],
             implode(' · ', array_filter([$outro['setor'] ?? '', $outro['filial'] ?? ''])),
+            $outro['foto'] ?? '',
         ];
     }
 

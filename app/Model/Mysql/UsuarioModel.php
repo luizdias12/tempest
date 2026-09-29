@@ -53,6 +53,7 @@ class UsuarioModel
                 'usuarios.corporativo',
                 'usuarios.id_setor',
                 'usuarios.filial_cad',
+                'usuarios.foto',
                 'setor.setor'
             )
             ->where('usuarios.cpf', $cpf)
@@ -62,6 +63,21 @@ class UsuarioModel
     public static function atualizarPerfil(string $cpf, array $data): bool
     {
         return DB::update('usuarios', 'cpf', $cpf, $data, 'mysql');
+    }
+
+    public static function getFoto(string $cpf): ?string
+    {
+        $row = QueryBuilder::table('usuarios', 'mysql')
+            ->select('foto')
+            ->where('cpf', $cpf)
+            ->first();
+
+        return $row['foto'] ?? null;
+    }
+
+    public static function atualizarFoto(string $cpf, string $foto): bool
+    {
+        return DB::update('usuarios', 'cpf', $cpf, ['foto' => $foto], 'mysql');
     }
 
     public static function existeLogin(string $usuario): bool

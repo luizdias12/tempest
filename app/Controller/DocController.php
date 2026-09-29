@@ -86,6 +86,32 @@ class DocController extends BaseController
         }
     }
 
+    public function visualizarVersao(Request $request, int $idDoc, int $idVersao): void
+    {
+        try {
+            if ($idDoc <= 0 || $idVersao <= 0) {
+                AlertManager::add('error', 'Documento ou versão inválida.');
+                redirect('/documentos/gestao');
+                return;
+            }
+
+            $arquivo = DocService::abrirVersaoAdmin($idDoc, $idVersao);
+
+            if ($arquivo === null) {
+                AlertManager::add('warning', 'Arquivo da versão não encontrado.');
+                redirect('/documentos/gestao');
+                return;
+            }
+
+            $this->streamArquivo($arquivo);
+        } catch (Throwable $e) {
+            Logger::exception($e);
+
+            AlertManager::add('error', 'Erro ao abrir a versão do documento.');
+            redirect('/documentos/gestao');
+        }
+    }
+
     private function streamArquivo(array $arquivo): void
     {
         $caminho = $arquivo['caminho_absoluto'];

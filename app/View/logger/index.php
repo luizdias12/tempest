@@ -93,9 +93,9 @@
 
 <script>
 
-setInterval(function() {
-    if (document.hidden) return;
-    window.location.reload();
-}, 30000);
+// setInterval(function() {
+//     if (document.hidden) return;
+//     window.location.reload();
+// }, 30000);
 
 </script>

@@ -178,7 +178,7 @@ use App\Service\DocService;
             <input type="file" name="docArquivo" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.bmp,.jpg,.jpeg,.png,.mp4" required>
         </label>
         <label class="doc-upload-geral">
-            <input type="checkbox" name="geral" value="S" id="doc-upload-geral" checked>
+            <input type="checkbox" name="geral" value="S" id="doc-upload-geral">
             Permitido para todas as funções
         </label>
         <label id="doc-funcoes-label">
@@ -665,6 +665,9 @@ document.addEventListener('DOMContentLoaded', function() {
             lista.forEach(function(v) {
                 var atual = v.atual ? ' <span class="badge badge-pill badge-info">Atual</span>' : '';
                 var semArquivo = v.existe ? '' : ' <span class="badge badge-pill badge-error">Sem arquivo</span>';
+                var ver = v.existe ?
+                    '<a class="btn-doc btn-doc-ver" href="/documentos/versao/visualizar/' + idDoc + '/' + v.id + '" target="_blank">' +
+                    '<i class="fa-solid fa-eye"></i> Ver</a>' : '';
                 var restaurar = v.atual ? '' :
                     '<form method="POST" action="/documentos/versao" class="doc-form-inline">' +
                     '<input type="hidden" name="id_doc" value="' + idDoc + '">' +
@@ -682,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<span class="doc-file-versao">v' + v.versao + '</span>' +
                     '<span class="doc-file-tamanho">' + v.tamanho_texto + '</span>' +
                     '<span class="doc-file-tamanho">' + (v.dt_upload || '') + '</span>' +
-                    atual + semArquivo + restaurar + excluir +
+                    atual + semArquivo + ver + restaurar + excluir +
                     '</div>';
             });
 

@@ -62,6 +62,8 @@ class AuthService
 
             if ($entries['count'] > 0) {
                 $func = FuncionarioService::findByNome(removeAccents($entries[0]['cn'][0]));
+                $permissoes = self::extrairGrupos($entries[0] ?? []);
+
                 if (!$func) {
                     try {
                         $func = GenericService::buscaFuncExterno(removeAccents($entries[0]['cn'][0]));
@@ -89,8 +91,45 @@ class AuthService
                     }
                 }
 
-                $isAdmin = UsuarioService::getAdmin($func['cpf']);
-                $permissoes = self::extrairGrupos($entries[0] ?? []);
+                $existeUser = UsuarioService::existe($func['cpf']);
+
+                if (!$existeUser) {
+                    if (!UsuarioService::criarConta(
+                        $func['cpf'],
+                        $username,
+                        ($entries[0]['mail'][0] ?? ''),
+                        $password,
+                        $func['codfilial'],
+                        null,
+                        null,
+                        (in_array('ti', $permissoes, true) ? 17 : 10),
+                        null
+                    )) {
+                        LogService::store([
+                            'nivel' => 'ERROR',
+                            'tipo' => 'INSERT',
+                            'modulo' => 'loginLdap',
+                            'acao' => 'criar_usuario_automatico',
+                            'usuario_id' => $username ?? null,
+                            'chapa' => $func['chapa'] ?? null,
+                            'usuario_nome' => $func['nome'] ?? null,
+                            'metodo_http' => $_SERVER['REQUEST_METHOD'] ?? null,
+                            'rota' => $_SERVER['REQUEST_URI'] ?? null,
+                            'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+                            'mensagem' => "Falha ao cadastrar novo usuario de forma automatica",
+                            'contexto' => [
+                                'cpf' => $func['cpf'],
+                                'usuario' => $username,
+                                'email' => ($entries[0]['mail'][0] ?? ''),
+                                'codfilial' => $func['codfilial'],
+                                'id_setor' => (in_array('ti', $permissoes, true) ? 17 : 10),
+                            ]
+                        ]);
+                    }
+                }
+
+                $isAdmin = $existeUser ? UsuarioService::getAdmin($func['cpf']) : 'N';
 
                 $_SESSION['auth'] = [
                     'username' => $username,
@@ -104,7 +143,7 @@ class AuthService
                     'secao' => $func['secao'] ?? null,
                     'permissoes' => $permissoes,
                     'suporte' => in_array('ti', $permissoes, true),
-                    'admin' => $isAdmin ?? 'N',
+                    'admin' => $isAdmin,
                     'externo' => $externo,
                 ];
 
@@ -472,5 +511,3 @@ class AuthService
             || self::getUserCpf() == '14224326612';
     }
 }
-
-

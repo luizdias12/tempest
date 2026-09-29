@@ -478,7 +478,7 @@ class ChatModel
 
     public static function contatos(string $termo, string $cpfExcluir, int $limite = 20): array
     {
-        $sql = "SELECT f.cpf, f.nome, f.codfilial, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor
+        $sql = "SELECT f.cpf, f.nome, f.codfilial, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto
             FROM func f
             LEFT JOIN filial fi ON fi.codgfilial = f.codfilial
             LEFT JOIN usuarios u ON u.cpf = f.cpf

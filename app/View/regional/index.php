@@ -454,11 +454,6 @@ use App\Service\AuthService;
             title.textContent = reg.nome || '';
             headTitle.appendChild(title);
 
-            var countBadge = document.createElement('span');
-            countBadge.className = 'region-count';
-            countBadge.textContent = reg.lojas.length + ' loja' + (reg.lojas.length !== 1 ? 's' : '');
-            headTitle.appendChild(countBadge);
-
             head.appendChild(headTitle);
 
             var contato = document.createElement('div');
@@ -1133,9 +1128,7 @@ use App\Service\AuthService;
 
         function init() {
             consulta();
-            if (PERMITIDO_GESTAO) {
-                listaFilial();
-            }
+            listaFilial();
         }
 
         init();

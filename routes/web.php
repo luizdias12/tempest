@@ -11,6 +11,7 @@ use App\Controller\ErrorController;
 use App\Controller\FinancController;
 use App\Controller\FuncionarioController;
 use App\Controller\HelpdeskController;
+use App\Controller\SlaController;
 use App\Controller\HomeController;
 use App\Controller\LogController;
 use App\Controller\OnlineController;
@@ -101,12 +102,27 @@ $router->group('/helpdesk', function ($router) {
     $router->post('/importar-emails', [HelpdeskController::class, 'importarEmails'], ['role']);
 }, ['auth']);
 
+/*----------------------------------- GRUPO /sla (auth + gestaoRole) -----------------------------------*/
+
+$router->group('/sla', function ($router) {
+    $router->get('/gestao', [SlaController::class, 'indexView'], ['gestaoRole']);
+    $router->post('/base/salvar', [SlaController::class, 'salvarBase'], ['gestaoRole']);
+    $router->post('/base/excluir', [SlaController::class, 'excluirBase'], ['gestaoRole']);
+    $router->post('/calendario/salvar', [SlaController::class, 'salvarCalendario'], ['gestaoRole']);
+    $router->post('/calendario/excluir', [SlaController::class, 'excluirCalendario'], ['gestaoRole']);
+    $router->post('/regra/salvar', [SlaController::class, 'salvarRegra'], ['gestaoRole']);
+    $router->post('/regra/excluir', [SlaController::class, 'excluirRegra'], ['gestaoRole']);
+    $router->post('/status/salvar', [SlaController::class, 'salvarStatus'], ['gestaoRole']);
+    $router->post('/status/excluir', [SlaController::class, 'excluirStatus'], ['gestaoRole']);
+}, ['auth']);
+
 /*----------------------------------- GRUPO /documentos (auth) -----------------------------------*/
 
 $router->group('/documentos', function ($router) {
     $router->get('/', [DocController::class, 'indexView']);
     $router->get('/abrir/{id}', [DocController::class, 'abrir']);
     $router->get('/visualizar/{id}', [DocController::class, 'visualizar']);
+    $router->get('/versao/visualizar/{idDoc}/{idVersao}', [DocController::class, 'visualizarVersao'], ['gestaoRole']);
 
     //Ações de gestão (auth + gestaoRole)
     $router->get('/gestao', [DocController::class, 'gestaoView'], ['gestaoRole']);
@@ -125,9 +141,9 @@ $router->group('/documentos', function ($router) {
     $router->post('/excluir-documento', [DocController::class, 'excluirDocumento'], ['gestaoRole']);
 }, ['auth']);
 
-/*----------------------------------- GRUPO /logs (auth) -----------------------------------*/
+/*----------------------------------- GRUPO /logger (auth) -----------------------------------*/
 
-$router->group('/logs', function ($router) {
+$router->group('/logger', function ($router) {
     $router->get('/', [LogController::class, 'indexView'], ['role']);
     $router->post('/', [LogController::class, 'store']);
 }, ['auth']);
@@ -160,7 +176,7 @@ $router->group('/perfil', function ($router) {
 /*----------------------------------- GRUPO /regional (auth) -----------------------------------*/
 
 $router->group('/regional', function ($router) {
-    $router->get('/index', [RegionalController::class, 'indexView']);
+    $router->get('/', [RegionalController::class, 'indexView']);
     $router->get('/consulta', [RegionalController::class, 'consulta']);
     $router->get('/listaRegional', [RegionalController::class, 'listaRegional']);
     $router->get('/byRegional/{regiao}', [RegionalController::class, 'byRegional']);

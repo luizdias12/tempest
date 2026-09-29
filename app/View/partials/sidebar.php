@@ -1,6 +1,7 @@
 <?php
 
 use App\Service\AuthService;
+use App\Service\UsuarioService;
 
 $user = AuthService::getUser();
 $isSuporte = AuthService::hasPermission('ti');
@@ -16,7 +17,12 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
         <?php if ($user): ?>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-avatar">
-                    <i class="fa-solid fa-circle-user"></i>
+                    <?php $foto = UsuarioService::getFoto($user['cpf'] ?? ''); ?>
+                    <?php if ($foto): ?>
+                        <img src="<?= asset('assets/fotos/' . rawurlencode($foto)) ?>" alt="Foto de <?= htmlspecialchars($user['name']) ?>">
+                    <?php else: ?>
+                        <i class="fa-solid fa-circle-user"></i>
+                    <?php endif; ?>
                 </div>
                 <div class="sidebar-user-details">
                     <span class="sidebar-user-name"><?= initcap(htmlspecialchars($user['name'])) ?></span>
@@ -54,7 +60,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                                 <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>
                             </div>
                             <div class="sidebar-dropdown-menu">
-                                <a href="/logs"><i class="fa-solid fa-code"></i> Logs</a>
+                                <a href="/logger"><i class="fa-solid fa-code"></i> Logs</a>
                             </div>
                             <div class="sidebar-dropdown-menu">
                                 <a href="/funcionarios/admissoes"><i class="fa-solid fa-user-plus"></i> Admissões</a>
@@ -86,7 +92,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         <?php endif; ?>
                     </div>
                 <!-- Configuraçoes -->
-                <div <?php if (!AuthService::canManageCarousel()): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
+                <div <?php if (!AuthService::canManageCarousel() && !$isProcesso): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
                     <a href="#" class="sidebar-dropdown-toggle">
                         <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
                         <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
@@ -95,6 +101,11 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                     <div class="sidebar-dropdown-menu">
                         <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
                     </div>
+                    <?php if ($isSuporte): ?>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/sla/gestao"><i class="fa-solid fa-clock"></i> Gestão de SLA</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </div>

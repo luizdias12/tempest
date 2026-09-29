@@ -70,6 +70,23 @@ class OnlineModel
         return $row['status'] ?? null;
     }
 
+    public static function encerrarSeInativa(string $sessionId, string $cpf, int $limiteMin): bool
+    {
+        $stmt = DB::connect('mysql')->prepare("
+            UPDATE online
+            SET status = '2', dt_logoff = NOW()
+            WHERE sessionid = :sid
+            AND cpf = :cpf
+            AND status = '1'
+            AND dt_login < (NOW() - INTERVAL :min MINUTE)
+        ");
+        $stmt->bindValue(':sid', $sessionId);
+        $stmt->bindValue(':cpf', $cpf);
+        $stmt->bindValue(':min', max(1, $limiteMin), PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount() > 0;
+    }
+
     public static function listarOnline(int $page = 1, int $limit = 20, ?string $busca = null, ?string $local = null): array
     {
         $query = DB::select("

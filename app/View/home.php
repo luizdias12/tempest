@@ -13,7 +13,7 @@ use App\Service\AuthService;
                 <p><?= nl2br(htmlspecialchars($msgDia)) ?></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="close btn-novo" data-close>Entendi</button>
+                <button type="button" class="close btn-novo" data-close>Fechar</button>
             </div>
         </div>
     </div>

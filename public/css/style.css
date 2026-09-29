@@ -1441,6 +1441,19 @@ td.valor {
     font-size: 14px;
 }
 
+.login-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 18px;
+}
+
 .login-form {
     display: flex;
     flex-direction: column;
@@ -3735,6 +3748,28 @@ td.valor {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1;
+}
+
+.chat-conv-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(131, 230, 230, 0.15);
+    border: 1px solid rgba(131, 230, 230, 0.3);
+    color: #83e6e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+    overflow: hidden;
+}
+
+.chat-conv-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .chat-conv-nome {
@@ -4334,5 +4369,113 @@ td.valor {
         height: calc(100vh - 320px);
         min-height: 360px;
     }
+}
+
+.sidebar-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.perfil-foto {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(131, 230, 230, 0.15);
+    border: 1px solid rgba(131, 230, 230, 0.35);
+    color: #83e6e6;
+    font-size: 78px;
+}
+
+.perfil-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chat-contato-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* ---------- Gestão de SLA ---------- */
+
+.sla-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.sla-tab {
+    padding: 9px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sla-tab:hover {
+    border-color: rgba(131, 230, 230, 0.5);
+}
+
+.sla-tab.ativa {
+    background: linear-gradient(135deg, rgba(131, 230, 230, 0.2), rgba(79, 172, 254, 0.2));
+    border-color: #83e6e6;
+    color: #83e6e6;
+}
+
+.sla-panel:not([hidden]) {
+    display: block;
+}
+
+.sla-linha {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sla-linha > label {
+    flex: 1;
+    min-width: 160px;
+}
+
+.sla-dias {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 4px 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.sla-dias legend {
+    padding: 0 6px;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.checkbox-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    font-size: 14px;
 }
 

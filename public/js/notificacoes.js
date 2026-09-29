@@ -155,7 +155,10 @@
     function checar() {
         if (parado) return;
 
-        fetch(API, { headers: { 'Accept': 'application/json' } })
+        var ativo = window.__atividadeUsuario ? '1' : '0';
+        if (window.__atividadeUsuario) window.__atividadeUsuario = false;
+
+        fetch(API, { headers: { 'Accept': 'application/json', 'X-Usuario-Ativo': ativo } })
             .then(function(r) {
                 if (r.status === 401) {
                     parado = true;

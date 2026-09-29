@@ -302,6 +302,29 @@ if (!function_exists('validarCpf')) {
     }
 }
 
+if (!function_exists('sanitizarEmail')) {
+    /**
+     * Extrai apenas a conta de e-mail informada, descartando o resto
+     * (ex.: "fulano@villefort.com.br/seguranca.arvoredo" -> "fulano@villefort.com.br").
+     * Se não houver e-mail reconhecível, devolve o texto sem caracteres inválidos
+     * para que a validação subsequente trate como erro.
+     */
+    function sanitizarEmail(string $email): string
+    {
+        $email = trim($email);
+
+        if ($email === '') {
+            return '';
+        }
+
+        if (preg_match('/[A-Z0-9._%+\-]+@[A-Z0-9\-]+(?:\.[A-Z0-9\-]+)+/i', $email, $matches) === 1) {
+            return $matches[0];
+        }
+
+        return trim((string) preg_replace('/[^A-Z0-9@._%+\-]/i', '', $email));
+    }
+}
+
 if (!function_exists('initcap')) {
     function initcap(string $value): string
     {
