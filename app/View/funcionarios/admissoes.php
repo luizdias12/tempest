@@ -1,3 +1,9 @@
+<?php
+/**
+ * @var array $data
+ */
+?>
+
 <div class="filter-bar">
     <div class="filter-form">
         <span class="admissoes-total">Total de admissões pendentes: <strong id="admissoes-total"><?= array_sum(array_column($data, 'pendentes')) ?></strong></span>

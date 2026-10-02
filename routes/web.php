@@ -6,6 +6,7 @@ use App\Controller\AuthController;
 use App\Controller\CarouselController;
 use App\Controller\ChatController;
 use App\Controller\ContatoController;
+use App\Controller\DashboardController;
 use App\Controller\DocController;
 use App\Controller\ErrorController;
 use App\Controller\FinancController;
@@ -15,10 +16,13 @@ use App\Controller\SlaController;
 use App\Controller\HomeController;
 use App\Controller\LogController;
 use App\Controller\OnlineController;
+use App\Controller\PfdependController;
 use App\Controller\RegionalController;
 use App\Controller\ComercialController;
+use App\Controller\EsocialController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ComercialRoleMiddleware;
+use App\Middleware\EsocialMiddleware;
 use App\Middleware\GestaoRoleMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Middleware\RHMiddleware;
@@ -29,6 +33,7 @@ $router->aliasMiddleware('gestaoRole', GestaoRoleMiddleware::class);
 $router->aliasMiddleware('comercialRole', ComercialRoleMiddleware::class);
 $router->aliasMiddleware('role', RoleMiddleware::class);
 $router->aliasMiddleware('rh', RHMiddleware::class);
+$router->aliasMiddleware('esocial', EsocialMiddleware::class);
 
 /*----------------------------------- ROTAS PÚBLICAS -----------------------------------*/
 
@@ -71,17 +76,27 @@ $router->group('/comercial', function ($router) {
     $router->post('/excluir', [ComercialController::class, 'excluir'], ['comercialRole']);
 }, ['auth']);
 
+//FinancController (visualização de holerite)
 $router->group('/financ', function ($router) {
     $router->get('/holerite', [FinancController::class, 'holeriteView']);
     $router->get('/holerite/pdf', [FinancController::class, 'holeritePdf']);
+}, ['auth']);
+
+//EsocialController (visualização de dados do eSocial)
+$router->group('/esocial', function ($router) {
+    $router->get('/', [EsocialController::class, 'indexView'], ['esocial']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /funcionarios (auth) -----------------------------------*/
 
 $router->group('/funcionarios', function ($router) {
     $router->get('/index', [FuncionarioController::class, 'indexView'], ['role']);
-    $router->get('/admissoes', [FuncionarioController::class, 'admissoesView']);
-    $router->get('/admissoes/json', [FuncionarioController::class, 'admissoesJson']);
+    $router->get('/admissoes', [FuncionarioController::class, 'admissoesView'], ['esocial']);
+    $router->get('/admissoes/json', [FuncionarioController::class, 'admissoesJson'], ['esocial']);
+
+    //Rotina mensal de dependentes (PFDEPEND): zera INCSALFAM e marca CARTAOVACINA/FREQESCOLAR
+    $router->get('/dependentes', [PfdependController::class, 'indexView'], ['rh']);
+    $router->post('/dependentes/atualizar', [PfdependController::class, 'atualizar'], ['rh']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /ti (auth) -----------------------------------*/
@@ -158,6 +173,13 @@ $router->group('/carousel', function ($router) {
     $router->post('/excluir', [CarouselController::class, 'excluir'], ['rh']);
 }, ['auth']);
 
+/*----------------------------------- GRUPO /dashboards (auth) -----------------------------------*/
+
+$router->group('/dashboards', function ($router) {
+    $router->get('/', [DashboardController::class, 'indexView'], ['role']);
+    $router->get('/helpdesk', [DashboardController::class, 'helpdeskView'], ['role']);
+}, ['auth']);
+
 /*----------------------------------- GRUPO /online (auth) -----------------------------------*/
 
 $router->group('/online', function ($router) {
@@ -209,6 +231,7 @@ $router->group('/chat', function ($router) {
     $router->get('/contatos', [ChatController::class, 'contatos']);
     $router->get('/stream/{id}', [ChatController::class, 'stream']);
     $router->get('/naoLidas', [ChatController::class, 'naoLidas']);
+    $router->get('/status', [ChatController::class, 'status']);
     $router->get('/notificar', [ChatController::class, 'notificar']);
     $router->post('/enviar', [ChatController::class, 'enviar']);
     $router->post('/anexo', [ChatController::class, 'anexo']);

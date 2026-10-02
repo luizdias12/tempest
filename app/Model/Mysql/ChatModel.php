@@ -43,6 +43,37 @@ class ChatModel
             ['conversa_id' => $conversaId], 'mysql');
     }
 
+    /**
+     * CPFs dos parceiros de conversa do usuário, agrupados por conversa.
+     * Usado pelo chat para resolver quem é o "outro" participante na
+     * verificação de presença.
+     *
+     * @return array<int, list<string>> mapa [conversa_id => [cpf, ...]]
+     */
+    public static function parceirosPorConversa(string $cpf): array
+    {
+        $rows = DB::select(
+            "SELECT p.conversa_id, p.cpf
+             FROM chat_participantes meu
+             INNER JOIN chat_participantes p
+                 ON p.conversa_id = meu.conversa_id
+                 AND p.cpf <> :cpf
+                 AND p.apagado_em IS NULL
+             WHERE meu.cpf = :cpf2
+             AND meu.apagado_em IS NULL",
+            ['cpf' => $cpf, 'cpf2' => $cpf],
+            'mysql'
+        );
+
+        $porConversa = [];
+
+        foreach ($rows as $row) {
+            $porConversa[(int) $row['conversa_id']][] = (string) $row['cpf'];
+        }
+
+        return $porConversa;
+    }
+
     public static function ehParticipante(int $conversaId, string $cpf): bool
     {
         return DB::first("SELECT id FROM chat_participantes WHERE conversa_id = :conversa_id AND cpf = :cpf AND apagado_em IS NULL",

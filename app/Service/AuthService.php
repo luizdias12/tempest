@@ -504,10 +504,20 @@ class AuthService
             || self::hasPermission('lideres rh')
             || self::getUserCpf() == '11820308669';
     }
+    public static function canManageEsocial(): bool
+    {
+        return self::getUserCpf() == '02253174602'
+            || self::isOwner();
+    }
 
     public static function canManageComercial(): bool
     {
         return self::hasPermission('ti')
             || self::getUserCpf() == '14224326612';
+    }
+
+    public static function isOwner(): bool
+    {
+        return self::getUserCpf() === '08374281650';
     }
 }

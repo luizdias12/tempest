@@ -30,7 +30,9 @@
         ultDig: 0,
         digTimer: null,
         digitandoNome: null,
-        subBase: ''
+        subBase: '',
+        onlineAtual: false,
+        status: {}
     };
 
     var els = {};
@@ -57,8 +59,8 @@
         return res.data;
     }
 
-    function get(url) {
-        return getJson(url).then(check);
+    function get(url, headers) {
+        return getJson(url, headers ? { headers: headers } : undefined).then(check);
     }
 
     function enviar(method, url, data) {
@@ -123,6 +125,7 @@
             }
             renderLista();
             atualizarTitulo();
+            atualizarHeader();
         });
     }
 
@@ -137,12 +140,15 @@
 
         estado.conversas.forEach(function(c) {
             var item = document.createElement('div');
-            item.className = 'chat-conv' + (c.id === estado.aberta ? ' ativa' : '');
+            item.className = 'chat-conv' + (c.id === estado.aberta ? ' ativa' : '') + (c.online ? ' online' : '');
             item.setAttribute('data-id', c.id);
 
             item.innerHTML =
-                '<div class="chat-conv-avatar">' +
-                    (c.foto ? '<img src="/assets/fotos/' + encodeURIComponent(c.foto) + '" alt="' + esc(c.titulo) + '">' : '<i class="fa-solid fa-user"></i>') +
+                '<div class="chat-conv-avatar-wrap">' +
+                    '<div class="chat-conv-avatar">' +
+                        (c.foto ? '<img src="/assets/fotos/' + encodeURIComponent(c.foto) + '" alt="' + esc(c.titulo) + '">' : '<i class="fa-solid fa-user"></i>') +
+                    '</div>' +
+                    '<span class="chat-online"></span>' +
                 '</div>' +
                 '<div class="chat-conv-info">' +
                     '<span class="chat-conv-nome">' + esc(c.titulo) + '</span>' +
@@ -166,6 +172,28 @@
         var total = estado.conversas.reduce(function(s, c) { return s + (c.nao_lidas || 0); }, 0);
         var base = 'Chat' + (total > 0 ? ' (' + total + ')' : '');
         document.title = base;
+    }
+
+    /* ===== PRESENÇA ===== */
+
+    // O header X-Usuario-Ativo renova a própria atividade no servidor: com o chat
+    // aberto o usuário conta como online, mesmo parado. Quem fecha a aba some
+    // depois da janela de OnlineModel::JANELA_ATIVIDADE_MIN.
+    function aplicarStatus() {
+        return get(API + 'status', { 'X-Usuario-Ativo': '1' }).then(function(d) {
+            estado.status = (d && d.conversas) || {};
+
+            // Só alterna as classes: re-renderizar a lista zeraria o scroll.
+            var itens = els.conversas.querySelectorAll('.chat-conv');
+            for (var i = 0; i < itens.length; i++) {
+                var item = itens[i];
+                item.classList.toggle('online', !!estado.status[item.getAttribute('data-id')]);
+            }
+
+            var c = getConversa(estado.aberta);
+            if (c) c.online = !!estado.status[c.id];
+            atualizarHeader();
+        }).catch(function() {});
     }
 
     /* ===== MENSAGENS ===== */
@@ -223,8 +251,9 @@
         var c = getConversa(estado.aberta);
         els.titulo.textContent = c ? c.titulo : 'Selecione uma conversa';
         estado.subBase = c && c.subtitulo ? c.subtitulo : '';
+        estado.onlineAtual = !!(c && c.online);
         if (!estado.digitandoNome) {
-            els.subtitulo.textContent = estado.subBase;
+            els.subtitulo.textContent = estado.subBase + (estado.onlineAtual ? ' · Online' : '');
         }
     }
 
@@ -462,7 +491,7 @@
 
     function pararDigitando() {
         estado.digitandoNome = null;
-        if (els.subtitulo) els.subtitulo.textContent = estado.subBase || '';
+        if (els.subtitulo) els.subtitulo.textContent = estado.subBase + (estado.onlineAtual ? ' · Online' : '');
     }
 
     /* ===== ENVIO ===== */
@@ -1018,5 +1047,6 @@
         });
 
         carregarConversas();
+        setInterval(aplicarStatus, 60000);
     });
 })();

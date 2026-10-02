@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Core\DB;
 use App\Model\Mysql\ChatModel;
+use App\Model\Mysql\OnlineModel;
 use App\Service\AuthService;
 
 class ChatService
@@ -33,8 +34,13 @@ class ChatService
 
         if ($ids) {
             $in = implode(',', array_fill(0, count($ids), '?'));
+            $janela = OnlineModel::JANELA_ATIVIDADE_MIN;
             $participantes = DB::select(
-                "SELECT p.conversa_id, p.cpf, p.apagado_em, f.nome, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto
+                "SELECT p.conversa_id, p.cpf, p.apagado_em, f.nome, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto,
+                    CASE WHEN EXISTS (SELECT 1 FROM online o
+                        WHERE o.cpf = p.cpf AND o.status = '1'
+                        AND o.dt_login > (NOW() - INTERVAL {$janela} MINUTE))
+                    THEN 1 ELSE 0 END AS online
                  FROM chat_participantes p
                  LEFT JOIN func f ON f.cpf = p.cpf
                  LEFT JOIN filial fi ON fi.codgfilial = f.codfilial
@@ -55,6 +61,7 @@ class ChatService
                 'setor' => $p['setor'] ?? '',
                 'foto' => $p['foto'] ?? '',
                 'apagado' => !empty($p['apagado_em']),
+                'online' => !empty($p['online']),
             ];
         }
 
@@ -74,11 +81,54 @@ class ChatService
                 'ultima_msg' => (string) CryptoService::descriptografar($r['ultima_msg'] ?? ''),
                 'ultima_em' => $r['ultima_em'] ?? null,
                 'nao_lidas' => (int) ($r['nao_lidas'] ?? 0),
+                'online' => self::conversaOnline($r['tipo'], $pessoas, $cpf),
                 'participantes' => $pessoas,
             ];
         }
 
         return $lista;
+    }
+
+    /**
+     * Presença dos parceiros de conversa, chaveada por `conversa_id`.
+     * Consumida pelo poll de status do chat, que renova a atividade do próprio
+     * usuário através do header `X-Usuario-Ativo`.
+     *
+     * @return array{conversas: array<int, bool>}
+     */
+    public static function status(string $cpf): array
+    {
+        $cpf = self::cpf($cpf);
+
+        if ($cpf === null) {
+            return ['conversas' => []];
+        }
+
+        $porConversa = ChatModel::parceirosPorConversa($cpf);
+
+        $cpfs = [];
+        foreach ($porConversa as $parceiros) {
+            foreach ($parceiros as $parceiro) {
+                $cpfs[$parceiro] = $parceiro;
+            }
+        }
+
+        $online = OnlineService::cpfsOnline(array_values($cpfs));
+        $mapa = [];
+
+        foreach (ChatModel::conversas($cpf) as $conversa) {
+            $id = (int) $conversa['id'];
+            $mapa[$id] = false;
+
+            foreach ($porConversa[$id] ?? [] as $parceiro) {
+                if (isset($online[$parceiro])) {
+                    $mapa[$id] = true;
+                    break;
+                }
+            }
+        }
+
+        return ['conversas' => $mapa];
     }
 
     public static function mensagens(int $conversaId, string $cpf, int $apos = 0): array
@@ -563,6 +613,34 @@ class ChatService
         $m['texto'] = CryptoService::descriptografar((string) ($m['texto'] ?? ''));
 
         return $m;
+    }
+
+    /**
+     * Conversa direta: segue o outro participante. Grupo: acende se algum
+     * participante ativo estiver online.
+     */
+    private static function conversaOnline(string $tipo, array $pessoas, string $cpf): bool
+    {
+        $outro = null;
+
+        foreach ($pessoas as $p) {
+            if ($p['cpf'] === $cpf || !empty($p['apagado'])) {
+                continue;
+            }
+
+            if ($tipo === 'grupo') {
+                if (!empty($p['online'])) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            $outro = $p;
+            break;
+        }
+
+        return $tipo !== 'grupo' && !empty($outro['online']);
     }
 
     private static function montaIdentificacao(array $conversa, array $pessoas, string $cpf): array

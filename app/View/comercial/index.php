@@ -1,5 +1,11 @@
 <?php
 
+/** */
+/** @var array $ferias
+ * @var array $escalas
+ * @var string $descricaoMes
+ */
+
 use App\Service\AuthService;
 use App\Service\DateTimeService;
 

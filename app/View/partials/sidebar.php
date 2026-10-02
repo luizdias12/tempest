@@ -33,39 +33,53 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
         <?php endif; ?>
     </div>
     <nav class="sidebar-nav">
-        <a href="/"><i class="fa-solid fa-house"></i> Início</a>
-        <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
-        <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
-        <a href="/chat"><i class="fa-solid fa-comments"></i> Chat (Em Teste)<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
-        <a href="/regional"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
-        <a href="/comercial"><i class="fa-solid fa-calendar-days"></i> Escala Comercial</a>
+        <div class="sidebar-section-first">
+            <a href="/"><i class="fa-solid fa-house"></i> Início</a>
+            <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
+            <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
+            <a href="/chat"><i class="fa-solid fa-comments"></i> Chat (Em Teste)<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
+            <a href="/regional"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
+            <a href="/comercial"><i class="fa-solid fa-calendar-days"></i> Escala Comercial</a>
+        </div>
 
         <?php if ($user): ?>
             <div class="sidebar-area-protegida">
                 <a href="/perfil"><i class="fa-solid fa-id-badge"></i> Meu Perfil</a>
                 <a href="/helpdesk/index"><i class="fa-solid fa-desktop"></i> Helpdesk</a>
                 <?php if (!AuthService::isExterno() && $isSuporte): ?>
-                        <div class="sidebar-dropdown">
-                            <a href="#" class="sidebar-dropdown-toggle">
-                                <span class="sidebar-dropdown-label"><i class="fa-solid fa-computer"></i> TI</span>
-                                <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
-                            </a>
-                            <div class="sidebar-dropdown-menu">
-                                <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
-                            </div>
-                            <div class="sidebar-dropdown-menu">
-                                <a href="/ti/lista"><i class="fa-solid fa-list"></i> Lista TI</a>
-                            </div>
-                            <div class="sidebar-dropdown-menu">
-                                <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>
-                            </div>
-                            <div class="sidebar-dropdown-menu">
-                                <a href="/logger"><i class="fa-solid fa-code"></i> Logs</a>
-                            </div>
-                            <div class="sidebar-dropdown-menu">
-                                <a href="/funcionarios/admissoes"><i class="fa-solid fa-user-plus"></i> Admissões</a>
-                            </div>
+                    <div class="sidebar-dropdown">
+                        <a href="#" class="sidebar-dropdown-toggle">
+                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-computer"></i> TI</span>
+                            <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                        </a>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/funcionarios/index"><i class="fa-solid fa-users"></i> Funcionários</a>
                         </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/ti/lista"><i class="fa-solid fa-list"></i> Lista TI</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/dashboards"><i class="fa-solid fa-chart-pie"></i> Dashboards</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/logger"><i class="fa-solid fa-code"></i> Logs</a>
+                        </div>
+                    </div>
+                    <div class="sidebar-dropdown">
+                        <a href="#" class="sidebar-dropdown-toggle">
+                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-landmark"></i> Esocial</span>
+                            <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                        </a>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/funcionarios/admissoes"><i class="fa-solid fa-user-plus"></i> Admissões</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/esocial"><i class="fa-solid fa-display"></i> Painel de Eventos</a>
+                        </div>
+                    </div>
                 <?php endif; ?>
                 <?php if (!AuthService::isExterno()): ?>
                     <div class="sidebar-dropdown">
@@ -91,22 +105,27 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                             </div>
                         <?php endif; ?>
                     </div>
-                <!-- Configuraçoes -->
-                <div <?php if (!AuthService::canManageCarousel() && !$isProcesso): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
-                    <a href="#" class="sidebar-dropdown-toggle">
-                        <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
-                        <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
-                    </a>
-                    <!-- Gestao do Caroussel do Home -->
-                    <div class="sidebar-dropdown-menu">
-                        <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
-                    </div>
-                    <?php if ($isSuporte): ?>
+                    <!-- Configuraçoes -->
+                    <div <?php if (!AuthService::canManageCarousel() && !$isProcesso): ?> class="sidebar-dropdown disabled" aria-disabled="true" <?php else: ?> class="sidebar-dropdown" <?php endif; ?>>
+                        <a href="#" class="sidebar-dropdown-toggle">
+                            <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
+                            <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
+                        </a>
+                        <!-- Gestao do Caroussel do Home -->
                         <div class="sidebar-dropdown-menu">
-                            <a href="/sla/gestao"><i class="fa-solid fa-clock"></i> Gestão de SLA</a>
+                            <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
                         </div>
-                    <?php endif; ?>
-                </div>
+                        <?php if (AuthService::isOwner()): ?>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/funcionarios/dependentes"><i class="fa-solid fa-people-roof"></i> Salario Familia (folha)</a>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($isSuporte): ?>
+                            <div class="sidebar-dropdown-menu">
+                                <a href="/sla/gestao"><i class="fa-solid fa-clock"></i> Gestão de SLA</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         <?php endif; ?>

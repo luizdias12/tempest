@@ -200,6 +200,17 @@ class ChatController extends BaseController
         return $this->handle(fn() => $this->success(['total' => ChatService::totalNaoLidas($cpf)]));
     }
 
+    public function status(Request $request): array
+    {
+        $cpf = AuthService::getUserCpf();
+
+        if ($cpf === null) {
+            return $this->error('CPF do usuário inválido.', 401);
+        }
+
+        return $this->handle(fn() => $this->success(ChatService::status($cpf)));
+    }
+
     public function notificar(Request $request): array
     {
         $cpf = AuthService::getUserCpf();

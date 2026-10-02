@@ -8,6 +8,17 @@ use PDOException;
 
 class OnlineModel
 {
+    /**
+     * Janela de atividade considerada "online agora" em telas de presença (chat).
+     * O `dt_login` só é renovado por navegação, POST ou pelo header
+     * `X-Usuario-Ativo: 1` (ver AuthMiddleware::registrarAtividade), então a
+     * janela precisa ser folgada para não piscar entre um heartbeat e outro.
+     */
+    public const JANELA_ATIVIDADE_MIN = 5;
+
+    /** Tamanho do lote de CPFs por consulta, para não estourar placeholders. */
+    private const LOTE_CPFS = 500;
+
     public static function registrarLogin(string $cpf, string $sessionId, string $ip, string $local): bool
     {
         $stmt = DB::connect('mysql')->prepare("
@@ -85,6 +96,47 @@ class OnlineModel
         $stmt->bindValue(':min', max(1, $limiteMin), PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Filtra os CPFs informados que têm sessão ativa dentro da janela de
+     * atividade. Usado pelo chat para o indicador de presença.
+     *
+     * @return array<string, true> mapa [cpf => true] dos CPFs online
+     */
+    public static function cpfsOnline(array $cpfs, ?int $minutos = null): array
+    {
+        $cpfs = array_values(array_unique(array_filter(
+            array_map(static fn($cpf): string => trim((string) $cpf), $cpfs),
+            static fn(string $cpf): bool => $cpf !== ''
+        )));
+
+        if (empty($cpfs)) {
+            return [];
+        }
+
+        $minutos = max(1, $minutos ?? self::JANELA_ATIVIDADE_MIN);
+        $online = [];
+
+        foreach (array_chunk($cpfs, self::LOTE_CPFS) as $lote) {
+            $in = implode(',', array_fill(0, count($lote), '?'));
+
+            $rows = DB::select(
+                "SELECT cpf
+                 FROM online
+                 WHERE cpf IN ({$in})
+                 AND status = '1'
+                 AND dt_login > (NOW() - INTERVAL {$minutos} MINUTE)",
+                $lote,
+                'mysql'
+            );
+
+            foreach ($rows as $row) {
+                $online[(string) $row['cpf']] = true;
+            }
+        }
+
+        return $online;
     }
 
     public static function listarOnline(int $page = 1, int $limit = 20, ?string $busca = null, ?string $local = null): array

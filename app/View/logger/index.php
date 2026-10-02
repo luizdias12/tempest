@@ -1,3 +1,16 @@
+<?php
+/** 
+ * @var array $logs 
+ * @var array $meta 
+ * @var string $nivel 
+ * @var string $tipo 
+ * @var string $modulo 
+ * @var string $busca 
+ * @var string $data 
+ * @var string $ip 
+ */
+?>
+
 <div class="filter-bar">
     <form method="GET" class="filter-form">
         <label for="nivel">Nível:</label>

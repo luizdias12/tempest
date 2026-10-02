@@ -36,6 +36,14 @@ class OnlineService
         return OnlineModel::encerrarSeInativa($sessionId, $cpf, $limiteMin);
     }
 
+    /**
+     * @return array<string, true> mapa [cpf => true] dos CPFs com sessão ativa
+     */
+    public static function cpfsOnline(array $cpfs, ?int $minutos = null): array
+    {
+        return OnlineModel::cpfsOnline($cpfs, $minutos);
+    }
+
     public static function listarOnline(int $page = 1, int $limit = 20, ?string $busca = null, ?string $local = null): array
     {
         return OnlineModel::listarOnline($page, $limit, $busca, $local);
