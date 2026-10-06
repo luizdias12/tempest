@@ -4791,3 +4791,7 @@ td.valor {
 .status-item strong {
     font-size: 0.9rem;
 }
+
+.status-item.nozero {
+    background: rgba(255, 85, 0, 0.1);
+}

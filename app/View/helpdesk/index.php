@@ -5,7 +5,27 @@ use App\Service\GenericService;
 use App\Service\HelpdeskService;
 use App\Service\HelpHistoricoService;
 
-// dd($chamados);
+/**
+ * @var array $chamados
+ * @var array $meta
+ * @var string $id
+ * @var string $emitente
+ * @var string $status
+ * @var string $local
+ * @var string $tecnico
+ * @var bool $meus
+ * @var bool $openbyme
+ * @var bool $isSuporte
+ * @var array $contagemHistoricos
+ * @var array $andamentos
+ * @var array $motivosCancelamento
+ * @var array $grupos
+ * @var array $subgrupos
+ * @var array $funcionarios
+ * @var array $responsaveis
+ * @var int $open
+ */
+
 ?>
 
 <div class="header-bar">

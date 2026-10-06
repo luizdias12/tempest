@@ -21,6 +21,12 @@ use Throwable;
 
 class HelpdeskController extends BaseController
 {
+    /**
+     * indexView
+     *
+     * @param Request $request
+     * @return void
+     */
     public function indexView(Request $request): void
     {
         try {
@@ -114,6 +120,12 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * update
+     *
+     * @param Request $request
+     * @return void
+     */
     public function update(Request $request): void
     {
         $json = $this->isFetch($request);
@@ -234,6 +246,12 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * store
+     *
+     * @param Request $request
+     * @return void
+     */
     public function store(Request $request): void
     {
         try {
@@ -353,6 +371,12 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * interacao
+     *
+     * @param Request $request
+     * @return void
+     */
     public function interacao(Request $request): void
     {
         $json = $this->isFetch($request);
@@ -505,6 +529,13 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * historicoJson
+     *
+     * @param Request $request
+     * @param int $id
+     * @return void
+     */
     public function historicoJson(Request $request, int $id): void
     {
         try {
@@ -544,6 +575,14 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * notificarInteracao
+     *
+     * @param int $id
+     * @param string $mensagem
+     * @param string $idUsu
+     * @return void
+     */
     private function notificarInteracao(int $id, string $mensagem, string $idUsu): void
     {
         try {
@@ -573,6 +612,13 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * redirectBack
+     *
+     * @param Request $request
+     * @param int $id
+     * @return string
+     */
     private function redirectBack(Request $request, int $id): string
     {
         $query = $request->query();
@@ -597,8 +643,18 @@ class HelpdeskController extends BaseController
         }
     }
 
+    /**
+     * cpfCache
+     *
+     * @var ?string
+     */
     private static ?string $cpfCache = null;
 
+    /**
+     * cpfUsuarioAtual
+     *
+     * @return string
+     */
     private function cpfUsuarioAtual(): string
     {
         if (self::$cpfCache !== null) return self::$cpfCache;

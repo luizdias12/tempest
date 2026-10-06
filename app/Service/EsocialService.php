@@ -16,6 +16,26 @@ class EsocialService
         return EsocialModel::getFullData();
     }
 
+    public static function getEventosTabela(): array|null
+    {
+        return EsocialModel::getEventosTabela();
+    }
+
+    public static function getEventosPeriodicos(int $mescomp, int $anocomp): array|null
+    {
+        return EsocialModel::getEventosPeriodicos($mescomp, $anocomp);
+    }
+
+    public static function getEventosNaoPeriodicos(): array|null
+    {
+        return EsocialModel::getEventosNaoPeriodicos();
+    }
+
+    public static function getEventosProcTrabalhista(): array|null
+    {
+        return EsocialModel::getEventosProcTrabalhista();
+    }
+
     public static function getEventoDesc(string $tipoevento): string
     {
         $eventos = [

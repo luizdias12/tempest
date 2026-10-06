@@ -85,6 +85,10 @@ $router->group('/financ', function ($router) {
 //EsocialController (visualização de dados do eSocial)
 $router->group('/esocial', function ($router) {
     $router->get('/', [EsocialController::class, 'indexView'], ['esocial']);
+    $router->get('/tabelas', [EsocialController::class, 'tabelasView'], ['esocial']);
+    $router->get('/periodicos', [EsocialController::class, 'periodicosView'], ['esocial']);
+    $router->get('/nao-periodicos', [EsocialController::class, 'naoPeriodicosView'], ['esocial']);
+    $router->get('/proc-trabalhista', [EsocialController::class, 'trabalhistasView'], ['esocial']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /funcionarios (auth) -----------------------------------*/

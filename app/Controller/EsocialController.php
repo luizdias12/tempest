@@ -13,19 +13,76 @@ class EsocialController extends BaseController
 {
     public function indexView(Request $request): void
     {
-        try {
+        view('esocial/index', [
+            'title' => 'Eventos Esocial',
+        ]);
+    }
 
-            $esocialData = EsocialService::getEsocialData();
-            $fullData = EsocialService::getFullData();
+    public function tabelasView(Request $request): void
+    {
+        
+        $dados = EsocialService::getEventosTabela();
 
-            view('esocial/index', [
-                'data' => $esocialData,
-                'fullData' => $fullData,
-                'title' => 'Dados do eSocial'
-            ]);
-        } catch (Throwable $e) {
-            Logger::exception($e);
-            ErrorHandler::handle(500, $e->getMessage(), false, $e);
+        if ($dados === null) {
+            return;
         }
+
+        view('esocial/geral', [
+            'title' => 'Eventos de Tabelas',
+            'dados' => $dados,
+            'tipoevento' => 1
+        ]);
+    }
+    
+    public function periodicosView(Request $request): void
+    {
+        $mescomp = (int) $request->query('mescomp', date('m'));
+        $anocomp = (int) $request->query('anocomp', date('Y'));
+
+        $dados = EsocialService::getEventosPeriodicos($mescomp, $anocomp);
+
+        if ($dados === null) {
+            return;
+        }
+
+        view('esocial/geral', [
+            'title'     => 'Eventos Periódicos',
+            'dados'     => $dados,
+            'mescomp'   => $mescomp,
+            'anocomp'   => $anocomp,
+            'tipoevento' => 2
+        ]);
+    }
+
+    public function naoPeriodicosView(Request $request): void
+    {
+
+        $dados = EsocialService::getEventosNaoPeriodicos();
+
+        if ($dados === null) {
+            return;
+        }
+
+        view('esocial/geral', [
+            'title'     => 'Eventos Não Periódicos',
+            'dados'     => $dados,
+            'tipoevento' => 3
+        ]);
+    }
+
+    public function trabalhistasView(Request $request): void
+    {
+
+        $dados = EsocialService::getEventosProcTrabalhista();
+
+        if ($dados === null) {
+            return;
+        }
+
+        view('esocial/geral', [
+            'title'     => 'Eventos Processo Trabalhista',
+            'dados'     => $dados,
+            'tipoevento' => 4
+        ]);
     }
 }
