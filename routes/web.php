@@ -20,6 +20,7 @@ use App\Controller\PfdependController;
 use App\Controller\RegionalController;
 use App\Controller\ComercialController;
 use App\Controller\EsocialController;
+use App\Controller\TAFController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ComercialRoleMiddleware;
 use App\Middleware\EsocialMiddleware;
@@ -89,6 +90,15 @@ $router->group('/esocial', function ($router) {
     $router->get('/periodicos', [EsocialController::class, 'periodicosView'], ['esocial']);
     $router->get('/nao-periodicos', [EsocialController::class, 'naoPeriodicosView'], ['esocial']);
     $router->get('/proc-trabalhista', [EsocialController::class, 'trabalhistasView'], ['esocial']);
+}, ['auth']);
+
+//TAFController (visualização de dados do taf)
+$router->group('/taf', function ($router) {
+    $router->get('/', [TAFController::class, 'indexView'], ['esocial']);
+    $router->get('/tabelas', [TAFController::class, 'tabelasView'], ['esocial']);
+    $router->get('/periodicos', [TAFController::class, 'periodicosView'], ['esocial']);
+    $router->get('/nao-periodicos', [TAFController::class, 'naoPeriodicosView'], ['esocial']);
+    $router->get('/proc-trabalhista', [TAFController::class, 'trabalhistasView'], ['esocial']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /funcionarios (auth) -----------------------------------*/

@@ -77,7 +77,10 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                             <a href="/funcionarios/admissoes"><i class="fa-solid fa-user-plus"></i> Admissões</a>
                         </div>
                         <div class="sidebar-dropdown-menu">
-                            <a href="/esocial"><i class="fa-solid fa-display"></i> Painel de Eventos</a>
+                            <a href="/esocial"><i class="fa-solid fa-display"></i> Painel de Eventos - RM</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/taf"><i class="fa-solid fa-calendar-days"></i> Painel de Eventos - TAF</a>
                         </div>
                     </div>
                 <?php endif; ?>

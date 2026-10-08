@@ -12,7 +12,7 @@ use App\Service\EsocialService;
 ?>
 
 <div class="header-bar">
-    <a href="/esocial" class="btn-novo"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+    <a href="/esocial" class="btn-novo"><i class="fa-solid fa-arrow-left"></i> Menu</a>
 </div>
 
 <?php if ($tipoevento === 2): ?>

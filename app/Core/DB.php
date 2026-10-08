@@ -94,6 +94,29 @@ class DB
             } catch (PDOException $e) {
                 throw new Exception('Erro ao conectar ao Oracle (Consinco): ' . $e->getMessage());
             }
+        } else if ($name === 'taf'){
+            // conexão Oracle - banco TAF (default)
+            $host      = self::env('DB_TAF_HOST');
+            $port      = self::env('DB_TAF_PORT', '1521');
+            $service   = self::env('DB_TAF_SERVICENAME');
+            $user      = self::env('DB_TAF_USER');
+            $pass      = self::env('DB_TAF_PASSWORD');
+            $charset   = self::env('DB_TAF_CHARSET', 'AL32UTF8');
+
+            try {
+                self::$connections[$name] = new PDO(
+                    "oci:dbname=//{$host}:{$port}/{$service};charset={$charset}",
+                    $user,
+                    $pass,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_CASE => PDO::CASE_LOWER,
+                    ]
+                );
+            } catch (PDOException $e) {
+                throw new Exception('Erro ao conectar ao Oracle (TAF): ' . $e->getMessage());
+            }
         }
 
         return self::$connections[$name];

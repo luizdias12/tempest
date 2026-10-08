@@ -99,6 +99,7 @@ h1, h2, h3 {
     /* flex-direction: column; */
     align-items: center;   /* vertical */
     justify-content: center; /* horizontal */
+    padding: 10px 0;
 }
 
 .card {

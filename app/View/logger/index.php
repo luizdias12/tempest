@@ -25,7 +25,7 @@
         <label for="modulo">Módulo:</label>
         <input type="text" id="modulo" name="modulo" value="<?= htmlspecialchars($modulo ?? '') ?>" placeholder="Módulo">
         <label for="busca">Busca:</label>
-        <input type="text" id="busca" name="busca" value="<?= htmlspecialchars($busca ?? '') ?>" placeholder="Mensagem, rota ou usuário">
+        <input type="text" id="busca" name="busca" value="<?= htmlspecialchars($busca ?? '') ?>" placeholder="Mensagem, rota, usuário ou ação">
         <label for="ip">IP:</label>
         <input type="text" id="ip" name="ip" value="<?= htmlspecialchars($ip ?? '') ?>" placeholder="Endereço IP">
         <label for="data">Data:</label>

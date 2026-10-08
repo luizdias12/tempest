@@ -36,7 +36,8 @@ class LogModel
             $query->whereGroup(static function ($q) use ($busca) {
                 $q->whereILike('mensagem', $busca)
                     ->whereILike('rota', $busca, 'OR')
-                    ->whereILike('usuario_nome', $busca, 'OR');
+                    ->whereILike('usuario_nome', $busca, 'OR')
+                    ->whereILike('acao', $busca, 'OR');
             });
         }
 

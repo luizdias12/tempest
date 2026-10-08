@@ -229,13 +229,16 @@ class HelpdeskController extends BaseController
                 return;
             }
 
+            $contexto = $data;
+            $contexto['resp_nome'] = FuncionarioService::findByCpfDados($data['id_resp'])['nome'] ?? 'Desconhecido';
+            
             LogService::store([
                 'nivel' => 'INFO',
                 'tipo' => 'UPDATE',
                 'modulo' => 'helpdesk',
                 'acao' => 'alterar_chamado',
                 'mensagem' => "chamado {$id} " . (in_array($statusValue, ['R'], true) ? 'finalizado' : 'alterado'),
-                'contexto' => $data
+                'contexto' => $contexto
             ]);
 
             $responder(true, "Chamado Nº {$id} atualizado.", $this->redirectBack($request, $id));
