@@ -24,7 +24,7 @@ $kpis = $dados['kpis'];
 
 <div class="dash-cards">
     <div class="dash-card">
-        <span class="dash-card-label">Abertos agora</span>
+        <span class="dash-card-label">Em aberto agora</span>
         <strong class="dash-card-value"><?= number_format($kpis['abertos'], 0, ',', '.') ?></strong>
         <small class="dash-card-foot">Fila atual, sem Resolvido/Cancelado</small>
     </div>
@@ -39,7 +39,7 @@ $kpis = $dados['kpis'];
         <small class="dash-card-foot">Em Análise + Desenvolvimento</small>
     </div>
     <div class="dash-card">
-        <span class="dash-card-label">Aguardando terceiros</span>
+        <span class="dash-card-label">Aguardando suporte/usuario</span>
         <strong class="dash-card-value"><?= number_format($kpis['aguardando_terceiros'], 0, ',', '.') ?></strong>
         <small class="dash-card-foot">Encaminhado, Suporte, Validação, Terceiro</small>
     </div>
@@ -64,27 +64,27 @@ $kpis = $dados['kpis'];
     </div>
 
     <div class="dash-panel">
-        <h2 class="dash-panel-title">Fase dos chamados do período</h2>
+        <h2 class="dash-panel-title">Fase dos chamados em aberto do período</h2>
         <div class="chart-box chart-box-doughnut">
             <canvas id="dashBuckets"></canvas>
         </div>
         <ul class="dash-legend">
             <li><span class="dash-dot" style="background:#9aa4b2"></span>Não iniciado <strong><?= number_format($buckets['nao_iniciados'], 0, ',', '.') ?></strong></li>
             <li><span class="dash-dot" style="background:#2f6feb"></span>Em atendimento <strong><?= number_format($buckets['em_atendimento'], 0, ',', '.') ?></strong></li>
-            <li><span class="dash-dot" style="background:#d98324"></span>Aguardando terceiros <strong><?= number_format($buckets['aguardando_terceiros'], 0, ',', '.') ?></strong></li>
-            <li><span class="dash-dot" style="background:#3f9c6d"></span>Encerrado <strong><?= number_format($buckets['encerrados'], 0, ',', '.') ?></strong></li>
+            <li><span class="dash-dot" style="background:#d98324"></span>Aguardando suporte/usuario <strong><?= number_format($buckets['aguardando_terceiros'], 0, ',', '.') ?></strong></li>
+            <!-- <li><span class="dash-dot" style="background:#3f9c6d"></span>Encerrado <strong><?= number_format($buckets['encerrados'], 0, ',', '.') ?></strong></li> -->
         </ul>
     </div>
 
     <div class="dash-panel">
-        <h2 class="dash-panel-title">Chamados abertos por grupo</h2>
+        <h2 class="dash-panel-title">Chamados em aberto por grupo</h2>
         <div class="chart-box">
             <canvas id="dashGrupos"></canvas>
         </div>
     </div>
 
     <div class="dash-panel">
-        <h2 class="dash-panel-title">Chamados abertos por responsável</h2>
+        <h2 class="dash-panel-title">Chamados em aberto por responsável</h2>
         <div class="chart-box">
             <canvas id="dashResponsaveis"></canvas>
         </div>
@@ -121,12 +121,12 @@ $kpis = $dados['kpis'];
     </div>
 
     <div class="dash-panel">
-        <h2 class="dash-panel-title">Chamados abertos mais antigos</h2>
+        <h2 class="dash-panel-title">Chamados em aberto mais antigos</h2>
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Chapa</th>
+                        <th>ID</th>
                         <th>Assunto</th>
                         <th>Status</th>
                         <th>Responsável</th>
@@ -141,7 +141,7 @@ $kpis = $dados['kpis'];
                         <tr>
                             <td>
                                 <a href="/helpdesk/index?id=<?= (int) ($item['id'] ?? 0) ?>&open=<?= (int) ($item['id'] ?? 0) ?>">
-                                    <?= htmlspecialchars((string) ($item['chapa'] ?? '-')) ?>
+                                    <?= htmlspecialchars((string) ($item['id'] ?? '-')) ?>
                                 </a>
                             </td>
                             <td><?= htmlspecialchars((string) ($item['cab_problema'] ?? '-')) ?></td>

@@ -110,7 +110,7 @@
         { rotulo: 'Não iniciado', valor: b.nao_iniciados || 0 },
         { rotulo: 'Em atendimento', valor: b.em_atendimento || 0 },
         { rotulo: 'Aguardando terceiros', valor: b.aguardando_terceiros || 0 },
-        { rotulo: 'Encerrado', valor: b.encerrados || 0 }
+        // { rotulo: 'Encerrado', valor: b.encerrados || 0 }
     ];
 
     var canvasBuckets = document.getElementById('dashBuckets');

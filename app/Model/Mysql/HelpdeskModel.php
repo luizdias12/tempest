@@ -278,15 +278,28 @@ class HelpdeskModel
         return $row['chapa'] ?? null;
     }
 
-    public static function chamadosPendentesSuporte(string $cpf): array|null
+    public static function chamadosFilaSuporte(): array
     {
-        $pendentes = DB::select("SELECT count(*) AS total
-            FROM helpdesk
-            WHERE `status` IN ('PS', 'E', 'ST')
-            AND id_resp = :resp
-        ",
-        ['resp' => $cpf], 'mysql');
-        return $pendentes;
+        return QueryBuilder::table('helpdesk h', 'mysql')
+            ->select(
+                'h.id',
+                'h.status',
+                'h.id_resp',
+                'h.cab_problema',
+                'h.dt_abertura',
+                'hs.date AS desde_status',
+                'u.email',
+                'COALESCE(f.nome, fe.nome) AS nome'
+            )
+            ->join('help_status hs', 'hs.id_help', '=', 'h.id')
+            ->join('usuarios u', 'u.cpf', '=', 'h.id_resp')
+            ->leftJoin('func f', 'f.cpf', '=', 'h.id_resp')
+            ->leftJoin('func_externo as fe', 'fe.cpf', '=', 'h.id_resp')
+            ->whereIn('h.status', ['E', 'EA', 'PS'])
+            ->whereRaw("COALESCE(u.email, '') <> ''")
+            ->orderBy('h.id_resp')
+            ->orderBy('hs.date')
+            ->get();
     }
 
     public static function chamadosPendentesUsuario(): array|null

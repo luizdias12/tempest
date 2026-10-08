@@ -191,6 +191,8 @@ class UsuarioService
 
     public static function criarConta(string $cpf, string $usuario, string $email, string $senha, ?int $filialCad = 0, ?string $ramal = null, ?string $corporativo = null, ?int $idSetor = null, ?string $foto = null): bool
     {
+        $usuario = mb_strtolower(trim($usuario));
+
         if (!$cpf || !$usuario || !$senha || mb_strlen($usuario) > 20) {
             return false;
         }

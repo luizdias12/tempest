@@ -96,6 +96,30 @@ if (!function_exists('view')) {
     }
 }
 
+if (!function_exists('simpleView')) {
+    function simpleView(string $view, array $params = [], string $layout = 'layouts/simple'): void
+    {
+        extract($params, EXTR_SKIP);
+
+        $viewPath = basePath("app/View/{$view}.php");
+        $layoutPath = basePath("app/View/{$layout}.php");
+
+        if (!file_exists($viewPath)) {
+            die("View '{$view}' não encontrada.");
+        }
+
+        if (!file_exists($layoutPath)) {
+            die("Layout '{$layout}' não encontrado.");
+        }
+
+        ob_start();
+        require $viewPath;
+        $content = ob_get_clean();
+
+        require $layoutPath;
+    }
+}
+
 if (!function_exists('component')) {
     function component(string $component, array $data = []): void
     {
@@ -210,6 +234,13 @@ if (!function_exists('maskCpf')) {
 }
 
 if (!function_exists('businessHoursBetween')) {
+    /**
+     * businessHoursBetween
+     *
+     * @param string|DateTimeInterface $start
+     * @param string|DateTimeInterface|null $end
+     * @return float
+     */
     function businessHoursBetween(string|DateTimeInterface $start, string|DateTimeInterface|null $end = null): float
     {
         $inicio = $start instanceof DateTimeInterface ? (clone $start) : new DateTime($start);

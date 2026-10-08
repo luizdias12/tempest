@@ -143,7 +143,7 @@ class AuthController extends BaseController
         // Etapa 2: criação da conta
         if (($request->post('usuario') ?? null) !== null && !empty($_SESSION['cadastro_cpf'])) {
             $cpf = (string) $_SESSION['cadastro_cpf'];
-            $usuario = trim((string) $request->post('usuario', ''));
+            $usuario = mb_strtolower(trim((string) $request->post('usuario', '')));
             $email = sanitizarEmail((string) $request->post('email', ''));
             $ramal = trim((string) $request->post('ramal', ''));
             $corporativo = trim((string) $request->post('corporativo', ''));
@@ -161,6 +161,12 @@ class AuthController extends BaseController
                 $usuarioInfo = UsuarioService::getUsuario($cpf);
                 AlertManager::add('warning', 'Usuario ja cadastrado: ' . ($usuarioInfo['usuario'] ?? ''));
                 redirect('/login');
+                return;
+            }
+
+            if ($usuario !== '' && !preg_match('/^[\p{L}\p{N}]+(?:\.[\p{L}\p{N}]+)*$/u', $usuario)) {
+                AlertManager::add('error', 'O usuário deve conter apenas letras, números e pontos, sem espaços, e não pode iniciar nem terminar com ponto.');
+                redirect('/login/cadastro');
                 return;
             }
 

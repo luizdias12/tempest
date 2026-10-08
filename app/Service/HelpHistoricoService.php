@@ -11,11 +11,6 @@ class HelpHistoricoService
         return HelpHistoricoModel::obterHistoricoHelpdesk($helpId, $cpfUsuario, $isSuporte);
     }
 
-    public static function verificaVisualizacao(int $helpId): array|null
-    {
-        return HelpHistoricoModel::verificaVisualizacao($helpId);
-    }
-
     public static function visualizacoesPendentes(array $helpIds): array
     {
         return HelpHistoricoModel::visualizacoesPendentes($helpIds);
@@ -41,9 +36,9 @@ class HelpHistoricoService
         return HelpHistoricoModel::atualizarFileStr($idHist, $fileStr);
     }
 
-    public static function marcarVisualizado(int $helpId): bool
+    public static function marcarVisualizado(int $helpId, string $viewerCpf, bool $isSuporte = false): bool
     {
-        return HelpHistoricoModel::marcarVisualizado($helpId);
+        return HelpHistoricoModel::marcarVisualizado($helpId, $viewerCpf, $isSuporte);
     }
 
     public static function anexosAbertura(array $helpIds): array

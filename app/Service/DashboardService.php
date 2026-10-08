@@ -7,9 +7,9 @@ use App\Model\Mysql\HelpdeskDashboardModel;
 class DashboardService
 {
     /** Períodos aceitos em ?dias=. */
-    public const PERIODOS = [7, 30, 90];
+    public const PERIODOS = [3, 7, 15, 30, 60, 90];
 
-    public const PERIODO_PADRAO = 30;
+    public const PERIODO_PADRAO = 15;
 
     /**
      * Monta todo o payload do dashboard de Helpdesk.
@@ -48,8 +48,8 @@ class DashboardService
             ],
             'buckets' => $buckets,
             'serie' => HelpdeskDashboardModel::serieDiaria($de, $ate),
-            'por_grupo' => HelpdeskDashboardModel::porGrupo(),
-            'por_responsavel' => HelpdeskDashboardModel::porResponsavel(),
+            'por_grupo' => HelpdeskDashboardModel::porGrupo(10),
+            'por_responsavel' => HelpdeskDashboardModel::porResponsavel(10),
             'por_status' => HelpdeskDashboardModel::porStatus(),
             'mais_antigos' => HelpdeskDashboardModel::maisAntigos(),
             'dias_envelhecido' => HelpdeskDashboardModel::DIAS_ENVELHECIDO,

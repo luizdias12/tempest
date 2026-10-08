@@ -192,4 +192,116 @@ class HelpdeskService
             $corpo
         );
     }
+
+    public static function notificarFilaSuporte(int $horasUteis = 8, int $limite = 50, bool $enviar = true): array
+    {
+        $limite = max(1, $limite);
+
+        $rotulos = [];
+        foreach (StatusService::all() ?? [] as $status) {
+            $rotulos[(string) $status['status']] = (string) ($status['descricao'] ?? '');
+        }
+
+        $porTecnico = [];
+        $ignorados = 0;
+
+        foreach (HelpdeskModel::chamadosFilaSuporte() as $chamado) {
+            $horas = businessHoursBetween((string) $chamado['desde_status']);
+
+            if ($horas < $horasUteis) {
+                $ignorados++;
+                continue;
+            }
+
+            $porTecnico[(string) $chamado['id_resp']][] = $chamado;
+        }
+
+        $emailsOk = 0;
+        $emailsErro = 0;
+        $elegiveis = 0;
+
+        foreach ($porTecnico as $idResp => $fila) {
+            $total = count($fila);
+            $elegiveis += $total;
+
+            $email = (string) ($fila[0]['email'] ?? '');
+            $nome = trim((string) ($fila[0]['nome'] ?? ''));
+
+            if ($email === '') {
+                continue;
+            }
+
+            $linhas = '';
+            foreach (array_slice($fila, 0, $limite) as $item) {
+                $rotulo = $rotulos[(string) $item['status']] ?? (string) $item['status'];
+                $assunto = trim((string) ($item['cab_problema'] ?? ''));
+                $desde = date('d/m/Y H:i', strtotime((string) $item['desde_status']));
+                $decorrido = formatBusinessHours(businessHoursBetween((string) $item['desde_status']));
+
+                $linhas .= '<tr>'
+                    . '<td style="padding:6px 10px;border:1px solid #ddd;">' . htmlspecialchars((string) $item['id']) . '</td>'
+                    . '<td style="padding:6px 10px;border:1px solid #ddd;">' . htmlspecialchars($assunto !== '' ? $assunto : '(sem assunto)') . '</td>'
+                    . '<td style="padding:6px 10px;border:1px solid #ddd;">' . htmlspecialchars($rotulo) . '</td>'
+                    . '<td style="padding:6px 10px;border:1px solid #ddd;">' . $desde . ' (há ' . $decorrido . ')</td>'
+                    . '</tr>';
+            }
+
+            $rodape = '';
+            if ($total > $limite) {
+                $rodape = '<p><em>E mais ' . ($total - $limite) . ' chamado(s) — refiltre na intranet para ver a lista completa.</em></p>';
+            }
+
+            $saudacao = $nome !== '' ? explode(' ', $nome)[0] : 'Olá';
+
+            $corpo = '<p>Olá, ' . htmlspecialchars($saudacao) . '!</p>'
+                . '<p>Você tem <strong>' . $total . ' chamado(s)</strong> na sua fila aguardando ação'
+                . ' (há ' . $horasUteis . ' horas úteis ou mais):</p>'
+                . '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+                . '<tr>'
+                . '<th style="padding:6px 10px;border:1px solid #ddd;background:#f5f5f5;text-align:left;">Nº</th>'
+                . '<th style="padding:6px 10px;border:1px solid #ddd;background:#f5f5f5;text-align:left;">Assunto</th>'
+                . '<th style="padding:6px 10px;border:1px solid #ddd;background:#f5f5f5;text-align:left;">Situação</th>'
+                . '<th style="padding:6px 10px;border:1px solid #ddd;background:#f5f5f5;text-align:left;">Status desde</th>'
+                . '</tr>'
+                . $linhas
+                . '</table>'
+                . $rodape
+                . '<p>Acesse a intranet &gt; Helpdesk para atender.</p>';
+
+            if (!$enviar) {
+                continue;
+            }
+
+            $enviou = MailService::enviar($email, 'Fila de chamados - ' . $total . ' chamado(s) aguardando ação', $corpo);
+
+            if ($enviou) {
+                $emailsOk++;
+            } else {
+                $emailsErro++;
+            }
+
+            LogService::store([
+                'nivel' => $enviou ? 'INFO' : 'ERROR',
+                'tipo' => 'AUTO',
+                'modulo' => 'helpdesk',
+                'acao' => 'notificar_fila_suporte',
+                'mensagem' => "fila de suporte notificada para {$email} ({$total} chamado(s))",
+                'contexto' => [
+                    'id_resp' => $idResp,
+                    'email' => $email,
+                    'qtde' => $total,
+                    'limite' => $limite,
+                    'horas_uteis' => $horasUteis,
+                    'enviado' => $enviou,
+                ],
+            ]);
+        }
+
+        return [
+            'chamados' => $elegiveis,
+            'ignorados' => $ignorados,
+            'emails_ok' => $emailsOk,
+            'emails_erro' => $emailsErro,
+        ];
+    }
 }

@@ -41,6 +41,9 @@ $router->aliasMiddleware('esocial', EsocialMiddleware::class);
 //HomeController
 $router->get('/', [HomeController::class, 'indexView']);
 
+//Manutenção
+$router->get('/manutencao', [ErrorController::class, 'manutencaoView']);
+
 //ContatoController
 $router->get('/contatos', [ContatoController::class, 'indexView']);
 

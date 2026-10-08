@@ -339,7 +339,7 @@ class HelpdeskController extends BaseController
                 'contexto' => $dadosAbertura
             ]);
 
-            $idHist = HelpHistoricoService::registrarInteracao($id, 'Abertura do chamado', $cpfAb, 'A');
+            $idHist = HelpHistoricoService::registrarInteracao($id, 'Abertura do Chamado', $cpfAb, 'A');
             HelpdeskService::upsertHelpStatus($id, 'A');
 
             HelpdeskService::notificarAbertura($id, $cabProblema);
@@ -547,17 +547,12 @@ class HelpdeskController extends BaseController
                 return;
             }
 
-            $statusAtual = HelpdeskService::obterStatus($id);
-            $usuarioAb = HelpdeskService::obterCpfAbertura($id);
             $usuarioAtual = $this->cpfUsuarioAtual();
+            $isSuporte = AuthService::hasPermission('ti');
 
-            if ($statusAtual === 'PU' && $usuarioAb === $usuarioAtual) {
-                HelpHistoricoService::marcarVisualizado($id);
-            } else if (($statusAtual === 'PS' || $statusAtual !== 'PU') && $usuarioAb !== $usuarioAtual) {
-                HelpHistoricoService::marcarVisualizado($id);
-            }
+            HelpHistoricoService::marcarVisualizado($id, $usuarioAtual, $isSuporte);
 
-            $hist = HelpHistoricoService::obterHistoricoHelpdesk($id, $usuarioAtual, AuthService::hasPermission('ti'));
+            $hist = HelpHistoricoService::obterHistoricoHelpdesk($id, $usuarioAtual, $isSuporte);
 
             $items = array_map(static fn(array $item): array => [
                 'nome' => $item['nome'] ?? 'Sistema',
@@ -566,6 +561,13 @@ class HelpdeskController extends BaseController
                 'historico' => $item['historico'] ?? '',
                 'id_usu' => $item['id_usu'] ?? '',
                 'file_str' => handleAttach($item['file_str'] ?? '', $id),
+                'files' => array_map(
+                    static fn(array $f): array => [
+                        'file_str' => handleAttach((string) ($f['file_str'] ?? ''), $id),
+                        'nome' => (string) ($f['nome'] ?? 'Anexo'),
+                    ],
+                    $item['files'] ?? []
+                ),
                 'dtview' => !empty($item['dtview']) ? date('d-m-Y H:i', strtotime($item['dtview'])) : '',
                 'privado' => (($item['privado'] ?? '') === 'S'),
             ], $hist);

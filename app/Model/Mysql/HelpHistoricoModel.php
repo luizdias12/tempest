@@ -27,20 +27,9 @@ class HelpHistoricoModel
         }
 
         $query->orderBy('h.data_hist', 'ASC');
+        $query->orderBy('h.id_hist', 'ASC');
 
-        return $query->get();
-    }
-
-    public static function verificaVisualizacao(int $helpId): array|null
-    {
-        $visualizado = QueryBuilder::table('help_hist h', 'mysql')
-            ->select('view', 'dtview')
-            ->where('status', 'A')
-            ->where('h.id_help', $helpId)
-            ->where('view', 'N')
-            ->first();
-
-        return $visualizado;
+        return self::comporArquivos($query->get());
     }
 
     public static function visualizacoesPendentes(array $helpIds): array
@@ -116,16 +105,24 @@ class HelpHistoricoModel
         return DB::update('help_hist', 'id_hist', $idHist, ['file_str' => $fileStr], 'mysql');
     }
 
-    public static function marcarVisualizado(int $helpId): bool
+    public static function marcarVisualizado(int $helpId, string $viewerCpf, bool $isSuporte = false): bool
     {
         $stmt = DB::connect('mysql')->prepare("
             UPDATE help_hist
             SET view = 'S', dtview = NOW()
             WHERE id_help = :id
             AND view = 'N'
+            AND (id_usu IS NULL OR id_usu <> :viewer)
+            AND (privado IS NULL OR privado <> 'S' OR :isSuporte = 1)
         ");
 
-        return $stmt->execute(['id' => $helpId]);
+        $stmt->execute([
+            'id' => $helpId,
+            'viewer' => $viewerCpf,
+            'isSuporte' => $isSuporte ? 1 : 0,
+        ]);
+
+        return $stmt->rowCount() > 0;
     }
 
     public static function anexosAbertura(array $helpIds): array
@@ -142,16 +139,33 @@ class HelpHistoricoModel
             WHERE status = 'A'
             AND file_str <> ''
             AND id_help IN ({$ids})
+            ORDER BY id_hist ASC
         ", [], 'mysql');
 
-        return array_column($rows, 'file_str', 'id_help');
+        $resultado = [];
+
+        foreach ($rows as $row) {
+            $idHelp = (int) $row['id_help'];
+
+            if (!isset($resultado[$idHelp])) {
+                $resultado[$idHelp] = (string) $row['file_str'];
+            }
+        }
+
+        foreach (HelpFilesModel::anexoAbertura($helpIds) as $idHelp => $fileStr) {
+            if (!isset($resultado[$idHelp])) {
+                $resultado[$idHelp] = $fileStr;
+            }
+        }
+
+        return $resultado;
     }
 
     public static function possuiAnexo(array $helpIds): array
     {
        if (empty($helpIds)) {
-            return [];
-        }
+           return [];
+       }
 
         $possuiAnexo = QueryBuilder::table('help_hist h', 'mysql')
             ->select('h.id_help')
@@ -159,6 +173,42 @@ class HelpHistoricoModel
             ->whereIn('h.id_help', $helpIds)
             ->get();
 
-        return array_column($possuiAnexo, 'id_help');
+        $caminhos = array_merge(
+            array_column($possuiAnexo, 'id_help'),
+            HelpFilesModel::possuiArquivos($helpIds)
+        );
+
+        return array_values(array_unique($caminhos, SORT_REGULAR));
+    }
+
+    /**
+     * Anexa a cada linha do histórico os arquivos de help_files (com
+     * fallback para help_hist.file_str, gravado pelo fluxo web e pelo
+     * legado), no formato [{file_str, nome}, ...].
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private static function comporArquivos(array $rows): array
+    {
+        if (empty($rows)) {
+            return $rows;
+        }
+
+        $arquivos = HelpFilesModel::arquivosPorHistorico(array_column($rows, 'id_hist'));
+
+        foreach ($rows as $i => $row) {
+            $files = $arquivos[(int) ($row['id_hist'] ?? 0)] ?? [];
+
+            $legado = (string) ($row['file_str'] ?? '');
+
+            if ($legado !== '') {
+                $files[] = ['file_str' => $legado, 'nome' => 'Anexo'];
+            }
+
+            $rows[$i]['files'] = $files;
+        }
+
+        return $rows;
     }
 }

@@ -315,7 +315,7 @@ ob_start();
         <input type="hidden" name="id" data-field="id">
         <textarea name="mensagem" rows="6" placeholder="Escreva uma interação no chamado..." required></textarea>
         <label>Anexo (máx. 5 MB):
-            <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
+            <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.gif,.webp,.pdf,.xls,.xlsx,.doc,.docx">
         </label>
         <?php if ($isSuporte): ?>
         <label class="privado-toggle">
@@ -338,9 +338,9 @@ ob_start();
                     <?php if (!empty($item['privado'])): ?>
                         <span class="historico-badge privado">Privado</span>
                     <?php endif; ?>
-                    <?php if (!empty($item['file_str'])): ?>
-                        <p><a href="<?= htmlspecialchars(handleAttach($item['file_str'], (int) $open)) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> Anexo</a></p>
-                    <?php endif; ?>
+                    <?php foreach (($item['files'] ?? []) as $arquivo): ?>
+                        <p><a href="<?= htmlspecialchars(handleAttach($arquivo['file_str'], (int) $open)) ?>" class="anexo-link" download><i class="fa-solid fa-paperclip"></i> <?= htmlspecialchars($arquivo['nome'] ?? 'Anexo') ?></a></p>
+                    <?php endforeach; ?>
                     <?php if (!empty($item['dtview'])): ?>
                         <span class="historico-viewed">Visualizado em <?= date('d-m-Y H:i', strtotime($item['dtview'])) ?></span>
                     <?php endif; ?>
@@ -401,7 +401,7 @@ ob_start();
         <textarea name="desc_problema" rows="4" maxlength="3000" required placeholder="Descreva o problema..."></textarea>
     </label>
     <label>Anexo (opcional, máx. 5 MB):
-        <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.pdf,.xls,.xlsx,.doc,.docx">
+        <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.gif,.webp,.pdf,.xls,.xlsx,.doc,.docx">
     </label>
     <button type="submit" class="btn">Abrir chamado</button>
 </form>
@@ -706,18 +706,32 @@ ob_start();
                 div.appendChild(spanP);
             }
 
-            if (item.file_str) {
+            var files = item.files || [];
+            for (var f = 0; f < files.length; f++) {
                 var pa = document.createElement('p');
                 var a = document.createElement('a');
-                a.href = item.file_str;
+                a.href = files[f].file_str;
                 a.className = 'anexo-link';
-                a.textContent = ' Anexo';
+                a.textContent = ' ' + (files[f].nome || 'Anexo');
                 a.setAttribute('download', '');
                 var icone = document.createElement('i');
                 icone.className = 'fa-solid fa-paperclip';
                 a.prepend(icone);
                 pa.appendChild(a);
                 div.appendChild(pa);
+            }
+            if (files.length === 0 && item.file_str) {
+                var paL = document.createElement('p');
+                var aL = document.createElement('a');
+                aL.href = item.file_str;
+                aL.className = 'anexo-link';
+                aL.textContent = ' Anexo';
+                aL.setAttribute('download', '');
+                var iconeL = document.createElement('i');
+                iconeL.className = 'fa-solid fa-paperclip';
+                aL.prepend(iconeL);
+                paL.appendChild(aL);
+                div.appendChild(paL);
             }
 
             if (item.dtview) {

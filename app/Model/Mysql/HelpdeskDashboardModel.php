@@ -28,8 +28,14 @@ class HelpdeskDashboardModel
     /** Ball is with the support. */
     public const EM_ATENDIMENTO = ['EA', 'D'];
 
+    /** Ball is with the local support. */
+    public const AGUARDANDO_SUPORTE_LOCAL = ['E', 'PS'];
+
     /** Ball is with someone else: support, third party or the requester. */
-    public const AGUARDANDO_TERCEIROS = ['E', 'PS', 'PU', 'ST'];
+    public const AGUARDANDO_TERCEIROS = ['ST'];
+
+    /** Pendente com usuário */
+    public const AGUARDANDO_USUARIO = ['PU'];
 
     /** Abertos = tudo que não foi encerrado. */
     public const ABERTOS = ['A', 'EA', 'D', 'E', 'PS', 'PU', 'ST'];
@@ -62,6 +68,8 @@ class HelpdeskDashboardModel
                 AVG(CASE WHEN h.status = 'R' AND h.dt_solucao BETWEEN :tempo_de AND :tempo_ate
                     THEN TIMESTAMPDIFF(MINUTE, h.dt_abertura, h.dt_solucao) END) AS tempo_medio_min
             FROM helpdesk h
+            JOIN func f ON f.cpf = h.cpf_ab 
+            LEFT JOIN func_externo fe ON fe.cpf = h.cpf_ab
         ", [
             'res_de' => $de,
             'res_ate' => $ate,
@@ -99,6 +107,8 @@ class HelpdeskDashboardModel
                 SUM(CASE WHEN h.status IN (" . self::LISTA_AGUARDANDO . ") THEN 1 ELSE 0 END) AS aguardando_terceiros,
                 SUM(CASE WHEN h.status IN (" . self::LISTA_FECHADOS . ") THEN 1 ELSE 0 END) AS encerrados
             FROM helpdesk h
+            JOIN func f ON f.cpf = h.cpf_ab 
+            LEFT JOIN func_externo fe ON fe.cpf = h.cpf_ab
             WHERE h.dt_abertura BETWEEN :de AND :ate
         ", ['de' => $de, 'ate' => $ate], 'mysql');
 
@@ -125,11 +135,15 @@ class HelpdeskDashboardModel
             FROM (
                 SELECT DATE(h.dt_abertura) AS data, COUNT(*) AS abertos, 0 AS resolvidos
                 FROM helpdesk h
+                JOIN func f ON f.cpf = h.cpf_ab 
+                LEFT JOIN func_externo fe ON fe.cpf = h.cpf_ab
                 WHERE h.dt_abertura BETWEEN ? AND ?
                 GROUP BY DATE(h.dt_abertura)
                 UNION ALL
                 SELECT DATE(h.dt_solucao) AS data, 0 AS resolvidos, COUNT(*)
                 FROM helpdesk h
+                JOIN func f ON f.cpf = h.cpf_ab 
+                LEFT JOIN func_externo fe ON fe.cpf = h.cpf_ab
                 WHERE h.status = 'R'
                 AND h.dt_solucao BETWEEN ? AND ?
                 GROUP BY DATE(h.dt_solucao)
@@ -169,6 +183,8 @@ class HelpdeskDashboardModel
         $rows = DB::select("
             SELECT COALESCE(g.descricao, 'Sem grupo') AS grupo, COUNT(*) AS total
             FROM helpdesk h
+            JOIN func f ON f.cpf = h.cpf_ab 
+            LEFT JOIN func_externo fe ON fe.cpf = h.cpf_ab
             LEFT JOIN grupo g ON g.id_grupo = h.idgrupo
             WHERE h.status NOT IN (" . self::LISTA_FECHADOS . ")
             GROUP BY COALESCE(g.descricao, 'Sem grupo')
@@ -215,6 +231,8 @@ class HelpdeskDashboardModel
                    COALESCE(st.descricao, h.status) AS status_desc,
                    COUNT(*) AS total
             FROM helpdesk h
+            JOIN func f ON f.cpf = h.cpf_ab 
+            LEFT JOIN func_externo fe ON fe.cpf = h.cpf_ab
             LEFT JOIN status st ON st.status = h.status
             WHERE h.status NOT IN (" . self::LISTA_FECHADOS . ")
             GROUP BY h.status, COALESCE(st.descricao, h.status)

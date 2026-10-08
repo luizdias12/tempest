@@ -107,11 +107,11 @@ class EmailHelpdeskService
     private static function notificarChamadoEncerrado(int $helpId, string $status, array $m): void
     {
         $statusMap = [
-            'R' => 'jÃ¡ foi resolvido',
-            'C' => 'jÃ¡ foi cancelado',
+            'R' => 'já foi resolvido',
+            'C' => 'já foi cancelado',
         ];
 
-        $frase = $statusMap[$status] ?? 'jÃ¡ se encontra encerrado';
+        $frase = $statusMap[$status] ?? 'já se encontra encerrado';
 
         [$fromEmail] = self::remetenteMensagem($m);
 
@@ -126,18 +126,18 @@ class EmailHelpdeskService
             $assunto = '(sem assunto)';
         }
 
-        $corpo = '<p>OlÃ¡!</p>'
-            . '<p>NÃ£o foi possÃ­vel registrar a sua resposta, pois o chamado <strong>NÂº ' . $helpId . '</strong> ' . $frase . '.</p>'
+        $corpo = '<p>Olá!</p>'
+            . '<p>Não foi possível registrar a sua resposta, pois o chamado <strong>Nº ' . $helpId . '</strong> ' . $frase . '.</p>'
             . '<ul>'
             . '<li><strong>Assunto:</strong> ' . htmlspecialchars($assunto, ENT_QUOTES, 'UTF-8') . '</li>'
-            . '<li><strong>NÃºmero:</strong> ' . $helpId . '</li>'
-            . '<li><strong>SituaÃ§Ã£o:</strong> Encerrado</li>'
+            . '<li><strong>Número:</strong> ' . $helpId . '</li>'
+            . '<li><strong>Situação:</strong> Encerrado</li>'
             . '</ul>'
-            . '<p>Caso necessÃ¡rio, abra um novo chamado.</p>';
+            . '<p>Caso necessário, abra um novo chamado.</p>';
 
         MailService::enviar(
             $fromEmail,
-            'Chamado NÂº ' . $helpId . ' jÃ¡ encerrado - ' . $assunto,
+            'Chamado Nº ' . $helpId . ' já encerrado - ' . $assunto,
             $corpo
         );
     }
@@ -167,7 +167,7 @@ class EmailHelpdeskService
         $ehAbertura = $cpfAb !== '' && HelpdeskService::obterCpfAbertura($helpId) === $cpfAb;
         $status = $ehAbertura ? 'PS' : 'PU';
 
-        HelpHistoricoService::registrarInteracao(
+        $idHist = HelpHistoricoService::registrarInteracao(
             $helpId,
             '[EMAIL] ' . $desc,
             $cpfAb !== '' ? $cpfAb : '0',
@@ -189,7 +189,9 @@ class EmailHelpdeskService
             ],
         ]);
 
-        self::salvarAnexos($helpId, $messageId, $mailbox, $fromEmail, $cpfAb !== '' ? $cpfAb : '0', (string) ($m['body']['content'] ?? ''));
+        if ($idHist !== null) {
+            self::salvarAnexos($helpId, (int) $idHist, $messageId, $mailbox, (string) ($m['body']['content'] ?? ''));
+        }
     }
 
     private static function criarChamado(array $m, string $mailbox): int
@@ -243,7 +245,7 @@ class EmailHelpdeskService
             throw new RuntimeException('Falha ao criar chamado no banco.');
         }
 
-        HelpHistoricoService::registrarInteracao(
+        $idHist = HelpHistoricoService::registrarInteracao(
             $helpId,
             "[EMAIL] Chamado aberto via e-mail por {$nomeRemetente} <{$fromEmail}>",
             $cpfAb !== '' ? $cpfAb : '0',
@@ -264,134 +266,52 @@ class EmailHelpdeskService
             ],
         ]);
 
-        self::salvarAnexos($helpId, $m['id'] ?? '', $mailbox, $fromEmail, $cpfAb !== '' ? $cpfAb : '0', (string) ($m['body']['content'] ?? ''));
+        if ($idHist !== null) {
+            self::salvarAnexos($helpId, (int) $idHist, $m['id'] ?? '', $mailbox, (string) ($m['body']['content'] ?? ''));
+        }
 
         HelpdeskService::notificarAbertura($helpId, $cab, $fromEmail);
 
         return $helpId;
     }
 
-    private static function salvarAnexos(int $helpId, string $messageId, string $mailbox, string $fromEmail, string $idUsu = '0', string $bodyHtml = ''): void
+    private static function salvarAnexos(int $helpId, int $idHist, string $messageId, string $mailbox, string $bodyHtml = ''): void
     {
-        if ($messageId === '') {
+        if ($messageId === '' && trim($bodyHtml) === '') {
             return;
         }
 
-        $anexos = GraphService::anexos($mailbox, $messageId);
+        $anexos = [];
 
-        Logger::info('GraphService::anexos devolveu', [
-            'qtd'     => count($anexos),
-            'mailbox' => $mailbox,
-            'anexos'  => array_map(static function (array $a): array {
-                return [
-                    'nome'        => (string) ($a['name'] ?? ''),
-                    'isInline'    => !empty($a['isInline']),
-                    'contentType' => (string) ($a['contentType'] ?? ''),
-                    'contentId'   => (string) ($a['contentId'] ?? ''),
-                    'size'        => (int) ($a['size'] ?? 0),
-                    'id'          => (string) ($a['id'] ?? ''),
-                ];
-            }, $anexos),
-        ]);
+        if ($messageId !== '') {
+            $anexos = GraphService::anexos($mailbox, $messageId);
 
-        Logger::info('GraphService::anexos do Graph', [
-            'count'     => count($anexos),
-            'mailbox'   => $mailbox,
-            'messageId' => $messageId,
-        ]);
+            Logger::info('GraphService::anexos devolveu', [
+                'qtd'     => count($anexos),
+                'mailbox' => $mailbox,
+                'anexos'  => array_map(static function (array $a): array {
+                    return [
+                        'nome'        => (string) ($a['name'] ?? ''),
+                        'isInline'    => !empty($a['isInline']),
+                        'contentType' => (string) ($a['contentType'] ?? ''),
+                        'contentId'   => (string) ($a['contentId'] ?? ''),
+                        'size'        => (int) ($a['size'] ?? 0),
+                        'id'          => (string) ($a['id'] ?? ''),
+                    ];
+                }, $anexos),
+            ]);
 
-        $anexo = self::escolherAnexo($anexos, $bodyHtml);
-
-        if ($anexo === null) {
-            return;
+            Logger::info('GraphService::anexos do Graph', [
+                'count'     => count($anexos),
+                'mailbox'   => $mailbox,
+                'messageId' => $messageId,
+            ]);
         }
 
-        $inline = !empty($anexo['isInline']);
-        $nome   = (string) ($anexo['name'] ?? '');
-
-        if ($nome === '' && $inline) {
-            $cid     = strtolower((string) ($anexo['contentId'] ?? ''));
-            $tipo    = strtolower((string) ($anexo['contentType'] ?? ''));
-            $eImagem = self::eImagem($tipo, $cid);
-
-            if (!$eImagem) {
-                return;
-            }
-
-            $ext = self::extensaoImagem($tipo, $cid);
-
-            if ($ext === '') {
-                return;
-            }
-
-            $nome = 'imagem_inline_' . substr(hash('md5', $anexo['id'] ?? $cid), 0, 6) . '.' . $ext;
-        } elseif ($nome === '') {
-            return;
-        }
-
-        if ($inline) {
-            $tipo      = strtolower((string) ($anexo['contentType'] ?? ''));
-            $nomeBaixo = strtolower((string) $nome);
-            $eImagem   = self::eImagem($tipo, $nomeBaixo);
-
-            if (!$eImagem) {
-                return;
-            }
-        }
-
-        $conteudo = GraphService::baixarAnexo($mailbox, $messageId, $anexo['id'] ?? '');
-        if ($conteudo === null) {
-            return;
-        }
-
-        $ext = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
-
-        if (in_array($ext, ['exe', 'bat', 'cmd', 'ps1', 'vbs', 'js'], true)) {
-            return;
-        }
-
-        try {
-            $upload = FileService::salvarConteudo($nome, $conteudo);
-
-            $idHist = HelpHistoricoService::registrarInteracao(
-                $helpId,
-                "Anexo recebido por e-mail: {$nome}",
-                $idUsu !== '' ? $idUsu : '0',
-                'A'
-            );
-
-            if ($idHist !== null) {
-                HelpHistoricoService::atualizarFileStr(
-                    $idHist,
-                    FileService::finalize($upload, $idHist)
-                );
-            }
-        } catch (Throwable $e) {
-            Logger::exception($e, ['help_id' => $helpId, 'anexo' => $nome]);
-        }
-    }
-
-    private static function escolherAnexo(array $anexos, string $bodyHtml): ?array
-    {
-        $inline = [];
-        $images = [];
-
-        foreach ($anexos as $a) {
-            if (!self::eImagem(strtolower((string) ($a['contentType'] ?? '')), strtolower((string) ($a['name'] ?? '')))) {
-                continue;
-            }
-
-            $images[] = $a;
-
-            if (!empty($a['isInline'])) {
-                $inline[] = $a;
-            }
-        }
-
-        $candidatos = $inline !== [] ? $inline : $images;
+        $candidatos = array_merge($anexos, self::extrairImagensDataUri($bodyHtml));
 
         if ($candidatos === []) {
-            return null;
+            return;
         }
 
         $cids = self::extrairCids($bodyHtml);
@@ -407,7 +327,206 @@ class EmailHelpdeskService
             return $posA <=> $posB;
         });
 
-        return $candidatos[0];
+        $salvos    = 0;
+        $ignorados = 0;
+
+        foreach ($candidatos as $anexo) {
+            $ok = self::salvarAnexoNoHelpFiles(
+                $helpId,
+                $idHist,
+                $anexo,
+                $messageId !== '' ? $mailbox : '',
+                $messageId
+            );
+
+            if ($ok) {
+                $salvos++;
+            } else {
+                $ignorados++;
+            }
+        }
+
+        Logger::info('salvarAnexos concluído', [
+            'help_id'   => $helpId,
+            'id_hist'   => $idHist,
+            'salvos'    => $salvos,
+            'ignorados' => $ignorados,
+        ]);
+    }
+
+    private static function salvarAnexoNoHelpFiles(
+        int $helpId,
+        int $idHist,
+        array $anexo,
+        string $mailbox,
+        string $messageId
+    ): bool {
+        $inline = !empty($anexo['isInline']);
+        $nome   = trim((string) ($anexo['name'] ?? ''));
+        $tipo   = strtolower((string) ($anexo['contentType'] ?? ''));
+        $idAnexo = (string) ($anexo['id'] ?? '');
+
+        if ($nome === '') {
+            if (!$inline) {
+                Logger::warning('salvarAnexos: anexo sem nome ignorado', [
+                    'help_id'   => $helpId,
+                    'id_hist'   => $idHist,
+                    'contentType' => $tipo,
+                ]);
+                return false;
+            }
+
+            $ext = self::extensaoImagem($tipo, (string) ($anexo['contentId'] ?? ''));
+
+            if ($ext === '') {
+                Logger::warning('salvarAnexos: anexo inline sem nome e com extensão desconhecida ignorado', [
+                    'help_id'     => $helpId,
+                    'id_hist'     => $idHist,
+                    'contentType' => $tipo,
+                ]);
+                return false;
+            }
+
+            $nome = 'imagem_inline_' . substr(hash('md5', $idAnexo !== '' ? $idAnexo : $tipo), 0, 6) . '.' . $ext;
+        }
+
+        if ($inline && !self::eImagem($tipo, $nome)) {
+            Logger::warning('salvarAnexos: anexo inline não-imagem ignorado', [
+                'help_id'     => $helpId,
+                'id_hist'     => $idHist,
+                'nome'        => $nome,
+                'contentType' => $tipo,
+            ]);
+            return false;
+        }
+
+        $ext = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['exe', 'bat', 'cmd', 'ps1', 'vbs', 'js'], true)) {
+            Logger::warning('salvarAnexos: extensão perigosa bloqueada', [
+                'help_id' => $helpId,
+                'id_hist' => $idHist,
+                'nome'    => $nome,
+            ]);
+            return false;
+        }
+
+        if (!in_array($ext, FileService::extensoesPermitidas(), true)) {
+            $extTipo = [
+                'image/png'  => 'png',
+                'image/jpeg' => 'jpg',
+                'image/bmp'  => 'bmp',
+                'image/gif'  => 'gif',
+                'image/webp' => 'webp',
+            ];
+
+            if (isset($extTipo[$tipo])) {
+                $nome = preg_replace('/\.[^.]*$/', '', $nome) . '.' . $extTipo[$tipo];
+                $ext  = $extTipo[$tipo];
+            }
+        }
+
+        if (isset($anexo['conteudo']) && is_string($anexo['conteudo'])) {
+            $conteudo = $anexo['conteudo'];
+        } else {
+            $conteudo = GraphService::baixarAnexo($mailbox, $messageId, $idAnexo);
+
+            if ($conteudo === null) {
+                Logger::warning('salvarAnexos: falha ao baixar anexo do Graph', [
+                    'help_id'   => $helpId,
+                    'id_hist'   => $idHist,
+                    'nome'      => $nome,
+                    'id_anexo'  => $idAnexo,
+                ]);
+                return false;
+            }
+        }
+
+        try {
+            $upload     = FileService::salvarConteudo($nome, $conteudo);
+            $idArquivo  = HelpFilesService::registrar($helpId, $idHist, $nome);
+
+            if ($idArquivo === null) {
+                throw new RuntimeException('Falha ao registrar o arquivo em help_files.');
+            }
+
+            HelpFilesService::atualizarFileStr($idArquivo, FileService::finalize($upload, $idArquivo));
+
+            return true;
+        } catch (Throwable $e) {
+            Logger::exception($e, ['help_id' => $helpId, 'anexo' => $nome]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Extrai imagens embutidas no corpo HTML como data:URI (caso em que o
+     * Graph não devolve anexo algum — comum em apps de celular).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function extrairImagensDataUri(string $html): array
+    {
+        if ($html === '' || stripos($html, 'data:image') === false) {
+            return [];
+        }
+
+        $padrao = '/<img[^>]*\ssrc\s*=\s*["\']data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+\/=\s]+)["\']/i';
+
+        if (!preg_match_all($padrao, $html, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $extMap = [
+            'image/png'  => 'png',
+            'image/jpeg' => 'jpg',
+            'image/bmp'  => 'bmp',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+        ];
+
+        $imagens  = [];
+        $vistos   = [];
+
+        foreach ($matches as $m) {
+            $tipo = strtolower($m[1]);
+
+            if (!isset($extMap[$tipo])) {
+                Logger::warning('extrairImagensDataUri: tipo de imagem data-URI não suportado ignorado', [
+                    'contentType' => $tipo,
+                ]);
+                continue;
+            }
+
+            $base64   = (string) preg_replace('/\s+/', '', $m[2]);
+            $conteudo = base64_decode($base64, true);
+
+            if ($conteudo === false || $conteudo === '') {
+                Logger::warning('extrairImagensDataUri: base64 inválido ignorado', ['contentType' => $tipo]);
+                continue;
+            }
+
+            $hash = md5($conteudo);
+
+            if (isset($vistos[$hash])) {
+                continue;
+            }
+
+            $vistos[$hash] = true;
+
+            $imagens[] = [
+                'id'          => '',
+                'name'        => 'imagem_corpo_' . (count($imagens) + 1) . '.' . $extMap[$tipo],
+                'contentType' => $tipo,
+                'isInline'    => true,
+                'contentId'   => '',
+                'size'        => strlen($conteudo),
+                'conteudo'    => $conteudo,
+            ];
+        }
+
+        return $imagens;
     }
 
     private static function extrairCids(string $html): array
@@ -460,7 +579,7 @@ class EmailHelpdeskService
         $base = strtolower((string) preg_replace('/@.*$/i', '', $nome));
         $ext  = strtolower(pathinfo($base, PATHINFO_EXTENSION));
 
-        if (in_array($ext, ['jpg', 'jpeg', 'png', 'bmp'], true)) {
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'webp'], true)) {
             return $ext === 'jpeg' ? 'jpg' : $ext;
         }
 
@@ -468,6 +587,8 @@ class EmailHelpdeskService
             'image/png'  => 'png',
             'image/jpeg' => 'jpg',
             'image/bmp'  => 'bmp',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
         ];
 
         return $map[$tipo] ?? '';

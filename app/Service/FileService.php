@@ -13,7 +13,15 @@ class FileService
     10 MB = 10485760
     */
 
-    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'bmp', 'pdf', 'xls', 'xlsx', 'doc', 'docx'];
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'webp', 'pdf', 'xls', 'xlsx', 'doc', 'docx'];
+
+    /**
+     * @return string[]
+     */
+    public static function extensoesPermitidas(): array
+    {
+        return self::ALLOWED_EXTENSIONS;
+    }
 
     public static function upload(array $file): ?array
     {

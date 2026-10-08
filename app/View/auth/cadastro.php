@@ -23,7 +23,7 @@ $etapa = $nomeEncontrado !== '' ? 2 : 1;
                 <input type="hidden" name="cpf" value="<?= htmlspecialchars($filtroCpf) ?>">
 
                 <label for="usuario">Usuário</label>
-                <input type="text" id="usuario" name="usuario" placeholder="Nome de usuário" required autofocus>
+                <input type="text" id="usuario" name="usuario" placeholder="Nome de usuário" pattern="[\p{L}\p{N}]+(\.[\p{L}\p{N}]+)*" title="Apenas letras, números e ponto; sem espaços; não pode iniciar nem terminar com ponto." maxlength="20" required autofocus>
 
                 <label for="email">E-mail <span class="login-opcional">(opcional)</span></label>
                 <input type="email" id="email" name="email" placeholder="E-mail corporativo">
@@ -57,3 +57,12 @@ $etapa = $nomeEncontrado !== '' ? 2 : 1;
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+    document.addEventListener('input', function(e) {
+        var el = e.target;
+        if (!el || el.id !== 'usuario') return;
+        var limpo = el.value.toLowerCase().replace(/\s+/g, '');
+        if (limpo !== el.value) el.value = limpo;
+    });
+</script>
