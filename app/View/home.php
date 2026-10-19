@@ -1,6 +1,12 @@
 <?php
 
 use App\Service\AuthService;
+
+/** @var string $msgDia 
+ * @var string $usuario
+ * @var array $slides
+*/
+
 ?>
 <?php if (!empty($msgDia)): ?>
     <div class="modal" id="modal-mensagem-dia" style="display:flex">
@@ -32,15 +38,16 @@ use App\Service\AuthService;
             <?php foreach ($slides as $i => $slide): ?>
                 <div class="carousel-slide <?= $i === 0 ? 'active' : '' ?>" data-slide="<?= $i ?>">
                     <?php $link = $slide['link'] ?? null; ?>
-                    <?php if ($link): ?>
+                    <?php $wrapLink = $link !== null && $slide['tipo'] !== 'video'; ?>
+                    <?php if ($wrapLink): ?>
                         <a href="<?= htmlspecialchars($link) ?>" class="carousel-slide-link" target="_blank" rel="noopener">
                     <?php endif; ?>
                     <?php if ($slide['tipo'] === 'video'): ?>
-                        <video src="<?= $slide['url'] ?>" controls muted playsinline></video>
+                        <video src="<?= $slide['url'] ?>" controls muted playsinline preload="metadata"></video>
                     <?php else: ?>
                         <img src="<?= $slide['url'] ?>" alt="Slide <?= $i + 1 ?>">
                     <?php endif; ?>
-                    <?php if ($link): ?>
+                    <?php if ($wrapLink): ?>
                         </a>
                     <?php endif; ?>
                 </div>

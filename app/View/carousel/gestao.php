@@ -1,3 +1,9 @@
+<?php
+/** @var string $msgDia 
+ * @var string $usuario
+ * @var array $slides
+*/
+?>
 <div class="header-bar">
     <a href="#" class="btn-novo" data-modal-open="modal-novo-slide"><i class="fa-solid fa-plus"></i> Novo slide</a>
     <a href="/" class="btn-novo btn-novo-outline"><i class="fa-solid fa-eye"></i> Visualização</a>
@@ -81,7 +87,7 @@
 
 <?php ob_start(); ?>
     <form method="POST" action="/carousel/salvar" enctype="multipart/form-data" class="doc-upload-form">
-        <label>Arquivo (imagem ou vídeo, máx. 100 MB):
+        <label>Arquivo (imagem ou vídeo, máx. 20 MB):
             <input type="file" name="slideArquivo" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov" required>
         </label>
         <label>Data de início (opcional):

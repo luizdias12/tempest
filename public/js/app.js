@@ -153,6 +153,12 @@ document.addEventListener('DOMContentLoaded', function() {
             current = (index + slides.length) % slides.length;
             slides.forEach(function(slide, i) {
                 slide.classList.toggle('active', i === current);
+
+                var video = slide.querySelector('video');
+                if (video && !video.paused) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
             });
             indicators.forEach(function(ind, i) {
                 ind.classList.toggle('active', i === current);

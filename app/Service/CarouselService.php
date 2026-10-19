@@ -7,8 +7,19 @@ use RuntimeException;
 
 class CarouselService
 {
-    public const MAX_SIZE = 104857600;
-
+    /**
+     *
+     * MAX_SIZE
+     * 100 MB = 104857600 bytes
+     * 50 MB = 52428800 bytes
+     * 30 MB = 31457280 bytes
+     * 20 MB = 20971520 bytes
+     * 10 MB = 10485760 bytes
+     * 5 MB = 5242880 bytes
+     * 2 MB = 2097152 bytes
+     */
+    public const MAX_SIZE = 20971520; // 20 MB
+    
     private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'];
 
     public static function slidesAtivos(): array
@@ -82,7 +93,7 @@ class CarouselService
         }
 
         if ((int) ($file['size'] ?? 0) > self::MAX_SIZE) {
-            throw new RuntimeException('Tamanho máximo do arquivo deve ser de 100 MB.');
+            throw new RuntimeException('Tamanho máximo do arquivo deve ser de 20 MB.');
         }
 
         $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));

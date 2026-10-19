@@ -207,6 +207,7 @@ class HelpdeskDashboardModel
             LEFT JOIN func f ON f.cpf = h.id_resp
             LEFT JOIN func_externo fe ON fe.cpf = h.id_resp
             WHERE h.status NOT IN (" . self::LISTA_FECHADOS . ")
+            AND IFNULL(h.id_resp, 0) > 0
             GROUP BY COALESCE(f.nome, fe.nome, 'Sem responsável')
             ORDER BY total DESC, responsavel ASC
             LIMIT {$limite}

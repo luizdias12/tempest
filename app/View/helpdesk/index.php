@@ -959,6 +959,8 @@ ob_start();
     setInterval(function() {
         if (document.hidden) return;
         var modaisAbertos = document.querySelectorAll('.modal');
+        var sidebarAberto = document.querySelector('.sidebar') && document.querySelector('.sidebar').classList.contains('sidebar--open');
+        if (sidebarAberto) return;
         for (var i = 0; i < modaisAbertos.length; i++) {
             if (modaisAbertos[i].style.display === 'flex') return;
         }
