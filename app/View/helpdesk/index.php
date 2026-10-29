@@ -26,6 +26,8 @@ use App\Service\HelpHistoricoService;
  * @var int $open
  */
 
+// dumper($grupos);
+
 ?>
 
 <div class="header-bar">
@@ -64,7 +66,7 @@ use App\Service\HelpHistoricoService;
         <?php endif; ?>
         <?php if ($isSuporte): ?>
             <label for="tecnico">Tecnico:</label>
-            <?php if (!empty($tecnicos = HelpdeskService::listarResponsaveis())): ?>   
+            <?php if (!empty($tecnicos = HelpdeskService::listarResponsaveis())): ?>
                 <?php component('select', [
                     'id' => 'tecnico',
                     'name' => 'tecnico',
@@ -87,7 +89,7 @@ use App\Service\HelpHistoricoService;
         <button type="submit">Filtrar</button>
 
         <?php
-        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local) || !empty($meus) || !empty($tecnico) ||!empty($openbyme)): ?>
+        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local) || !empty($meus) || !empty($tecnico) || !empty($openbyme)): ?>
             <a href="?" class="btn-clear">Limpar filtro</a>
         <?php endif; ?>
     </form>
@@ -274,7 +276,11 @@ ob_start();
                 <select name="idgrupo" data-field="idgrupo" <?= !$isSuporte ? "disabled" : "" ?>>
                     <option value="">Selecione o grupo</option>
                     <?php foreach ($grupos as $grupo): ?>
-                        <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
+                        <?php if ($grupo['id_grupo'] === 13): ?>
+                            <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>" disabled><?= htmlspecialchars($grupo['descricao'] . "(Somente Integração)") ?></option>
+                        <?php else: ?>
+                            <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -318,9 +324,9 @@ ob_start();
             <input type="file" name="helpAttach" accept=".jpg,.jpeg,.png,.bmp,.gif,.webp,.pdf,.xls,.xlsx,.doc,.docx">
         </label>
         <?php if ($isSuporte): ?>
-        <label class="privado-toggle">
-            <input type="checkbox" name="privado" value="1"> Interação privada <span class="privado-hint">(visível apenas para você e o suporte)</span>
-        </label>
+            <label class="privado-toggle">
+                <input type="checkbox" name="privado" value="1"> Interação privada <span class="privado-hint">(visível apenas para você e o suporte)</span>
+            </label>
         <?php endif; ?>
         <button type="submit" class="btn">Registrar histórico</button>
     </form>
@@ -379,7 +385,11 @@ ob_start();
             <select name="idgrupo" id="novo-idgrupo" required>
                 <option value="">Selecione o grupo</option>
                 <?php foreach ($grupos as $grupo): ?>
-                    <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
+                    <?php if ($grupo['id_grupo'] === 13): ?>
+                        <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>" disabled><?= htmlspecialchars($grupo['descricao'] . "(Somente Integração)") ?></option>
+                    <?php else: ?>
+                        <option value="<?= htmlspecialchars($grupo['id_grupo']) ?>"><?= htmlspecialchars($grupo['descricao']) ?></option>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </select>
         </label>

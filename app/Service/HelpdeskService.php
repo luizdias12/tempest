@@ -304,4 +304,9 @@ class HelpdeskService
             'emails_erro' => $emailsErro,
         ];
     }
+
+    public static function obterContagemHistUsuario(int $idHelp): int
+    {
+        return HelpdeskModel::obterContagemHistUsuario($idHelp);
+    }
 }

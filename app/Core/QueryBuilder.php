@@ -262,6 +262,11 @@ class QueryBuilder
         throw new ApiException($message, $statusCode, $details);
     }
 
+    public function count(): int
+    {
+        return (int) DB::first($this->toCountSql(), $this->params, $this->connection)['total'];
+    }
+
     public function paginate(int $page = 1, int $limit = 10): array
     {
         $page = max(1, $page);

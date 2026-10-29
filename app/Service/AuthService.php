@@ -513,7 +513,7 @@ class AuthService
     public static function canManageComercial(): bool
     {
         return self::hasPermission('ti')
-            || self::getUserCpf() == '14224326612';
+            || self::getUserCpf() == '13262194646';
     }
 
     public static function isOwner(): bool

@@ -37,7 +37,7 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
             <a href="/"><i class="fa-solid fa-house"></i> Início</a>
             <a href="/funcionarios/aniversariantes"><i class="fa-solid fa-cake-candles"></i> Aniversariantes</a>
             <a href="/contatos"><i class="fa-solid fa-address-book"></i> Contatos</a>
-            <a href="/chat"><i class="fa-solid fa-comments"></i> Chat (Em Teste)<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
+            <a href="/chat"><i class="fa-solid fa-comments"></i> Chat<span class="chat-badge" id="chatNotifBadge" hidden></span></a>
             <a href="/regional"><i class="fa-solid fa-map-location-dot"></i> Regionais</a>
             <a href="/comercial"><i class="fa-solid fa-calendar-days"></i> Escala Comercial</a>
         </div>

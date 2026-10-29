@@ -71,8 +71,15 @@ class HelpdeskController extends BaseController
                 }
 
                 try {
-                    $slaHoras = (float) preg_replace('/\D/', '', $chamado['sla'] ?? '');
-                    $slaHoras = $slaHoras > 0 ? $slaHoras : 24;
+
+                    $statusAtual = HelpdeskService::obterStatus((int) $chamado['id']);
+                    
+                    if ($statusAtual === 'PU') {
+                        $slaHoras = 48;
+                    } else {
+                        $slaHoras = (float) preg_replace('/\D/', '', $chamado['sla'] ?? '');
+                        $slaHoras = $slaHoras > 0 ? $slaHoras : 24;
+                    }
 
                     $decorrido = businessHoursBetween($dataRef);
                     $pct = (int) round($decorrido / $slaHoras * 100);
@@ -151,6 +158,8 @@ class HelpdeskController extends BaseController
 
             $statusAtual = HelpdeskService::obterStatus($id);
 
+            $contaHist = HelpdeskService::obterContagemHistUsuario($id);
+
             $statusValue = $request->post('status');
             $respValue = $request->post('id_resp');
 
@@ -173,6 +182,10 @@ class HelpdeskController extends BaseController
             }
 
             if ($statusValue !== null && $statusValue !== '') {
+                if($statusValue === 'PU' && $contaHist === 0) {
+                    $responder(false, 'Não é possível alterar o status para "Pendente Usuário" sem que haja interações registradas.');
+                    return;
+                }
                 $data['status'] = $statusValue;
                 $data['dt_solucao'] = in_array($statusValue, ['R', 'C'], true) ? date('Y-m-d H:i:s') : null;
             }

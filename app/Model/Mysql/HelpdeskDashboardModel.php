@@ -44,6 +44,7 @@ class HelpdeskDashboardModel
     private const LISTA_NAO_INICIADO = "'A'";
     private const LISTA_EM_ATENDIMENTO = "'EA','D'";
     private const LISTA_AGUARDANDO = "'E','PS','PU','ST'";
+    private const LISTA_SUPORTE = "'E','PS','ST'";
 
     /** Quantos dias um chamado aberto pode ficar antes de contar como envelhecido. */
     public const DIAS_ENVELHECIDO = 7;
@@ -61,8 +62,9 @@ class HelpdeskDashboardModel
                 SUM(CASE WHEN h.status IN (" . self::LISTA_NAO_INICIADO . ") THEN 1 ELSE 0 END) AS nao_iniciados,
                 SUM(CASE WHEN h.status IN (" . self::LISTA_EM_ATENDIMENTO . ") THEN 1 ELSE 0 END) AS em_atendimento,
                 SUM(CASE WHEN h.status IN (" . self::LISTA_AGUARDANDO . ") THEN 1 ELSE 0 END) AS aguardando_terceiros,
-                SUM(CASE WHEN h.status NOT IN (" . self::LISTA_FECHADOS . ")
-                    AND h.dt_abertura < (NOW() - INTERVAL " . self::DIAS_ENVELHECIDO . " DAY) THEN 1 ELSE 0 END) AS envelhecidos,
+                SUM(CASE WHEN h.status IN (" . self::LISTA_SUPORTE . ")
+                    AND (SELECT MAX(hh.data_hist) FROM help_hist hh WHERE hh.id_help = h.id AND hh.id_usu = h.cpf_ab)
+                    < NOW() - INTERVAL " . self::DIAS_ENVELHECIDO . " DAY THEN 1 ELSE 0 END) AS envelhecidos,
                 SUM(CASE WHEN h.status = 'R' AND h.dt_solucao BETWEEN :res_de AND :res_ate THEN 1 ELSE 0 END) AS resolvidos,
                 SUM(CASE WHEN h.status = 'C' AND h.dt_solucao BETWEEN :can_de AND :can_ate THEN 1 ELSE 0 END) AS cancelados,
                 AVG(CASE WHEN h.status = 'R' AND h.dt_solucao BETWEEN :tempo_de AND :tempo_ate

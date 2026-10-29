@@ -313,4 +313,14 @@ class HelpdeskModel
             FROM helpdesk h
             WHERE h.status = 'PU'", [], 'mysql');
     }
+
+    public static function obterContagemHistUsuario(int $idHelp): int
+    {
+        return QueryBuilder::table('help_hist hh', 'mysql')
+            ->join('helpdesk h', 'h.id', '=', 'hh.id_help')
+            ->where('hh.id_help', $idHelp)
+            ->where('hh.status', '<>', 'A')
+            ->where('hh.id_usu', '<>', 'h.cpf_ab')
+            ->count();
+    }
 }

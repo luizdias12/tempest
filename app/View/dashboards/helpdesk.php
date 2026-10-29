@@ -46,7 +46,7 @@ $kpis = $dados['kpis'];
     <div class="dash-card dash-card-warn">
         <span class="dash-card-label">Parados há <?= (int) $dados['dias_envelhecido'] ?>+ dias</span>
         <strong class="dash-card-value"><?= number_format($kpis['envelhecidos'], 0, ',', '.') ?></strong>
-        <small class="dash-card-foot">Abertos e sem movimentação</small>
+        <small class="dash-card-foot">Em atendimento e sem movimentação</small>
     </div>
     <div class="dash-card">
         <span class="dash-card-label">Resolvidos no período</span>
