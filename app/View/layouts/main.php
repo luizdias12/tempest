@@ -11,6 +11,12 @@
 </head>
 <body>
 
+    <?php
+        /**
+         * @var mixed $content
+         */
+    ?>
+
     <?php partial('sidebar'); ?>
     <?php partial('header', ['title' => $title ?? '嵐']); ?>
 

@@ -1,3 +1,16 @@
+<?php
+
+/**
+ * @var array $funcionario
+ * @var string $chapa
+ * @var int $mescomp
+ * @var int $anocomp
+ * @var int $periodo
+ * @var array|null $totaisHolerite
+ */
+
+?>
+
 <div class="holerite-info">
     <p><strong>Funcionário:</strong> <?= htmlspecialchars($funcionario['nome'] ?? '') ?></p>
     <p><strong>Chapa:</strong> <?= htmlspecialchars($chapa) ?></p>

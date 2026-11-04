@@ -205,4 +205,73 @@ document.addEventListener('DOMContentLoaded', function() {
 
         startAutoplay();
     }
+
+    //Filter Forms
+
+  document.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (!form || !form.classList || !form.classList.contains("filter-form"))
+      return;
+
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.dataset.originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML =
+        '<span class="btn-spinner" aria-hidden="true"></span> Filtrando...';
+    }
+
+    var wrapper = document.querySelector(".table-wrapper");
+    if (wrapper) {
+      wrapper.classList.add("is-loading");
+      wrapper.setAttribute("aria-busy", "true");
+    }
+  });
+
+  window.addEventListener("pageshow", function () {
+    document
+      .querySelectorAll('.filter-form button[type="submit"]')
+      .forEach(function (btn) {
+        if (btn.dataset.originalHtml === undefined) return;
+        btn.disabled = false;
+        btn.innerHTML = btn.dataset.originalHtml;
+        delete btn.dataset.originalHtml;
+      });
+
+    document
+      .querySelectorAll(".table-wrapper.is-loading")
+      .forEach(function (el) {
+        el.classList.remove("is-loading");
+        el.removeAttribute("aria-busy");
+      });
+  });
+
+  // Pagination limit select
+  document
+    .querySelectorAll(".pagination-limit-select")
+    .forEach(function (select) {
+      select.addEventListener("change", function () {
+        var form = document.getElementsByClassName("filter-form")[0];
+        if (!form || !form.classList || !form.classList.contains("filter-form"))
+          return;
+
+        var url = this.value;
+        if (url) {
+          window.location.href = url;
+          var btn = form.querySelector('button[type="submit"]');
+          if (btn) {
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML =
+              '<span class="btn-spinner" aria-hidden="true"></span> Filtrando...';
+          }
+
+          var wrapper = document.querySelector(".table-wrapper");
+          if (wrapper) {
+            wrapper.classList.add("is-loading");
+            wrapper.setAttribute("aria-busy", "true");
+          }
+        }
+      });
+    });
 });

@@ -2,6 +2,15 @@
 
 use App\Service\AuthService;
 use App\Service\DocService;
+
+/**
+ * @var array $documentos
+ * @var array $diretorios
+ * @var array $subdiretorios
+ * @var array $funcoes
+ * @var array $permissoes
+ * @var array $versoes
+ */
 ?>
 
 <div class="header-bar">

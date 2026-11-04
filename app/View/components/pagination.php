@@ -5,8 +5,21 @@ $limit = max(1, (int) ($meta['limit'] ?? 10));
 $totalPages = max(1, (int) ($meta['totalPages'] ?? 1));
 $extraQuery = $extraQuery ?? [];
 
+$limits = [10, 20, 30, 50, 100];
+
+if (!in_array($limit, $limits, true)) {
+    $limits[] = $limit;
+    sort($limits);
+}
+
 $page = min($page, $totalPages);
-$url = static fn(int $page) => buildPaginationUrl($page, null, $extraQuery);
+// $url = static fn(int $page) => buildPaginationUrl($page, null, $extraQuery);
+$url = static fn(int $page, ?int $limit = null) =>
+buildPaginationUrl(
+    $page,
+    null,
+    array_merge($extraQuery, $limit !== null ? ['limit' => $limit] : [])
+);
 
 if ($totalPages <= 1) {
     return;
@@ -24,6 +37,25 @@ $endItem = min($page * $limit, $total);
         </div>
         <?php return; ?>
     <?php endif; ?>
+
+    <div class="pagination-controls">
+        <div class="pagination-limit">
+            <label for="pagination-limit">Exibir</label>
+
+            <select
+                id="pagination-limit" class="pagination-limit-select">
+                <?php foreach ($limits as $value): ?>
+                    <option
+                        value="<?= $url(1, $value) ?>"
+                        <?= $limit === $value ? 'selected' : '' ?>>
+                        <?= $value ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <span>registros</span>
+        </div>
+    </div>
 
     <div class="pagination-info">
         Exibindo <?= $startItem ?> – <?= $endItem ?> de <?= $total ?> resultados

@@ -226,9 +226,35 @@ h1, h2, h3 {
 }
 
 .table-wrapper {
-    overflow-x: auto;
+    position: relative;
+    overflow: visible;
     border-radius: 12px;
     margin-bottom: 20px;
+}
+
+.table-wrapper.is-loading::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    border-radius: 12px;
+    z-index: 5;
+}
+
+.table-wrapper.is-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    border: 3px solid rgba(255, 255, 255, 0.25);
+    border-top-color: var(--color-yellow-p);
+    border-radius: 50%;
+    animation: btn-spin 0.8s linear infinite;
+    z-index: 6;
 }
 
 .table-proventos table {
@@ -998,6 +1024,34 @@ td.valor {
 
 .pagination-dots {
     color: #f1f1f1;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pagination-limit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.pagination-limit select {
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f1f1;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    min-width: 60px;
+    appearance: auto;
 }
 
 @media (max-width: 768px) {
