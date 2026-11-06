@@ -44,87 +44,89 @@
     </form>
 </div>
 
-<?php if ($totaisHolerite !== null): ?>
+<div class="holerite-wrapper">
 
-    <div class="holerite-info">
-        <p><strong>Período:</strong> <?= str_pad($mescomp, 2, '0', STR_PAD_LEFT) ?>/<?= $anocomp ?> - <?= $periodo == 2 ? '13º Salário' : 'Folha Mensal' ?></p>
-    </div>
+    <?php if ($totaisHolerite !== null): ?>
 
-    <?php if (!empty($totaisHolerite['proventos'])): ?>
-        <div class="table-wrapper table-proventos" style="margin-top: 1.5rem;">
-            <h3 class="header-proventos">Proventos</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($totaisHolerite['proventos'] as $prov): ?>
+        <div class="holerite-info">
+            <p><strong>Período:</strong> <?= str_pad($mescomp, 2, '0', STR_PAD_LEFT) ?>/<?= $anocomp ?> - <?= $periodo == 2 ? '13º Salário' : 'Folha Mensal' ?></p>
+        </div>
+
+        <?php if (!empty($totaisHolerite['proventos'])): ?>
+            <div class="table-wrapper table-proventos">
+                <h3 class="header-proventos">Proventos</h3>
+                <table>
+                    <thead>
                         <tr>
-                            <td><?= htmlspecialchars($prov['codevento']) ?></td>
-                            <td><?= htmlspecialchars($prov['descricao']) ?></td>
-                            <td class="valor"><?= number_format((float)$prov['valor'], 2, ',', '.') ?></td>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-                <tfoot>
-                    <tr class="total-row">
-                        <td colspan="2"><strong>Total de Proventos</strong></td>
-                        <td class="valor"><strong><?= number_format($totaisHolerite['total_proventos'], 2, ',', '.') ?></strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    <?php endif; ?>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($totaisHolerite['proventos'] as $prov): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($prov['codevento']) ?></td>
+                                <td><?= htmlspecialchars($prov['descricao']) ?></td>
+                                <td class="valor"><?= number_format((float)$prov['valor'], 2, ',', '.') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="2"><strong>Total de Proventos</strong></td>
+                            <td class="valor"><strong><?= number_format($totaisHolerite['total_proventos'], 2, ',', '.') ?></strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        <?php endif; ?>
 
-    <?php if (!empty($totaisHolerite['decontos'])): ?>
-        <div class="table-wrapper table-descontos" style="margin-top: 1.5rem;">
-            <h3 class="header-descontos">Descontos</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($totaisHolerite['decontos'] as $desc): ?>
+        <?php if (!empty($totaisHolerite['decontos'])): ?>
+            <div class="table-wrapper table-descontos" style="margin-top: 1.5rem;">
+                <h3 class="header-descontos">Descontos</h3>
+                <table>
+                    <thead>
                         <tr>
-                            <td><?= htmlspecialchars($desc['codevento']) ?></td>
-                            <td><?= htmlspecialchars($desc['descricao']) ?></td>
-                            <td class="valor"><?= number_format((float)$desc['valor'], 2, ',', '.') ?></td>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-                <tfoot>
-                    <tr class="total-row">
-                        <td colspan="2"><strong>Total de Descontos</strong></td>
-                        <td class="valor"><strong><?= number_format($totaisHolerite['total_descontos'], 2, ',', '.') ?></strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    <?php endif; ?>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($totaisHolerite['decontos'] as $desc): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($desc['codevento']) ?></td>
+                                <td><?= htmlspecialchars($desc['descricao']) ?></td>
+                                <td class="valor"><?= number_format((float)$desc['valor'], 2, ',', '.') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="2"><strong>Total de Descontos</strong></td>
+                            <td class="valor"><strong><?= number_format($totaisHolerite['total_descontos'], 2, ',', '.') ?></strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        <?php endif; ?>
 
-    <div class="holerite-resumo" style="margin: 1.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
-        <div class="resumo-card">
-            <strong>FGTS Depositado</strong>
-            <span class="valor-destaque">R$ <?= number_format($totaisHolerite['valor_fgts'], 2, ',', '.') ?></span>
+        <div class="holerite-resumo" style="margin: 1.5rem 0; display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div class="resumo-card">
+                <strong>FGTS Depositado</strong>
+                <span class="valor-destaque">R$ <?= number_format($totaisHolerite['valor_fgts'], 2, ',', '.') ?></span>
+            </div>
+            <div class="resumo-card">
+                <strong>Valor Líquido</strong>
+                <span class="valor-destaque">R$ <?= number_format($totaisHolerite['valor_liquido'], 2, ',', '.') ?></span>
+            </div>
         </div>
-        <div class="resumo-card">
-            <strong>Valor Líquido</strong>
-            <span class="valor-destaque">R$ <?= number_format($totaisHolerite['valor_liquido'], 2, ',', '.') ?></span>
+
+        <div class="holerite-pdf-button">
+            <a class="btn-download" target="_blank" href="/financ/holerite/pdf?mescomp=<?= $mescomp ?>&anocomp=<?= $anocomp ?>&periodo=<?= $periodo ?>">
+                <i class="fa-solid fa-file-pdf"></i> Gerar PDF
+            </a>
         </div>
-    </div>
-
-    <div class="holerite-pdf-button">
-        <a class="btn-download" target="_blank" href="/financ/holerite/pdf?mescomp=<?= $mescomp ?>&anocomp=<?= $anocomp ?>&periodo=<?= $periodo ?>">
-            <i class="fa-solid fa-file-pdf"></i> Gerar PDF
-        </a>
-    </div>
-
+</div>
 <?php endif; ?>

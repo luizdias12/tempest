@@ -95,10 +95,10 @@ h1, h2, h3 {
 
 .container {
     min-height: calc(100vh - 18rem); /* altura da tela - header/footer */
-    /* display: flex; */
-    /* flex-direction: column; */
-    align-items: center;   /* vertical */
-    justify-content: center; /* horizontal */
+    /* display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; */
     padding: 10px 0;
 }
 
@@ -255,6 +255,16 @@ h1, h2, h3 {
     border-radius: 50%;
     animation: btn-spin 0.8s linear infinite;
     z-index: 6;
+}
+
+.table-wrapper.table-proventos {
+    width: 80%;
+    margin-top: 1.5rem;
+}
+
+.table-wrapper.table-descontos {
+    width: 80%;
+    margin-top: 1.5rem;
 }
 
 .table-proventos table {
@@ -457,6 +467,13 @@ td.valor {
     font-size: 0.9rem;
     border-top: 3px solid rgba(131, 230, 230, 0.3);
     padding: 10px;
+}
+
+.holerite-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 1.5rem;
 }
 
 .holerite-info {

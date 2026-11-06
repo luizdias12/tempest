@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.dataset.originalHtml = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML =
-        '<span class="btn-spinner" aria-hidden="true"></span> Filtrando...';
+        '<span class="btn-spinner" aria-hidden="true"></span> Carregando...';
     }
 
     var wrapper = document.querySelector(".table-wrapper");
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.dataset.originalHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML =
-              '<span class="btn-spinner" aria-hidden="true"></span> Filtrando...';
+              '<span class="btn-spinner" aria-hidden="true"></span> Carregando...';
           }
 
           var wrapper = document.querySelector(".table-wrapper");
