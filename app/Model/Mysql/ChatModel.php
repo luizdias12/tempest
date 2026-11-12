@@ -509,13 +509,13 @@ class ChatModel
 
     public static function contatos(string $termo, string $cpfExcluir, int $limite = 20): array
     {
-        $sql = "SELECT f.cpf, f.nome, f.codfilial, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto
+        $sql = "SELECT f.cpf, COALESCE(NULLIF(TRIM(f.nomesocial), ''), f.nome) AS nome, f.codfilial, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto
             FROM func f
             LEFT JOIN filial fi ON fi.codgfilial = f.codfilial
             LEFT JOIN usuarios u ON u.cpf = f.cpf
             LEFT JOIN setor s ON s.id = u.id_setor
-            WHERE f.codsituacao = 'A' AND f.cpf <> :cpf AND f.nome LIKE :termo
-            ORDER BY f.nome ASC";
+            WHERE f.codsituacao = 'A' AND f.cpf <> :cpf AND (f.nome LIKE :termo OR f.nomesocial LIKE :termo)
+            ORDER BY COALESCE(NULLIF(TRIM(f.nomesocial), ''), f.nome) ASC";
 
         if ($limite > 0) {
             $sql .= ' LIMIT ' . (int) $limite;

@@ -54,6 +54,7 @@ use App\Core\Logger;
                 <th scope="col">Pessoa</th>
                 <th scope="col">Chapa</th>
                 <th scope="col">Nome</th>
+                <th scope="col">Nome Social</th>
                 <th scope="col">Data de Nascimento</th>
                 <th scope="col">CPF</th>
                 <th scope="col">RG</th>
@@ -72,6 +73,7 @@ use App\Core\Logger;
                     <td><?= $usuario['codpessoa'] ?></td>
                     <td><?= !empty($usuario['chapa']) ? $usuario['chapa'] : '-' ?></td>
                     <td><?= (initcap($usuario['nome'] ?? '')) ?></td>
+                    <td><?= (initcap($usuario['nomesocial'] ?? '')) ?></td>
                     <td><?= $usuario['dtnascimento'] ?></td>
                     <td><?= !empty($usuario['cpf']) ? maskCpf($usuario['cpf']) : '-' ?></td>
                     <td><?= $usuario['cartidentidade'] ?></td>

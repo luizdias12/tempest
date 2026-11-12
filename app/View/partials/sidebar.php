@@ -4,6 +4,7 @@ use App\Service\AuthService;
 use App\Service\UsuarioService;
 
 $user = AuthService::getUser();
+$nome = trim($user['nomesocial'] ?? '') ?: $user['name'];
 $isSuporte = AuthService::hasPermission('ti');
 $isProcesso = AuthService::hasPermission('gestao de processos');
 
@@ -19,13 +20,13 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                 <div class="sidebar-user-avatar">
                     <?php $foto = UsuarioService::getFoto($user['cpf'] ?? ''); ?>
                     <?php if ($foto): ?>
-                        <img src="<?= asset('assets/fotos/' . rawurlencode($foto)) ?>" alt="Foto de <?= htmlspecialchars($user['name']) ?>">
+                        <img src="<?= asset('assets/fotos/' . rawurlencode($foto)) ?>" alt="Foto de <?= htmlspecialchars($nome) ?>">
                     <?php else: ?>
                         <i class="fa-solid fa-circle-user"></i>
                     <?php endif; ?>
                 </div>
                 <div class="sidebar-user-details">
-                    <span class="sidebar-user-name"><?= initcap(htmlspecialchars($user['name'])) ?></span>
+                    <span class="sidebar-user-name"><?= initcap(htmlspecialchars($nome)) ?></span>
                     <span class="sidebar-user-badge"><?= $isSuporte ? '<i class="fa-solid fa-user-shield"></i> Suporte' : '<i class="fa-solid fa-user"></i> Usuário' ?></span>
                     <span class="sidebar-user-badge"><i class="fa-solid fa-id-card-clip"></i> <?= initcap(htmlspecialchars($user['secao'] ?? '')) ?></span>
                 </div>

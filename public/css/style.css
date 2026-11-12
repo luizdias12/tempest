@@ -1471,6 +1471,24 @@ td.valor {
     transition: border-color 0.2s ease;
 }
 
+.perfil-form input[type="file"]::file-selector-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(131, 230, 230, 0.2);
+    color: #83e6e6;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    margin-right: 8px;
+    font-family: inherit;
+    transition: background 0.2s ease;
+}
+
+.perfil-form input[type="file"]::file-selector-button:hover {
+    background: rgba(131, 230, 230, 0.35);
+}
+
 .perfil-form input:focus,
 .perfil-form select:focus {
     border-color: #83e6e6;
@@ -1484,6 +1502,21 @@ td.valor {
 .perfil-form button {
     margin-top: 14px;
     justify-content: center;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #83e6e6;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-family: inherit;
+}
+
+.perfil-form button:hover {
+    background: #479191;
+    color: #f1f1f1;
 }
 
 .login-container {
@@ -4606,10 +4639,10 @@ td.valor {
 }
 
 .dash-card {
-    background: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(45deg, #134e5e, #09424F, #0f172a 90% 100%);
     backdrop-filter: blur(0.88rem);
     -webkit-backdrop-filter: blur(0.88rem);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    /* border: 1px solid rgba(255, 255, 255, 0.3); */
     border-radius: 12px;
     padding: 1rem 1.25rem;
     display: flex;
@@ -4621,7 +4654,7 @@ td.valor {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    color: #94a3b8;
+    color: #C1C7D6;
 }
 
 .dash-card-value {
@@ -4632,15 +4665,17 @@ td.valor {
 
 .dash-card-foot {
     font-size: 12px;
-    color: #7c8798;
+    color: #C1C7D6;
 }
 
 .dash-card-warn {
-    border-color: rgba(217, 131, 36, 0.6);
+    border-color: rgba(174, 105, 29, 0.6);
+    background: linear-gradient(45deg, #BA8B02, #826207, #0f172a 90% 100%);
 }
 
-.dash-card-warn .dash-card-value {
-    color: #e8a44f;
+.dash-card-open {
+    border-color: rgba(119, 119, 135, 0.6);
+    background: linear-gradient(45deg, #76798a, #3f435c, #0f172a 90% 100%);
 }
 
 @media only screen and (min-width: 1367px) {

@@ -129,7 +129,7 @@ use App\Service\HelpHistoricoService;
 
                 <tr data-row
                     data-id="<?= htmlspecialchars($chamado['id']) ?>"
-                    data-nome="<?= htmlspecialchars($chamado['nome']) ?>"
+                    data-nome="<?= htmlspecialchars($chamado['nomesocial'] ?? $chamado['nome']) ?>"
                     data-funcao="<?= htmlspecialchars($chamado['funcao']) ?>"
                     data-chapa="<?= htmlspecialchars($chamado['chapa']) ?>"
                     data-dt-abertura="<?= htmlspecialchars(!empty($chamado['dt_abertura']) ? date('d-m-Y H:i', strtotime($chamado['dt_abertura'])) : '-') ?>"
@@ -160,7 +160,7 @@ use App\Service\HelpHistoricoService;
                     </td>
                     <td><a href="#" class="chamado-id" data-modal-open="modal-chamado"><?= $chamado['id'] ?></a></td>
                     <td><span class="mini-badge badge-new"><?= $new !== '' ? $new : $updated ?></span></td>
-                    <td><?= (initcap($chamado['nome'])) ?></td>
+                    <td><?= !empty($chamado['nomesocial']) ? $chamado['nomesocial'] : $chamado['nome'] ?></td>
                     <td><?= !empty($chamado['dt_abertura']) ? date('d-m-Y H:i', strtotime($chamado['dt_abertura'])) : '-' ?></td>
                     <td><?= !empty($chamado['dt_solucao']) ? date('d-m-Y H:i', strtotime($chamado['dt_solucao'])) : '-' ?></td>
                     <td>

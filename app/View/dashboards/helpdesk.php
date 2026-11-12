@@ -28,7 +28,7 @@ $kpis = $dados['kpis'];
         <strong class="dash-card-value"><?= number_format($kpis['abertos'], 0, ',', '.') ?></strong>
         <small class="dash-card-foot">Fila atual, sem Resolvido/Cancelado</small>
     </div>
-    <div class="dash-card">
+    <div class="dash-card dash-card-open">
         <span class="dash-card-label">Não iniciados</span>
         <strong class="dash-card-value"><?= number_format($kpis['nao_iniciados'], 0, ',', '.') ?></strong>
         <small class="dash-card-foot">Aguardando atribuição</small>
@@ -69,9 +69,9 @@ $kpis = $dados['kpis'];
             <canvas id="dashBuckets"></canvas>
         </div>
         <ul class="dash-legend">
-            <li><span class="dash-dot" style="background:#9aa4b2"></span>Não iniciado <strong><?= number_format($buckets['nao_iniciados'], 0, ',', '.') ?></strong></li>
-            <li><span class="dash-dot" style="background:#2f6feb"></span>Em atendimento <strong><?= number_format($buckets['em_atendimento'], 0, ',', '.') ?></strong></li>
-            <li><span class="dash-dot" style="background:#d98324"></span>Aguardando suporte/usuario <strong><?= number_format($buckets['aguardando_terceiros'], 0, ',', '.') ?></strong></li>
+            <li><span class="dash-dot" style="background:#828b97"></span>Não iniciado <strong><?= number_format($buckets['nao_iniciados'], 0, ',', '.') ?></strong></li>
+            <li><span class="dash-dot" style="background:#2feb84"></span>Em atendimento <strong><?= number_format($buckets['em_atendimento'], 0, ',', '.') ?></strong></li>
+            <li><span class="dash-dot" style="background:#d96624"></span>Aguardando suporte/usuario <strong><?= number_format($buckets['aguardando_terceiros'], 0, ',', '.') ?></strong></li>
             <!-- <li><span class="dash-dot" style="background:#3f9c6d"></span>Encerrado <strong><?= number_format($buckets['encerrados'], 0, ',', '.') ?></strong></li> -->
         </ul>
     </div>

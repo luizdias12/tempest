@@ -49,7 +49,7 @@
             <?php else: ?>
                 <?php foreach ($data as $contato): ?>
                     <tr>
-                        <td><?= htmlspecialchars(initcap($contato['nome'] ?? '')) ?></td>
+                        <td><?= htmlspecialchars(initcap($contato['nomesocial'] ?? $contato['nome'])) ?></td>
                         <td>
                             <?php if (!empty($contato['email'])): ?>
                                 <a href="mailto:<?= htmlspecialchars($contato['email']) ?>" class="anexo-link"><?= htmlspecialchars($contato['email']) ?></a>

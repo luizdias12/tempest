@@ -4,8 +4,11 @@ use App\Service\AuthService;
 
 $perfil = $perfil ?? [];
 $setores = $setores ?? [];
-$nome = AuthService::getUser()['name'] ?? ($perfil['usuario'] ?? '');
+$nome = !empty(AuthService::getUser()['nomesocial']) ? AuthService::getUser()['nomesocial'] : (AuthService::getUser()['name'] ?? $perfil['usuario']);
 $cpfMasc = maskCpf($perfil['cpf'] ?? '');
+/**
+ * @var object $intervalo
+ */
 ?>
 <div class="header-bar">
     <h2 class="header_title">Meu Perfil</h2>
@@ -54,6 +57,12 @@ $cpfMasc = maskCpf($perfil['cpf'] ?? '');
                 <div class="perfil-list-item">
                     <dt>Corporativo</dt>
                     <dd><?= htmlspecialchars($perfil['corporativo']) ?></dd>
+                </div>
+            <?php endif; ?>
+            <?php if ($intervalo !== ''): ?>
+                <div class="perfil-list-item">
+                    <dt>Tempo de Casa</dt>
+                    <dd><?= htmlspecialchars($intervalo->format('%y anos, %m meses e %d dias')) ?></dd>
                 </div>
             <?php endif; ?>
         </dl>

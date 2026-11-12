@@ -18,7 +18,7 @@ class ChatController extends BaseController
             'chatUser' => [
                 'cpf' => $user['cpf'] ?? '',
                 'secao' => $user['secao'] ?? '',
-                'nome' => $user['name'] ?? '',
+                'nome' => ($user['nomesocial'] ?? $user['name']) ?? '',
             ],
         ]);
     }

@@ -61,7 +61,7 @@ $mesesNomes = [
                 <div class="content_cs">
                     <?php foreach ($usuarios as $usuario): ?>
                         <div class="pessoa_cs">
-                            <h3><?= initcap($usuario['nome'] ?? '') ?></h3>
+                            <h3><?= initcap($usuario['nomesocial'] ?? $usuario['nome']) ?></h3>
                             <h4><?= !empty($usuario['funcao']) ? initcap($usuario['funcao']) : '-' ?></h4>
                         </div>
                     <?php endforeach; ?>

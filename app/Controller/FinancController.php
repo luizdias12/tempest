@@ -69,7 +69,7 @@ class FinancController extends BaseController
             }
 
             $funcionario = [
-                'nome' => $user['name'] ?? '',
+                'nome' => trim($user['nomesocial'] ?? '') ?: $user['name'],
                 'chapa' => $chapa,
                 'codfuncao' => $user['codfuncao'] ?? '',
                 'funcao' => $user['funcao'] ?? '',

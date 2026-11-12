@@ -36,7 +36,9 @@ class ChatService
             $in = implode(',', array_fill(0, count($ids), '?'));
             $janela = OnlineModel::JANELA_ATIVIDADE_MIN;
             $participantes = DB::select(
-                "SELECT p.conversa_id, p.cpf, p.apagado_em, f.nome, COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto,
+                "SELECT p.conversa_id, p.cpf, p.apagado_em,
+                COALESCE(NULLIF(TRIM(f.nomesocial), ''), f.nome) AS nome,
+                COALESCE(fi.nome, '') AS filial, COALESCE(s.setor, '') AS setor, COALESCE(u.foto, '') AS foto,
                     CASE WHEN EXISTS (SELECT 1 FROM online o
                         WHERE o.cpf = p.cpf AND o.status = '1'
                         AND o.dt_login > (NOW() - INTERVAL {$janela} MINUTE))

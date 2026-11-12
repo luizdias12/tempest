@@ -45,6 +45,7 @@ class UsuarioModel
     {
         return QueryBuilder::table('usuarios', 'mysql')
             ->leftJoin('setor', 'setor.id', '=', 'usuarios.id_setor')
+            ->leftJoin('func f', 'f.cpf', '=', 'usuarios.cpf')
             ->select(
                 'usuarios.cpf',
                 'usuarios.usuario',
@@ -54,7 +55,8 @@ class UsuarioModel
                 'usuarios.id_setor',
                 'usuarios.filial_cad',
                 'usuarios.foto',
-                'setor.setor'
+                'setor.setor',
+                'f.dataadmissao'
             )
             ->where('usuarios.cpf', $cpf)
             ->first();
@@ -105,6 +107,6 @@ class UsuarioModel
 
     public static function redefinirSenha(string $cpf, string $senhaMd5): bool
     {
-        return DB::update('usuarios', 'cpf', $cpf, ['senha' => $senhaMd5], 'mysql');
+        return DB::update('usuarios', 'cpf', $cpf, ['senha' => $senhaMd5, 'data_alter' => date('Y-m-d H:i:s')], 'mysql');
     }
 }

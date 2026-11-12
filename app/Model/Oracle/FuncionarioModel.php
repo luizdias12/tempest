@@ -96,6 +96,7 @@ class FuncionarioModel extends DB
             ->select(
                 'f.chapa',
                 'f.nome',
+                'p.nomesocial',
                 'f.codfilial',
                 'f.codsecao',
                 'f.codfuncao',
@@ -146,6 +147,7 @@ class FuncionarioModel extends DB
                 'p.codigo as codpessoa',
                 'f.chapa',
                 'p.nome',
+                'p.nomesocial',
                 "TO_CHAR(p.dtnascimento, 'DD-MM-YYYY') as dtnascimento",
                 'p.cpf',
                 'p.cartidentidade',
@@ -181,8 +183,15 @@ class FuncionarioModel extends DB
             $query->where('f.codsituacao', $situacao);
         }
 
+        // if (!empty($nome)) {
+        //     $query->where('LOWER(p.nome)', 'LIKE', '%' . strtolower($nome) . '%');
+        // }
+
         if (!empty($nome)) {
-            $query->where('LOWER(p.nome)', 'LIKE', '%' . strtolower($nome) . '%');
+            $query->whereGroup(function ($q) use ($nome) {
+                $q->whereLike('LOWER(p.nome)', strtolower($nome))
+                    ->whereLike('LOWER(p.nomesocial)', strtolower($nome), 'OR');
+            });
         }
 
         return $query->paginate($page, $limit);
@@ -195,6 +204,7 @@ class FuncionarioModel extends DB
                 'p.codigo as codpessoa',
                 'f.chapa',
                 'p.nome',
+                'p.nomesocial',
                 "TO_CHAR(p.dtnascimento, 'YYYY-MM-DD') as dtnascimento",
                 'p.cpf',
                 'f.codfilial',

@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Core\QueryBuilder;
 use App\Model\Mysql\UsuarioModel;
 use RuntimeException;
 
@@ -96,7 +97,7 @@ class UsuarioService
             return [];
         }
 
-        $rows = \App\Core\QueryBuilder::table('usuarios', 'mysql')
+        $rows = QueryBuilder::table('usuarios', 'mysql')
             ->select('cpf', 'foto')
             ->whereIn('cpf', $cpfs)
             ->get();
@@ -163,6 +164,8 @@ class UsuarioService
 
         $data['suporte'] = ($data['id_setor'] ?? null) === 17 ? 'S' : 'N';
 
+        $data['data_alter'] = date('Y-m-d H:i:s');
+
         return UsuarioModel::atualizarPerfil($cpf, $data);
     }
 
@@ -172,7 +175,7 @@ class UsuarioService
             return false;
         }
 
-        $row = \App\Core\QueryBuilder::table('usuarios', 'mysql')
+        $row = QueryBuilder::table('usuarios', 'mysql')
             ->select('senha')
             ->where('cpf', $cpf)
             ->first();
@@ -226,6 +229,8 @@ class UsuarioService
         }
 
         $data['suporte'] = $idSetor === 17 ? 'S' : 'N';
+
+        $data['data_alter'] = date('Y-m-d H:i:s');
 
         return UsuarioModel::criar($data);
     }

@@ -14,11 +14,11 @@ class ContatoModel
         ?string $ramal,
         ?string $setor,
         ?string $filial
-    ): array
-    {
+    ): array {
         $query = QueryBuilder::table('usuarios u', 'mysql')
             ->select(
                 'f.nome',
+                'f.nomesocial',
                 'u.email',
                 'u.ramal',
                 'u.corporativo',
@@ -43,7 +43,10 @@ class ContatoModel
             });
 
         if ($nome !== null) {
-            $query->whereLike('f.nome', $nome);
+            $query->whereGroup(function ($q) use ($nome) {
+                $q->whereLike('f.nome', $nome)
+                    ->whereLike('f.nomesocial', $nome, 'OR');
+            });
         }
 
         if ($email !== null) {

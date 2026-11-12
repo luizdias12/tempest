@@ -134,6 +134,7 @@ class AuthService
                 $_SESSION['auth'] = [
                     'username' => $username,
                     'name' => $entries[0]['cn'][0] ?? $username,
+                    'nomesocial' => $func['nomesocial'] ?? '',
                     'email' => $entries[0]['mail'][0] ?? '',
                     'logged_in_at' => date('Y-m-d H:i:s'),
                     'chapa' => $func['chapa'] ?? null,

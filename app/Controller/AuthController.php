@@ -9,12 +9,15 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Model\Mysql\ContatoModel;
 use App\Service\AuthService;
+use App\Service\DateTimeService;
 use App\Service\FuncionarioService;
 use App\Service\GenericService;
 use App\Service\LogService;
 use App\Service\MessageService;
 use App\Service\OnlineService;
 use App\Service\UsuarioService;
+use RuntimeException;
+use Throwable;
 
 class AuthController extends BaseController
 {
@@ -256,7 +259,7 @@ class AuthController extends BaseController
         if (empty($funcionario) || empty($funcionario['nome'])) {
             try {
                 $externo = GenericService::buscaFuncExternoPorCpf($cpf);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Logger::exception($e);
                 $externo = [];
             }
@@ -366,10 +369,18 @@ class AuthController extends BaseController
 
         $perfil = UsuarioService::perfil($cpf) ?? [];
 
+        if ($perfil['dataadmissao'] !== null) {
+            $dataini = new \DateTime($perfil['dataadmissao']);
+            $datafim = new \DateTime(DateTimeService::today());
+
+            $intervalo = $dataini->diff($datafim);
+        }
+
         view(
             'perfil/index',
             [
                 'perfil' => $perfil,
+                'intervalo' => ($intervalo ?? ''),
                 'setores' => ContatoModel::listarSetores(),
                 'title' => 'Meu Perfil',
             ]
@@ -399,7 +410,7 @@ class AuthController extends BaseController
                 } else {
                     AlertManager::add('error', 'Não foi possível atualizar a foto.');
                 }
-            } catch (\RuntimeException $e) {
+            } catch (RuntimeException $e) {
                 AlertManager::add('error', $e->getMessage());
             }
         }

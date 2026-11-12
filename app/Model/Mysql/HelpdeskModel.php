@@ -26,6 +26,7 @@ class HelpdeskModel
                 'h.id',
                 'h.chapa',
                 'COALESCE(f.nome, fe.nome) as nome',
+                'f.nomesocial',
                 'h.dt_abertura',
                 'h.dt_solucao',
                 'h.status',
@@ -80,7 +81,15 @@ class HelpdeskModel
                 }
             })
             ->when(!empty($id), fn($q) => $q->where('h.id', $id))
-            ->when(!empty($emitente), fn($q) => $q->where('f.nome', 'LIKE', "%$emitente%"))
+            ->when(
+                !empty($emitente),
+                fn($q) =>
+                $q->whereGroup(
+                    fn($sub) =>
+                    $sub->whereLike('f.nome', $emitente)
+                        ->whereLike('f.nomesocial', $emitente, 'OR')
+                )
+            )
             ->when(!empty($status), fn($q) => $q->where('h.status', $status))
             ->when(!empty($local), fn($q) => $q->where('o.local', $local))
             ->when(!empty($idResp), fn($q) => $q->where('h.id_resp', $idResp)->whereNotNull('h.status'))
@@ -257,7 +266,7 @@ class HelpdeskModel
 
     public static function listarFuncionarios(): array
     {
-        return DB::select("SELECT f.cpf, f.nome, f.chapa, fu.nome AS funcao
+        return DB::select("SELECT f.cpf, COALESCE(NULLIF(TRIM(f.nomesocial), ''), f.nome) AS nome, f.chapa, fu.nome AS funcao
                 FROM func f
                 LEFT JOIN funcao fu ON fu.codigo = f.codfuncao
                 WHERE f.cpf IS NOT NULL AND f.cpf <> ''
@@ -270,10 +279,13 @@ class HelpdeskModel
 
     public static function obterChapaPorCpf(string $cpf): ?string
     {
-        $row = DB::first("SELECT chapa FROM func WHERE cpf = :cpf
+        $row = DB::first(
+            "SELECT chapa FROM func WHERE cpf = :cpf
                 UNION
                 SELECT chapa FROM func_externo WHERE cpf = :cpf2 LIMIT 1",
-            ['cpf' => $cpf, 'cpf2' => $cpf], 'mysql');
+            ['cpf' => $cpf, 'cpf2' => $cpf],
+            'mysql'
+        );
 
         return $row['chapa'] ?? null;
     }
