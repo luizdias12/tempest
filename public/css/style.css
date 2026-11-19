@@ -2774,6 +2774,17 @@ td.valor {
 .aniversariantes-cards .card_cs.congrats {
     background: url("../assets/images/birthday.jpg") center/cover no-repeat;
     border: 1px solid rgba(255, 193, 7, 0.6);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 15px 4px rgba(255, 193, 7, 0.65);
+    }
+
+    50% {
+        box-shadow: 0 0 3px 1px rgba(255, 193, 7, 0.15);
+    }
 }
 
 .aniversariantes-cards .card_cs .imgBx_cs {
@@ -2853,6 +2864,22 @@ td.valor {
     padding: 0.2rem;
     border-radius: 5px;
     color: #7c6723;
+}
+
+.div-aniver-hoje.title {
+    width: 100%;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.div-aniver-hoje.small {
+    background: #ddd;
+    padding: 0.2rem;
+    border-radius: 5px;
+    font-weight: 700;
+    color: #463507;
 }
 
 @media only screen and (max-width: 1366px) {

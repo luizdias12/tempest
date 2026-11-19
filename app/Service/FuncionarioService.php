@@ -67,6 +67,11 @@ class FuncionarioService
         return FuncionarioModel::aniversariantes($mes, $codfilial);
     }
 
+    public static function aniversariantesHoje(): ?array
+    {
+        return FuncionarioModel::aniversariantesHoje();
+    }
+
     public static function ti(int $page = 1, int $limit = 10): array
     {
         $page = max(1, $page);

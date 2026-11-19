@@ -76,7 +76,7 @@ class FuncionarioController extends BaseController
             ]);
         } catch (Throwable $e) {
             Logger::exception($e);
-            
+
             ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
@@ -91,12 +91,12 @@ class FuncionarioController extends BaseController
             ]);
         } catch (Throwable $e) {
             Logger::exception($e);
-            
+
             ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
-public function testeView(Request $request): void
+    public function testeView(Request $request): void
     {
         try {
 
@@ -106,14 +106,14 @@ public function testeView(Request $request): void
             ]);
         } catch (Throwable $e) {
             Logger::exception($e);
-            
+
             ErrorHandler::handle(500, $e->getMessage(), false, $e);
         }
     }
 
     public function listaView(Request $request): void
     {
-        $permitidos = ['405','0318'];
+        $permitidos = ['405', '0318'];
 
         try {
 
@@ -122,7 +122,7 @@ public function testeView(Request $request): void
 
             $result = FuncionarioService::ti($page, $limit);
 
-            if(!AuthService::hasAnyRole($permitidos)) {
+            if (!AuthService::hasAnyRole($permitidos)) {
                 ErrorHandler::handle(403, 'Acesso não permitido!', false);
                 return;
             }
@@ -144,13 +144,18 @@ public function testeView(Request $request): void
             $mes = $request->query('mes', date('n'));
             $mes = max(1, min(12, (int) $mes));
 
-            $codfilial = $request->input('filial', $request->query('filial', ''));
+            $codfilial = $request->input('filial', '');
 
-            $data = FuncionarioService::aniversariantes($mes, $codfilial ?: null);
+            $hoje = (int) $request->query('hoje', 0);
+
+            $data = $hoje > 0
+                ? FuncionarioService::aniversariantesHoje()
+                : FuncionarioService::aniversariantes($mes, $codfilial ?: null);
 
             view('funcionarios/aniversariantes', [
                 'data' => $data,
                 'mes' => $mes,
+                'hoje' => $hoje,
                 'filial' => $codfilial,
                 'title' => 'Aniversariantes'
             ]);
@@ -163,9 +168,9 @@ public function testeView(Request $request): void
 
     public function listaDownload(Request $request): void
     {
-        $permitidos = ['405','0310','0318'];
+        $permitidos = ['405', '0310', '0318'];
 
-        if(!AuthService::hasAnyRole($permitidos)) {
+        if (!AuthService::hasAnyRole($permitidos)) {
             ErrorHandler::handle(403, 'Acesso não permitido!', false);
             return;
         }
@@ -245,5 +250,4 @@ public function testeView(Request $request): void
             Response::json(['error' => 'Erro ao carregar as admissões.'], 500);
         }
     }
-
 }

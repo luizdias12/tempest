@@ -8,6 +8,6 @@ class FilialService
 {
     public static function all(): ?array
     {
-        return FilialModel::all();
+        return FilialModel::todas();
     }
 }

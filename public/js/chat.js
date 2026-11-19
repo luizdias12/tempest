@@ -85,6 +85,15 @@
         return div.innerHTML;
     }
 
+    function escAttr(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function debounce(fn, ms) {
         var t;
         return function() {
@@ -283,8 +292,8 @@
         if (m.apagado) {
             corpo = '<div class="chat-msg-apagada">\uD83D\uDDD1\uFE0F Mensagem apagada</div>';
         } else if (m.tipo === 'imagem' && m.anexo) {
-            corpo = '<a class="chat-msg-anexo-img" href="' + esc(m.anexo) + '" target="_blank" rel="noopener">' +
-                        '<img src="' + esc(m.anexo) + '" alt="' + esc(m.anexo_nome || 'imagem') + '" loading="lazy">' +
+            corpo = '<a class="chat-msg-anexo-img" href="' + escAttr(m.anexo) + '" target="_blank" rel="noopener">' +
+                        '<img src="' + escAttr(m.anexo) + '" alt="' + escAttr(m.anexo_nome || 'imagem') + '" loading="lazy">' +
                     '</a>' +
                     (m.texto ? '<div class="chat-msg-texto">' + esc(m.texto).replace(/\n/g, '<br>') + '</div>' : '');
         } else if (m.tipo === 'arquivo' && m.anexo) {
@@ -1040,6 +1049,39 @@
                 fecharCtxMenu();
             });
         }
+
+        document.addEventListener('click', function(ev) {
+            var link = ev.target.closest('.chat-msg-anexo-img');
+            if (!link) return;
+
+            var modal = document.getElementById('modal-chat-anexo');
+            if (!modal) return;
+
+            ev.preventDefault();
+
+            var href = link.getAttribute('href') || '';
+            var img = link.querySelector('img');
+            var nome = img ? (img.alt || 'Anexo') : 'Anexo';
+
+            var titulo = modal.querySelector('.modal-header h2');
+            if (titulo) titulo.textContent = nome;
+
+            var box = document.getElementById('chatAnexoPreview');
+            if (box) {
+                while (box.firstChild) box.removeChild(box.firstChild);
+
+                var preview = document.createElement('img');
+                preview.className = 'anexo-preview-img';
+                preview.src = href;
+                preview.alt = nome;
+                box.appendChild(preview);
+            }
+
+            var download = document.getElementById('chatAnexoDownload');
+            if (download) download.href = href;
+
+            modal.style.display = 'flex';
+        });
 
         document.addEventListener('visibilitychange', function() {
             if (!abaVisivel() || !estado.aberta) return;

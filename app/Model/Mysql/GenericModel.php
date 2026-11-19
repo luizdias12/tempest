@@ -75,7 +75,8 @@ class GenericModel
             e.id, e.mesref, e.comprador, f.nome, e.data, IFNULL(e.feriado, 'Sabado') as referencia
         from escalacom e
         inner join func f on f.cpf = e.comprador
-        where e.mesref = :mesref",
+        where e.mesref = :mesref
+        order by e.data asc",
         ['mesref' => $mesRef], 'mysql');
         return $escala;
     }

@@ -274,6 +274,7 @@ class AuthService
             'username' => $username,
             'sub' => $username,
             'name' => $func['nome'] ?? $username,
+            'nomesocial' => $func['nomesocial'],
             'email' => (string) ($row['email'] ?? ''),
             'logged_in_at' => date('Y-m-d H:i:s'),
             'chapa' => $func['chapa'] ?? null,

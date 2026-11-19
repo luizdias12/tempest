@@ -3,8 +3,12 @@
 use App\Service\AuthService;
 use App\Service\UsuarioService;
 
+
 $user = AuthService::getUser();
-$nome = trim($user['nomesocial'] ?? '') ?: $user['name'];
+$nomeSocial = trim($user['nomesocial'] ?? '');
+$nome = $nomeSocial !== ''
+    ? $nomeSocial
+    : $user['name'];
 $isSuporte = AuthService::hasPermission('ti');
 $isProcesso = AuthService::hasPermission('gestao de processos');
 
@@ -61,6 +65,9 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         </div>
                         <div class="sidebar-dropdown-menu">
                             <a href="/dashboards"><i class="fa-solid fa-chart-pie"></i> Dashboards</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/relatorios"><i class="fa-solid fa-chart-line"></i> Relatórios</a>
                         </div>
                         <div class="sidebar-dropdown-menu">
                             <a href="/online"><i class="fa-solid fa-users-viewfinder"></i> Usuarios Online</a>

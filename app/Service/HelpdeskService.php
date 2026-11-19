@@ -17,7 +17,9 @@ class HelpdeskService
             ?string $idMeu = null,
             ?string $tecnico = null,
             ?bool $isSuporte = false,
-            ?bool $isExterno = false
+            ?bool $isExterno = false,
+            ?string $grupo = null,
+            ?string $subgrupo = null
         ): array|null
     {
         $page = max(1, $page);
@@ -34,7 +36,9 @@ class HelpdeskService
             $idMeu,
             $tecnico,
             $isSuporte,
-            $isExterno
+            $isExterno,
+            $grupo,
+            $subgrupo
         );
     }
 

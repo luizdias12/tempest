@@ -51,6 +51,7 @@ class FuncionarioModel extends DB
             ->select(
                 'f.chapa',
                 'f.nome',
+                'p.nomesocial',
                 'f.codfilial',
                 'f.codsecao',
                 'f.codfuncao',
@@ -197,7 +198,7 @@ class FuncionarioModel extends DB
         return $query->paginate($page, $limit);
     }
 
-    public static function aniversariantes(?string $mes, ?string $codfilial = null): array
+    public static function aniversariantes(?string $mes, ?string $codfilial = null): ?array
     {
         $query = QueryBuilder::table('ppessoa p')
             ->select(
@@ -234,6 +235,39 @@ class FuncionarioModel extends DB
         } else {
             return [];
         }
+    }
+
+        public static function aniversariantesHoje(): ?array
+    {
+        $query = QueryBuilder::table('ppessoa p')
+            ->select(
+                'p.codigo as codpessoa',
+                'f.chapa',
+                'p.nome',
+                'p.nomesocial',
+                "TO_CHAR(p.dtnascimento, 'YYYY-MM-DD') as dtnascimento",
+                'p.cpf',
+                'f.codfilial',
+                'g.vilnomefilial as filial',
+                'f.codsecao',
+                's.descricao as secao',
+                'f.codfuncao',
+                'fu.nome as funcaorm',
+                'VIL_AJUSTANOME(pai.funcaopai) as funcao'
+            )
+            ->join('pfunc f', 'f.codpessoa', '=', 'p.codigo')
+            ->leftJoin('pfuncao fu', 'f.codfuncao', '=', 'fu.codigo')
+            ->leftJoin('consinco.vilrhfuncaofilho@consinco filho', 'filho.codfuncao', '=', 'f.codfuncao')
+            ->leftJoin('consinco.vilrhfuncaopai@consinco pai', 'pai.codfuncaopai', '=', 'filho.codfuncaopai')
+            ->leftJoin('psecao s', 'f.codsecao', '=', 's.codigo')
+            ->leftJoin('gfilial g', 'f.codfilial', '=', 'g.codfilial')
+            ->whereRaw("TO_CHAR(p.dtnascimento, 'MM-DD') = TO_CHAR(trunc(sysdate), 'MM-DD')")
+            ->whereNotNull('p.dtnascimento')
+            ->whereNotIn('f.codsituacao', ['D', 'L'])
+            ->orderBy('f.codfilial', 'ASC')
+            ->orderBy('p.nome', 'ASC');
+
+            return $query->get();
     }
 
     public static function dataFerias(string $chapa): ?array

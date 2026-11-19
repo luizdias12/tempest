@@ -1,4 +1,5 @@
 <?php
+
 /** @var array $dados */
 /** @var array $periodos */
 /** @var int $dias */
@@ -104,7 +105,9 @@ $kpis = $dados['kpis'];
                 </thead>
                 <tbody>
                     <?php if (empty($dados['por_status'])): ?>
-                        <tr><td colspan="2" class="historico-empty">Nenhum chamado aberto.</td></tr>
+                        <tr>
+                            <td colspan="2" class="historico-empty">Nenhum chamado aberto.</td>
+                        </tr>
                     <?php endif; ?>
                     <?php foreach ($dados['por_status'] as $item): ?>
                         <tr>
@@ -135,7 +138,9 @@ $kpis = $dados['kpis'];
                 </thead>
                 <tbody>
                     <?php if (empty($dados['mais_antigos'])): ?>
-                        <tr><td colspan="5" class="historico-empty">Nenhum chamado aberto.</td></tr>
+                        <tr>
+                            <td colspan="5" class="historico-empty">Nenhum chamado aberto.</td>
+                        </tr>
                     <?php endif; ?>
                     <?php foreach ($dados['mais_antigos'] as $item): ?>
                         <tr>
@@ -163,11 +168,26 @@ $kpis = $dados['kpis'];
 
 <script>
     window.DASHBOARD = <?= json_encode([
-        'serie' => $dados['serie'],
-        'buckets' => $buckets,
-        'por_grupo' => $dados['por_grupo'],
-        'por_responsavel' => $dados['por_responsavel'],
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+                            'serie' => $dados['serie'],
+                            'buckets' => $buckets,
+                            'por_grupo' => $dados['por_grupo'],
+                            'por_responsavel' => $dados['por_responsavel'],
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
+
+    (() => {
+        const FORM = document.querySelector('.filter-form');
+        const INTERVALO = 60 * 1000;
+
+        if (!FORM) return;
+
+        setInterval(() => {
+            if (document.visibilityState !== 'visible') return;
+
+            FORM.requestSubmit();
+        }, INTERVALO);
+    })();
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="<?= asset('js/dashboards.js') ?>"></script>

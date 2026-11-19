@@ -10,6 +10,9 @@ use App\Service\HelpHistoricoService;
  * @var array $meta
  * @var string $id
  * @var string $emitente
+ * @var string $grupo
+ * @var string $grupoF
+ * @var string $subgrupo
  * @var string $status
  * @var string $local
  * @var string $tecnico
@@ -26,7 +29,7 @@ use App\Service\HelpHistoricoService;
  * @var int $open
  */
 
-// dumper($grupos);
+// dumper($subgrupos);
 
 ?>
 
@@ -40,6 +43,31 @@ use App\Service\HelpHistoricoService;
         <input type="text" id="id" name="id" value="<?= htmlspecialchars($id ?? '') ?>" placeholder="Nº do Chamado">
         <label for="emitente">Nome:</label>
         <input type="text" id="emitente" name="emitente" value="<?= htmlspecialchars($emitente ?? '') ?>" placeholder="Nome do usuário">
+        <label for="grupoF">Grupo:</label>
+        <?php if (!empty($grupos)): ?>
+            <?php component('select', [
+                'id' => 'grupoF',
+                'name' => 'grupoF',
+                'placeholder' => 'Todos os Grupos',
+                'options' => $grupos,
+                'valueKey' => 'id_grupo',
+                'labelKey' => 'descricao',
+                'selected' => $grupoF,
+            ]); ?>
+        <?php endif; ?>
+        <label for="subgrupoF">Sub-Grupo:</label>
+        <?php if (!empty($subgrupos)): ?>
+            <?php component('select', [
+                'id' => 'subgrupoF',
+                'name' => 'subgrupoF',
+                'placeholder' => 'Todos os Sub-Grupos',
+                'options' => $subgrupos,
+                'valueKey' => 'id',
+                'labelKey' => 'descricao',
+                'optionData' => ['idgrupo'],
+                'selected' => $subgrupo,
+            ]); ?>
+        <?php endif; ?>
         <label for="status">Status:</label>
         <?php if (!empty($stats = StatusService::all())): ?>
             <?php component('select', [
@@ -89,7 +117,7 @@ use App\Service\HelpHistoricoService;
         <button type="submit">Filtrar</button>
 
         <?php
-        if (!empty($id) || !empty($emitente) || !empty($status) || !empty($local) || !empty($meus) || !empty($tecnico) || !empty($openbyme)): ?>
+        if (!empty($id) || !empty($emitente) || !empty($grupoF) || !empty($subgrupo) || !empty($status) || !empty($local) || !empty($meus) || !empty($tecnico) || !empty($openbyme)): ?>
             <a href="?" class="btn-clear">Limpar filtro</a>
         <?php endif; ?>
     </form>
@@ -129,7 +157,7 @@ use App\Service\HelpHistoricoService;
 
                 <tr data-row
                     data-id="<?= htmlspecialchars($chamado['id']) ?>"
-                    data-nome="<?= htmlspecialchars($chamado['nomesocial'] ?? $chamado['nome']) ?>"
+                    data-nome="<?= htmlspecialchars(initcap(trim($chamado['nomesocial'] ?? '') ?: $chamado['nome']), ENT_QUOTES, 'UTF-8') ?>"
                     data-funcao="<?= htmlspecialchars($chamado['funcao']) ?>"
                     data-chapa="<?= htmlspecialchars($chamado['chapa']) ?>"
                     data-dt-abertura="<?= htmlspecialchars(!empty($chamado['dt_abertura']) ? date('d-m-Y H:i', strtotime($chamado['dt_abertura'])) : '-') ?>"
@@ -188,6 +216,8 @@ use App\Service\HelpHistoricoService;
             [
                 'id' => $id ?? '',
                 'emitente' => $emitente ?? '',
+                'grupoF' => $grupoF ?? '',
+                'subgrupoF' => $subgrupo ?? '',
                 'status' => $status ?? '',
                 'local' => $local ?? '',
                 'meus' => $meus ?? '',
@@ -202,6 +232,8 @@ $filtrosUrl = http_build_query(array_filter([
     'page' => $meta['page'] ?? '',
     'id' => $id ?? '',
     'emitente' => $emitente ?? '',
+    'grupoF' => $grupoF ?? '',
+    'subgrupoF' => $subgrupo ?? '',
     'status' => $status ?? '',
     'local' => $local ?? '',
     'meus' => $meus ?? '',
@@ -337,7 +369,7 @@ ob_start();
             <?php foreach ($hist as $item): ?>
                 <div class="historico-item <?= !empty($openCpf) && !empty($item['id_usu']) && $item['id_usu'] === $openCpf ? 'historico-item--own' : 'historico-item--other' ?>">
                     <div class="historico-meta">
-                        <strong><?= htmlspecialchars(initcap($item['nome'] ?? 'Sistema')) ?></strong>
+                        <strong><?= htmlspecialchars(initcap(trim($item['nomesocial'] ?? '') ?: $item['nome']), ENT_QUOTES, 'UTF-8') ?></strong>
                         <span><?= date('d-m-Y H:i', strtotime($item['data_hist'])) ?></span>
                     </div>
                     <p><?= htmlspecialchars($item['historico']) ?></p>
@@ -535,6 +567,33 @@ ob_start();
                 }
             });
         }
+
+        function vincularCascataFiltro() {
+            var form = document.querySelector('.filter-form');
+            if (!form) return;
+            var grupoSel = form.querySelector('select[name="grupoF"]');
+            var subSel = form.querySelector('select[name="subgrupoF"]');
+            if (!grupoSel || !subSel) return;
+
+            function filtrarSubgruposFiltro() {
+                var grupo = grupoSel.value;
+                var atual = subSel.value;
+                var valido = grupo === '';
+                var options = subSel.querySelectorAll('option[data-idgrupo]');
+                for (var i = 0; i < options.length; i++) {
+                    var pertence = grupo === '' || options[i].getAttribute('data-idgrupo') === grupo;
+                    options[i].style.display = pertence ? '' : 'none';
+                    options[i].disabled = !pertence;
+                    if (pertence && options[i].value === atual) valido = true;
+                }
+                if (grupo !== '' && !valido) subSel.value = '';
+            }
+
+            filtrarSubgruposFiltro();
+            grupoSel.addEventListener('change', filtrarSubgruposFiltro);
+        }
+
+        vincularCascataFiltro();
     });
 
     function mostrarMensagemHistorico(list, msg) {

@@ -34,6 +34,8 @@ class HelpdeskController extends BaseController
             $limit = min(100, max(1, (int) $request->query('limit', 10)));
             $id = $request->input('id', $request->query('id', ''));
             $emitente = $request->input('emitente', $request->query('emitente', ''));
+            $grupoF = $request->input('grupoF', $request->query('grupoF', ''));
+            $subgrupo = $request->input('subgrupoF', $request->query('subgrupoF', ''));
             $status = $request->input('status', $request->query('status', ''));
             $local = $request->input('local', $request->query('local', ''));
             $meus = $request->input('meus', $request->query('meus', ''));
@@ -46,7 +48,7 @@ class HelpdeskController extends BaseController
 
             $isSuporte = AuthService::hasPermission('ti');
             $isExterno = AuthService::isExterno();
-            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $idMeu, $tecnico, $isSuporte, $isExterno);
+            $result = HelpdeskService::chamadosAbertos($page, $limit, $id ?: null, $emitente ?: null, $status ?: null, $local ?: null, $idResp, $idMeu, $tecnico, $isSuporte, $isExterno, $grupoF ?: null, $subgrupo ?: null);
 
             $grupos = HelpdeskService::listarGrupos();
             $subgrupos = HelpdeskService::listarSubgrupos();
@@ -101,6 +103,8 @@ class HelpdeskController extends BaseController
                 'meta' => $result['meta'],
                 'id' => $id,
                 'emitente' => $emitente,
+                'grupoF' => $grupoF,
+                'subgrupo' => $subgrupo,
                 'status' => $status,
                 'local' => $local,
                 'meus' => $meus,
@@ -568,7 +572,7 @@ class HelpdeskController extends BaseController
             $hist = HelpHistoricoService::obterHistoricoHelpdesk($id, $usuarioAtual, $isSuporte);
 
             $items = array_map(static fn(array $item): array => [
-                'nome' => $item['nome'] ?? 'Sistema',
+                'nome' => trim($item['nomesocial'] ?? '') ?: ($item['nome'] ?? ''),
                 'data_hist' => !empty($item['data_hist']) ? date('d-m-Y H:i', strtotime($item['data_hist'])) : '',
                 'status' => $item['status'] ?? '',
                 'historico' => $item['historico'] ?? '',
@@ -611,7 +615,7 @@ class HelpdeskController extends BaseController
             }
 
             $user = AuthService::getUser();
-            $autor = $user['name'] ?? ($user['username'] ?? 'Sistema');
+            $autor = $user['nomesocial'] ?? ($user['name'] ?? 'Sistema');
 
             $assunto = "Chamado Nº {$id} - Nova interação";
             $corpo = "

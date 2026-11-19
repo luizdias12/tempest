@@ -14,4 +14,12 @@ class FilialModel extends DB
             ->orderBy('codfilial', 'ASC')
             ->get();
     }
+
+    public static function todas(): ?array
+    {
+        return QueryBuilder::table('gfilial')
+            ->select('codfilial', 'vilnomefilial')
+            ->orderBy('vilnomefilial', 'ASC')
+            ->get();
+    }
 }

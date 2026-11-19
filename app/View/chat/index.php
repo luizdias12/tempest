@@ -44,6 +44,14 @@
     </section>
 </div>
 
+<?php component('modal', [
+    'id' => 'modal-chat-anexo',
+    'size' => 'large',
+    'title' => 'Anexo',
+    'content' => '<div class="anexo-preview" id="chatAnexoPreview"><p class="anexo-preview-empty">Selecione uma imagem para visualizar.</p></div>',
+    'footer' => '<a href="#" class="btn-download" id="chatAnexoDownload" download><i class="fa-solid fa-download"></i> Baixar arquivo</a>',
+]); ?>
+
 <script>
     window.CHAT_EU = {
         cpf: '<?= htmlspecialchars($chatUser['cpf'] ?? '') ?>',

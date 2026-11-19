@@ -19,7 +19,9 @@ class HelpdeskModel
         ?string $idMeu = null,
         ?string $tecnico = null,
         ?bool $isSuporte = false,
-        ?bool $isExterno = false
+        ?bool $isExterno = false,
+        ?string $grupo = null,
+        ?string $subgrupo = null
     ): array|null {
         $chamadosAbertos = QueryBuilder::table('helpdesk h', 'mysql')
             ->select(
@@ -91,6 +93,8 @@ class HelpdeskModel
                 )
             )
             ->when(!empty($status), fn($q) => $q->where('h.status', $status))
+            ->when(!empty($grupo), fn($q) => $q->where('h.idgrupo', $grupo))
+            ->when(!empty($subgrupo), fn($q) => $q->where('h.idsubgrupo', $subgrupo))
             ->when(!empty($local), fn($q) => $q->where('o.local', $local))
             ->when(!empty($idResp), fn($q) => $q->where('h.id_resp', $idResp)->whereNotNull('h.status'))
             ->when(!empty($tecnico), fn($q) => $q->where('h.id_resp', $tecnico)->whereNotNull('h.status'))

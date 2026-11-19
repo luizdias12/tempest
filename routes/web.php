@@ -18,6 +18,7 @@ use App\Controller\LogController;
 use App\Controller\OnlineController;
 use App\Controller\PfdependController;
 use App\Controller\RegionalController;
+use App\Controller\RelatorioController;
 use App\Controller\ComercialController;
 use App\Controller\EsocialController;
 use App\Controller\TAFController;
@@ -195,6 +196,13 @@ $router->group('/carousel', function ($router) {
 $router->group('/dashboards', function ($router) {
     $router->get('/', [DashboardController::class, 'indexView'], ['role']);
     $router->get('/helpdesk', [DashboardController::class, 'helpdeskView'], ['role']);
+}, ['auth']);
+
+/*----------------------------------- GRUPO /relatorios (auth) -----------------------------------*/
+
+$router->group('/relatorios', function ($router) {
+    $router->get('/', [RelatorioController::class, 'indexView'], ['role']);
+    $router->get('/helpdesk', [RelatorioController::class, 'helpdeskView'], ['role']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /online (auth) -----------------------------------*/

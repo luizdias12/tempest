@@ -44,12 +44,12 @@
         <tbody>
             <?php if (empty($data)): ?>
                 <tr>
-                    <td colspan="6">Nenhum contato encontrado.</td>
+                    <td colspan="8">Nenhum contato encontrado.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($data as $contato): ?>
                     <tr>
-                        <td><?= htmlspecialchars(initcap($contato['nomesocial'] ?? $contato['nome'])) ?></td>
+                        <td><?= htmlspecialchars(initcap(trim($contato['nomesocial'] ?? '') ?: ($contato['nome'] ?? ''))) ?></td>
                         <td>
                             <?php if (!empty($contato['email'])): ?>
                                 <a href="mailto:<?= htmlspecialchars($contato['email']) ?>" class="anexo-link"><?= htmlspecialchars($contato['email']) ?></a>

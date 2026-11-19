@@ -12,7 +12,7 @@ class HelpHistoricoModel
         $query = QueryBuilder::table('help_hist h', 'mysql')
             ->select('h.id_hist', 'h.id_help', 'h.historico', 'h.status',
             'h.data_hist', 'h.id_usu', 'h.file_str', 'h.privado',
-            'COALESCE(f.nome, fe.nome) as nome', 'h.dtview')
+            'COALESCE(f.nome, fe.nome) as nome', 'f.nomesocial', 'h.dtview')
             ->join('helpdesk hd', 'hd.id', '=', 'h.id_help')
             ->leftJoin('func f', 'f.cpf', '=', 'h.id_usu')
             ->leftJoin('func_externo as fe', 'fe.cpf', '=', 'h.id_usu')
