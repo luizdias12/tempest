@@ -111,6 +111,7 @@ resources/
 * 📶 **Usuários Online** — presença em tempo real via heartbeat (tabela `online`) com força de deslogamento
 * 📜 **Logs** — auditoria centralizada das ações no sistema (`log_user`)
 * 💬 **Chat** — mensagens em tempo real (stream), conversas, reações, "digitando", anexos e notificações (tabelas em `database/chat.sql`)
+* 🤖 **Vivi** — assistente virtual com RAG sobre a base interna, incluindo os documentos do módulo Documentos com as mesmas permissões por função; documentação em [`docs/vivi.md`](docs/vivi.md)
 * 🗺️ **Regional** — estrutura de regional/filial/gerentes com gestão RH
 * 📅 **Comercial** — escala de plantões e sua gestão (role comercial)
 * 📞 **Contatos** — lista de contatos corporativos
@@ -184,9 +185,10 @@ Destaques: autenticação JWT (Bearer Token via `ApiMiddleware`) e os seguintes 
 ## 🔧 Configuração
 
 1. `composer install` (requer PHP 8.2)
-2. Copie `.env.example` → `.env` e preencha as conexões (LDAP, Oracle RM, Oracle Consinco, MySQL, e-mail e JWT)
+2. Copie `.env.example` → `.env` e preencha as conexões (LDAP, Oracle RM, Oracle Consinco, MySQL, e-mail, JWT e Vivi)
 3. Aponte o servidor web para `public/`
-4. Crie as tabelas de carousel (`id`, `filename`, `ord`, `dtinicio`, `dtfim`, `ativo`) e as de chat a partir de `database/chat.sql`; as demais tabelas são criadas manualmente nos bancos legados
+4. Crie as tabelas de carousel (`id`, `filename`, `ord`, `dtinicio`, `dtfim`, `ativo`), as de chat a partir de `database/chat.sql` e as da Vivi a partir de `database/vivi.sql` (bases antigas: `database/vivi_permissoes.sql` e `database/vivi_feedback.sql`); as demais tabelas são criadas manualmente nos bancos legados
+5. Indexe a base da Vivi: `php cli/vivi_indexar_curadoria.php` (FAQ de navegação versionada em `resources/vivi`), `php cli/vivi_indexar_intranet.php` (documentos, com permissões) e/ou `php cli/vivi_indexar.php <pasta>` (arquivos `.md/.txt/.pdf/.docx`); use `php cli/vivi_verificar_busca.php "<pergunta>"` para conferir o que a busca recupera e `php cli/vivi_verificar_gerencia.php "<pergunta>"` para conferir a consulta de loja/gerente e `php cli/vivi_verificar_plantao.php "<pergunta>"` para conferir a escala de plantão comercial
 
 ---
 

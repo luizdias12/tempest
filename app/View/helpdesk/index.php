@@ -1055,6 +1055,7 @@ ob_start();
 
     setInterval(function() {
         if (document.hidden) return;
+        if (document.body.classList.contains('vivi-aberto')) return;
         var modaisAbertos = document.querySelectorAll('.modal');
         var sidebarAberto = document.querySelector('.sidebar') && document.querySelector('.sidebar').classList.contains('sidebar--open');
         if (sidebarAberto) return;

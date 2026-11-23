@@ -339,6 +339,14 @@ tbody tr:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
+tbody tr.tr-resolvidos {
+    background: rgba(46, 204, 113, 0.08);
+}
+
+tbody tr.tr-resolvidos:hover {
+    background: rgba(46, 204, 113, 0.14);
+}
+
 tbody td {
     padding: 16px;
     font-size: 14px;

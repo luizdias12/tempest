@@ -72,7 +72,7 @@ $kpis = $dados['kpis'];
         <ul class="dash-legend">
             <li><span class="dash-dot" style="background:#828b97"></span>Não iniciado <strong><?= number_format($buckets['nao_iniciados'], 0, ',', '.') ?></strong></li>
             <li><span class="dash-dot" style="background:#2feb84"></span>Em atendimento <strong><?= number_format($buckets['em_atendimento'], 0, ',', '.') ?></strong></li>
-            <li><span class="dash-dot" style="background:#d96624"></span>Aguardando suporte/usuario <strong><?= number_format($buckets['aguardando_terceiros'], 0, ',', '.') ?></strong></li>
+            <li><span class="dash-dot" style="background:#4169e1"></span>Aguardando suporte/usuario <strong><?= number_format($buckets['aguardando_terceiros'], 0, ',', '.') ?></strong></li>
             <!-- <li><span class="dash-dot" style="background:#3f9c6d"></span>Encerrado <strong><?= number_format($buckets['encerrados'], 0, ',', '.') ?></strong></li> -->
         </ul>
     </div>

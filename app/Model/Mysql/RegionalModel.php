@@ -73,6 +73,56 @@ class RegionalModel
             WHERE ge.codfilial = :filial", ['filial' => $filial], 'mysql');
     }
 
+    /**
+     * Consulta a loja e a gerência atual por nome, abreviação ou código da filial.
+     * Usa o vínculo oficial de regional_filial (mesma regra da tela Regional) e o
+     * último cadastro de gerentes daquela regional. Usada pela Vivi.
+     */
+    public static function buscarGerenciaPorLoja(string $termo): array
+    {
+        $termo = trim($termo);
+
+        if ($termo === '') {
+            return [];
+        }
+
+        if (ctype_digit($termo)) {
+            $params = ['codigo' => $termo];
+            $filtro = '(fi.codfilial = :codigo)';
+        } else {
+            $params = [
+                'termo_nome' => '%' . $termo . '%',
+                'termo_abrev' => '%' . $termo . '%',
+            ];
+            $filtro = '(fi.nome LIKE :termo_nome OR fi.abreviado LIKE :termo_abrev)';
+        }
+
+        return DB::select("SELECT fi.codfilial, fi.codgfilial, fi.nome,
+                COALESCE(NULLIF(fi.nome, ''), fi.abreviado) AS loja,
+                gr.nome AS regional,
+                f1.nome AS gerente, f2.nome AS subgerente,
+                ug1.usuario AS gerente_usuario, ug2.usuario AS subgerente_usuario,
+                ug1.corporativo AS gerente_corporativo, ug1.email AS gerente_email, ug1.ramal AS gerente_ramal,
+                ug2.corporativo AS subgerente_corporativo, ug2.email AS subgerente_email, ug2.ramal AS subgerente_ramal
+            FROM filial fi
+            LEFT JOIN regional_filial rf ON rf.filial = fi.codgfilial
+            LEFT JOIN ger_regional gr ON gr.regiao = rf.cod_regional
+            LEFT JOIN (
+                SELECT codfilial, codregional, MAX(id) AS id
+                FROM gerentes
+                WHERE g1 IS NOT NULL OR g2 IS NOT NULL
+                GROUP BY codfilial, codregional
+            ) ult ON ult.codfilial = rf.filial AND ult.codregional = rf.cod_regional
+            LEFT JOIN gerentes ge ON ge.id = ult.id
+            LEFT JOIN func f1 ON f1.cpf = ge.g1
+            LEFT JOIN func f2 ON f2.cpf = ge.g2
+            LEFT JOIN usuarios ug1 ON ug1.cpf = ge.g1
+            LEFT JOIN usuarios ug2 ON ug2.cpf = ge.g2
+            WHERE {$filtro}
+            ORDER BY fi.codfilial * 1
+            LIMIT 10", $params, 'mysql');
+    }
+
     public static function onlyGerente(): array
     {
         return DB::select("SELECT * FROM func WHERE codfuncao IN (SELECT codfuncao FROM funcaofilho WHERE codpai IN (254)) ORDER BY nome", [], 'mysql');

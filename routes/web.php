@@ -22,6 +22,7 @@ use App\Controller\RelatorioController;
 use App\Controller\ComercialController;
 use App\Controller\EsocialController;
 use App\Controller\TAFController;
+use App\Controller\ViviController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ComercialRoleMiddleware;
 use App\Middleware\EsocialMiddleware;
@@ -64,6 +65,24 @@ $router->post('/login/redefinir', [AuthController::class, 'redefinir']);
 
 //FuncionarioController (público por design)
 $router->get('/funcionarios/aniversariantes', [FuncionarioController::class, 'aniversariantesView']);
+
+//RegionalController (público por design)
+$router->get('/regional', [RegionalController::class, 'indexView']);
+$router->get('/regional/consulta', [RegionalController::class, 'consulta']);
+$router->get('/regional/listaRegional', [RegionalController::class, 'listaRegional']);
+$router->get('/regional/byRegional/{regiao}', [RegionalController::class, 'byRegional']);
+$router->get('/regional/filialByRegional', [RegionalController::class, 'filialByRegional']);
+$router->get('/regional/byFilial/{filial}', [RegionalController::class, 'byFilial']);
+$router->get('/regional/onlyGerente', [RegionalController::class, 'onlyGerente']);
+$router->get('/regional/onlysubGerente', [RegionalController::class, 'onlysubGerente']);
+$router->get('/regional/listaGerencia', [RegionalController::class, 'listaGerencia']);
+$router->get('/regional/regionalFilial', [RegionalController::class, 'regionalFilial']);
+$router->get('/regional/usuario/{cpf}', [RegionalController::class, 'usuario']);
+
+//Vivi (assistente virtual — pública por design, com rate limit e base pública)
+$router->post('/vivi/chat', [ViviController::class, 'chat']);
+$router->post('/vivi/feedback', [ViviController::class, 'feedback']);
+$router->get('/vivi/status', [ViviController::class, 'status']);
 
 //Rotas de teste
 $router->group('/ti', function ($router) {
@@ -223,17 +242,17 @@ $router->group('/perfil', function ($router) {
 /*----------------------------------- GRUPO /regional (auth) -----------------------------------*/
 
 $router->group('/regional', function ($router) {
-    $router->get('/', [RegionalController::class, 'indexView']);
-    $router->get('/consulta', [RegionalController::class, 'consulta']);
-    $router->get('/listaRegional', [RegionalController::class, 'listaRegional']);
-    $router->get('/byRegional/{regiao}', [RegionalController::class, 'byRegional']);
-    $router->get('/filialByRegional', [RegionalController::class, 'filialByRegional']);
-    $router->get('/byFilial/{filial}', [RegionalController::class, 'byFilial']);
-    $router->get('/onlyGerente', [RegionalController::class, 'onlyGerente']);
-    $router->get('/onlysubGerente', [RegionalController::class, 'onlysubGerente']);
-    $router->get('/listaGerencia', [RegionalController::class, 'listaGerencia']);
-    $router->get('/regionalFilial', [RegionalController::class, 'regionalFilial']);
-    $router->get('/usuario/{cpf}', [RegionalController::class, 'usuario']);
+    // $router->get('/', [RegionalController::class, 'indexView']);
+    // $router->get('/consulta', [RegionalController::class, 'consulta']);
+    // $router->get('/listaRegional', [RegionalController::class, 'listaRegional']);
+    // $router->get('/byRegional/{regiao}', [RegionalController::class, 'byRegional']);
+    // $router->get('/filialByRegional', [RegionalController::class, 'filialByRegional']);
+    // $router->get('/byFilial/{filial}', [RegionalController::class, 'byFilial']);
+    // $router->get('/onlyGerente', [RegionalController::class, 'onlyGerente']);
+    // $router->get('/onlysubGerente', [RegionalController::class, 'onlysubGerente']);
+    // $router->get('/listaGerencia', [RegionalController::class, 'listaGerencia']);
+    // $router->get('/regionalFilial', [RegionalController::class, 'regionalFilial']);
+    // $router->get('/usuario/{cpf}', [RegionalController::class, 'usuario']);
 
     //Ações de escrita (auth + rh)
     $router->post('/gravaGerente', [RegionalController::class, 'gravaGerente'], ['rh']);

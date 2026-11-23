@@ -12,7 +12,7 @@
         return;
     }
 
-    var CORES_BUCKETS = ['#828b97', '#2feb84', '#d96624', '#3f9c6d'];
+    var CORES_BUCKETS = ['#828b97', '#2feb84', '#4169e1', '#3f9c6d'];
 
     function semGrafico(id, mensagem) {
         var el = document.getElementById(id);

@@ -115,6 +115,7 @@ use App\Service\EsocialService;
 
         atualizarHora();
         setInterval(function() {
+            if (document.body.classList.contains('vivi-aberto')) return;
             window.location.reload();
         }, REFRESH_MS);
 

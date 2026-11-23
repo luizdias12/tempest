@@ -18,6 +18,21 @@ class ComercialService
         return ComercialModel::listarCompradores();
     }
 
+    public static function plantoesPorData(string $data): array
+    {
+        return ComercialModel::plantoesPorData($data);
+    }
+
+    public static function plantoesPorPeriodo(string $inicio, string $fim): array
+    {
+        return ComercialModel::plantoesPorPeriodo($inicio, $fim);
+    }
+
+    public static function proximosPlantoes(string $data, int $limite = 2): array
+    {
+        return ComercialModel::proximosPlantoes($data, $limite);
+    }
+
     public static function salvar(?int $id, string $data, string $comprador, string $feriado = ''): string
     {
         $data = trim($data);

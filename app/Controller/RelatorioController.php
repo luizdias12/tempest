@@ -35,8 +35,9 @@ class RelatorioController extends BaseController
 
             view('relatorios/helpdesk', [
                 'registros' => $registros,
-                'data' => $data, 
-                'somaGeral' => array_sum(array_column($registros, 'total')),
+                'data' => $data,
+                'totalResolvidos' => array_sum(array_column($registros, 'resolvidos')),
+                'totalAbertos' => array_sum(array_column($registros, 'abertos')),
                 'title' => 'Relatórios do Helpdesk',
             ]);
         } catch (Throwable $e) {

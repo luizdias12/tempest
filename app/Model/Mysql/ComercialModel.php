@@ -27,6 +27,43 @@ class ComercialModel
         ", ['id' => $id], 'mysql');
     }
 
+    public static function plantoesPorData(string $data): array
+    {
+        return DB::select("
+            SELECT e.id, e.data, e.feriado, f.nome
+            FROM escalacom e
+            LEFT JOIN func f ON f.cpf = e.comprador
+            WHERE e.data = :data
+            ORDER BY e.id
+        ", ['data' => $data], 'mysql');
+    }
+
+    public static function plantoesPorPeriodo(string $inicio, string $fim): array
+    {
+        return DB::select("
+            SELECT e.id, e.data, e.feriado, f.nome
+            FROM escalacom e
+            LEFT JOIN func f ON f.cpf = e.comprador
+            WHERE e.data BETWEEN :inicio AND :fim
+            ORDER BY e.data, e.id
+            LIMIT 40
+        ", ['inicio' => $inicio, 'fim' => $fim], 'mysql');
+    }
+
+    public static function proximosPlantoes(string $data, int $limite = 2): array
+    {
+        $limite = max(1, min(10, $limite));
+
+        return DB::select("
+            SELECT e.id, e.data, e.feriado, f.nome
+            FROM escalacom e
+            LEFT JOIN func f ON f.cpf = e.comprador
+            WHERE e.data >= :data
+            ORDER BY e.data, e.id
+            LIMIT {$limite}
+        ", ['data' => $data], 'mysql');
+    }
+
     public static function listarCompradores(): array
     {
         return DB::select("

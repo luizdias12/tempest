@@ -31,6 +31,11 @@ class RegionalService
         return RegionalModel::byFilial($filial);
     }
 
+    public static function buscarGerenciaPorLoja(string $termo): array
+    {
+        return RegionalModel::buscarGerenciaPorLoja($termo);
+    }
+
     public static function onlyGerente(): array
     {
         return RegionalModel::onlyGerente();

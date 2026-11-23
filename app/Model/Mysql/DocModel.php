@@ -353,6 +353,50 @@ class DocModel
         return DB::select($sql, $params, 'mysql');
     }
 
+    /**
+     * Documentos ativos com diretório, subdiretório e versão atual.
+     * Usado pelo indexador da Vivi; não aplica permissões (elas são indexadas junto).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function listarParaIndexacao(bool $apenasGerais = false, ?int $limite = null): array
+    {
+        $sql = "
+            SELECT
+                d.id_doc,
+                d.titulo,
+                d.tipo,
+                d.geral,
+                d.id_dir,
+                d.id_subdir,
+                COALESCE(dir.nome, '') AS diretorio,
+                COALESCE(sub.nome, '') AS subdiretorio,
+                d.id_versao_atual,
+                v.id AS id_versao,
+                v.versao,
+                v.caminho,
+                v.tamanho,
+                v.dt_upload
+            FROM doc_documento d
+            LEFT JOIN doc_diretorio dir ON dir.id = d.id_dir
+            LEFT JOIN doc_subdiretorio sub ON sub.id = d.id_subdir
+            JOIN doc_versao v ON v.id = d.id_versao_atual
+            WHERE d.ativo = 1
+        ";
+
+        if ($apenasGerais) {
+            $sql .= " AND d.geral = 'S'";
+        }
+
+        $sql .= ' ORDER BY d.id_doc';
+
+        if ($limite !== null && $limite > 0) {
+            $sql .= ' LIMIT ' . (int) $limite;
+        }
+
+        return DB::select($sql, [], 'mysql');
+    }
+
     public static function permissoesPorDocumento(): array
     {
         $docs = DB::select("

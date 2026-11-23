@@ -1,7 +1,5 @@
 <?php
 
-use App\Service\AuthService;
+use App\Service\DocService;
 
-dumper($data);
-
-echo "Acesso: " . AuthService::canManageCarousel();
+echo "Funcao Pai: " . DocService::codfuncaoPai();
