@@ -32,7 +32,6 @@
         anexo: null,
         ultDig: 0,
         digTimer: null,
-        digitandoNome: null,
         subBase: '',
         onlineAtual: false,
         status: {}
@@ -293,9 +292,7 @@
         els.titulo.textContent = c ? c.titulo : 'Selecione uma conversa';
         estado.subBase = c && c.subtitulo ? c.subtitulo : '';
         estado.onlineAtual = !!(c && c.online);
-        if (!estado.digitandoNome) {
-            els.subtitulo.textContent = estado.subBase + (estado.onlineAtual ? ' · Online' : '');
-        }
+        els.subtitulo.textContent = estado.subBase + (estado.onlineAtual ? ' · Online' : '');
     }
 
     function getConversa(id) {
@@ -601,15 +598,32 @@
     }
 
     function mostrarDigitando(nome) {
-        estado.digitandoNome = nome;
-        els.subtitulo.textContent = nome + ' digitando...';
+        if (els.digitando) {
+            els.digitando.hidden = false;
+            els.digitando.title = nome + ' está digitando...';
+            els.digitando.setAttribute('aria-label', nome + ' está digitando...');
+        }
+
+        if (els.digitandoTexto) {
+            els.digitandoTexto.textContent = nome + ' está digitando...';
+        }
+
         clearTimeout(estado.digTimer);
         estado.digTimer = setTimeout(pararDigitando, 3000);
     }
 
     function pararDigitando() {
-        estado.digitandoNome = null;
-        if (els.subtitulo) els.subtitulo.textContent = estado.subBase + (estado.onlineAtual ? ' · Online' : '');
+        clearTimeout(estado.digTimer);
+
+        if (els.digitando) {
+            els.digitando.hidden = true;
+            els.digitando.removeAttribute('title');
+            els.digitando.removeAttribute('aria-label');
+        }
+
+        if (els.digitandoTexto) {
+            els.digitandoTexto.textContent = '';
+        }
     }
 
     /* ===== ENVIO ===== */
@@ -981,6 +995,7 @@
 
             if (estado.aberta === id) {
                 estado.aberta = null;
+                pararDigitando();
                 fecharCtxMenu();
                 carregarConversas().then(function() {
                     atualizarHeader();
@@ -1002,6 +1017,8 @@
         els.app = document.querySelector('.chat-app');
         els.conversas = document.getElementById('chatConversas');
         els.msgs = document.getElementById('chatMsgs');
+        els.digitando = document.getElementById('chatDigitando');
+        els.digitandoTexto = document.getElementById('chatDigitandoTexto');
         els.titulo = document.getElementById('chatTitulo');
         els.subtitulo = document.getElementById('chatSubtitulo');
         els.form = document.getElementById('chatForm');

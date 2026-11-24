@@ -29,6 +29,11 @@
             <p class="chat-empty">Escolha uma conversa ao lado para começar.</p>
         </div>
 
+        <div class="chat-digitando" id="chatDigitando" hidden role="status" aria-live="polite">
+            <span class="chat-digitando-texto" id="chatDigitandoTexto"></span>
+            <span class="chat-digitando-pontos" aria-hidden="true"><i></i><i></i><i></i></span>
+        </div>
+
         <div class="chat-preview" id="chatPreview" hidden></div>
 
         <div class="chat-emojis" id="chatEmojis" hidden style="display:none"></div>
