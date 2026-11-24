@@ -13,12 +13,17 @@ class ChatController extends BaseController
     {
         $user = AuthService::getUser() ?? [];
 
+        if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_chat'])) {
+            $_SESSION['csrf_chat'] = bin2hex(random_bytes(32));
+        }
+
         view('chat/index', [
             'title' => 'Chat',
             'chatUser' => [
                 'cpf' => $user['cpf'] ?? '',
                 'secao' => $user['secao'] ?? '',
                 'nome' => ($user['nomesocial'] ?? $user['name']) ?? '',
+                'csrf' => $_SESSION['csrf_chat'] ?? '',
             ],
         ]);
     }
@@ -43,8 +48,29 @@ class ChatController extends BaseController
         }
 
         $apos = (int) $request->query('apos', 0);
+        $antes = (int) $request->query('antes', 0);
 
-        return $this->handle(fn() => $this->success(ChatService::mensagens($id, $cpf, $apos)));
+        return $this->handle(function () use ($id, $cpf, $apos, $antes) {
+            $dados = ChatService::mensagens($id, $cpf, $apos, $antes);
+
+            return $this->success($dados['mensagens'], [
+                'tem_mais' => $dados['tem_mais'],
+                'cursor' => $dados['cursor'],
+            ]);
+        });
+    }
+
+    public function eventos(Request $request, int $id): array
+    {
+        $cpf = AuthService::getUserCpf();
+
+        if ($cpf === null) {
+            return $this->error('CPF do usuário inválido.', 401);
+        }
+
+        $apos = (int) $request->query('apos', 0);
+
+        return $this->handle(fn() => $this->success(ChatService::eventos($id, $cpf, $apos)));
     }
 
     public function contatos(Request $request): array
@@ -68,6 +94,12 @@ class ChatController extends BaseController
             return $this->error('CPF do usuário inválido.', 401);
         }
 
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
+        }
+
         $conversaId = (int) $request->input('conversa_id', 0);
         $texto = trim((string) $request->input('texto', ''));
 
@@ -84,6 +116,12 @@ class ChatController extends BaseController
 
         if ($cpf === null) {
             return $this->error('CPF do usuário inválido.', 401);
+        }
+
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
         }
 
         $conversaId = (int) $request->input('conversa_id', 0);
@@ -105,6 +143,12 @@ class ChatController extends BaseController
             return $this->error('CPF do usuário inválido.', 401);
         }
 
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
+        }
+
         $conversaId = (int) $request->input('conversa_id', 0);
         $mensagemId = (int) $request->input('mensagem_id', 0);
         $texto = trim((string) $request->input('texto', ''));
@@ -124,6 +168,12 @@ class ChatController extends BaseController
             return $this->error('CPF do usuário inválido.', 401);
         }
 
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
+        }
+
         $conversaId = (int) $request->input('conversa_id', 0);
         $mensagemId = (int) $request->input('mensagem_id', 0);
 
@@ -140,6 +190,12 @@ class ChatController extends BaseController
 
         if ($cpf === null) {
             return $this->error('CPF do usuário inválido.', 401);
+        }
+
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
         }
 
         $conversaId = (int) $request->input('conversa_id', 0);
@@ -161,6 +217,12 @@ class ChatController extends BaseController
             return $this->error('CPF do usuário inválido.', 401);
         }
 
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
+        }
+
         $conversaId = (int) $request->input('conversa_id', 0);
 
         ChatService::digitando($conversaId, $cpf);
@@ -174,6 +236,12 @@ class ChatController extends BaseController
 
         if ($cpf === null) {
             return $this->error('CPF do usuário inválido.', 401);
+        }
+
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
         }
 
         $contato = preg_replace('/\D/', '', (string) $request->input('contato_cpf', ''));
@@ -230,6 +298,12 @@ class ChatController extends BaseController
             return $this->error('CPF do usuário inválido.', 401);
         }
 
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
+        }
+
         $conversaId = (int) $request->input('conversa_id', 0);
         $mensagemId = (int) $request->input('mensagem_id', 0);
 
@@ -246,6 +320,12 @@ class ChatController extends BaseController
 
         if ($cpf === null) {
             return $this->error('CPF do usuário inválido.', 401);
+        }
+
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
         }
 
         $conversaId = (int) $request->input('conversa_id', 0);
@@ -265,6 +345,12 @@ class ChatController extends BaseController
             return $this->error('CPF do usuário inválido.', 401);
         }
 
+        $erro = $this->csrf($request);
+
+        if ($erro !== null) {
+            return $erro;
+        }
+
         $conversaId = (int) $request->input('conversa_id', 0);
 
         return $this->handle(function () use ($conversaId, $cpf) {
@@ -274,83 +360,43 @@ class ChatController extends BaseController
         });
     }
 
-    public function stream(Request $request, int $id): void
+    public function baixarAnexo(Request $request, int $id): void
     {
         $cpf = AuthService::getUserCpf();
 
-        if ($cpf === null || !ChatService::participaPub($id, $cpf)) {
-            http_response_code(403);
+        if ($cpf === null) {
+            http_response_code(401);
             return;
         }
 
-        $apos = ChatService::streamCursor($id);
-
-        $lastEventId = $request->header('Last-Event-ID');
-        if ($lastEventId !== null && $lastEventId !== '') {
-            $apos = max($apos, (int) $lastEventId);
+        try {
+            $anexo = ChatService::anexo($id, $cpf);
+        } catch (\RuntimeException $e) {
+            $code = (int) $e->getCode();
+            http_response_code($code >= 400 && $code < 600 ? $code : 404);
+            return;
         }
-
-        $qAp = $request->query('apos');
-        if ($qAp !== null) {
-            $apos = max($apos, (int) $qAp);
-        }
-
-        $deadline = time() + 25;
-        $pingInterval = 15;
-        $lastPing = time();
-
-        @ini_set('zlib.output_compression', '0');
-        @ini_set('implicit_flush', '1');
-        @ini_set('output_buffering', '0');
-        while (@ob_get_level() > 0) {
-            @ob_end_flush();
-        }
-
-        header('Content-Type: text/event-stream; charset=utf-8');
-        header('Cache-Control: no-cache');
-        header('X-Accel-Buffering: no');
-        header('Connection: keep-alive');
 
         session_write_close();
 
-        while (time() < $deadline) {
-            usleep(1000000);
+        header('Content-Type: ' . $anexo['mime']);
+        header('Content-Length: ' . $anexo['tamanho']);
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, max-age=0, no-store');
+        header('Content-Disposition: ' . ($anexo['inline'] ? 'inline' : 'attachment')
+            . "; filename*=UTF-8''" . rawurlencode($anexo['nome']));
 
-            if (connection_aborted()) {
-                break;
-            }
-
-            $eventos = ChatService::eventos($id, $apos);
-
-            if ($eventos) {
-                foreach ($eventos as $ev) {
-                    $this->emit((string) $ev['evento'], array_merge([
-                        'conversa_id' => $id,
-                    ], (array) ($ev['dados'] ?? [])), (int) $ev['id']);
-                }
-
-                $apos = (int) end($eventos)['id'];
-                $lastPing = time();
-            }
-
-            if (time() - $lastPing >= $pingInterval) {
-                $this->emit('ping', ['ts' => time()], $apos);
-                $lastPing = time();
-            }
-
-            if (connection_aborted()) {
-                break;
-            }
-        }
-
-        $this->emit('ping', ['ts' => time()], $apos);
+        readfile($anexo['caminho']);
     }
 
-    private function emit(string $event, array $data, int $idEvent): void
+    private function csrf(Request $request): ?array
     {
-        echo "id: {$idEvent}\n";
-        echo "event: {$event}\n";
-        echo 'data: ' . json_encode($data, JSON_UNESCAPED_UNICODE) . "\n\n";
-        @flush();
+        $token = (string) $request->header('X-CSRF-Token', '');
+
+        if ($token !== '' && hash_equals((string) ($_SESSION['csrf_chat'] ?? ''), $token)) {
+            return null;
+        }
+
+        return $this->error('Sessão expirada. Recarregue a página.', 403);
     }
 }

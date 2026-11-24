@@ -273,7 +273,8 @@ $router->group('/chat', function ($router) {
     $router->get('/conversas', [ChatController::class, 'conversas']);
     $router->get('/mensagens/{id}', [ChatController::class, 'mensagens']);
     $router->get('/contatos', [ChatController::class, 'contatos']);
-    $router->get('/stream/{id}', [ChatController::class, 'stream']);
+    $router->get('/anexo/{id}', [ChatController::class, 'baixarAnexo']);
+    $router->get('/eventos/{id}', [ChatController::class, 'eventos']);
     $router->get('/naoLidas', [ChatController::class, 'naoLidas']);
     $router->get('/status', [ChatController::class, 'status']);
     $router->get('/notificar', [ChatController::class, 'notificar']);

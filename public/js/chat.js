@@ -22,9 +22,12 @@
     var estado = {
         conversas: [],
         aberta: null,
-        apos: 0,
         renderizadas: {},
-        source: null,
+        cursor: 0,
+        pollTimer: null,
+        pollAtivo: false,
+        primeiroId: 0,
+        temMais: false,
         ultimoMarcado: 0,
         anexo: null,
         ultDig: 0,
@@ -34,6 +37,8 @@
         onlineAtual: false,
         status: {}
     };
+
+    var POLL_MS = 2000;
 
     var els = {};
 
@@ -56,19 +61,37 @@
             toast('error', msg);
             throw new Error(msg);
         }
-        return res.data;
+        return res;
+    }
+
+    function getRes(url, opts) {
+        return getJson(url, opts).then(check);
     }
 
     function get(url, headers) {
-        return getJson(url, headers ? { headers: headers } : undefined).then(check);
+        return getRes(url, headers ? { headers: headers } : undefined).then(function(res) {
+            return res.data;
+        });
+    }
+
+    function csrfHeaders(extra) {
+        var h = { 'X-CSRF-Token': EU.csrf || '' };
+
+        if (extra) {
+            for (var k in extra) h[k] = extra[k];
+        }
+
+        return h;
     }
 
     function enviar(method, url, data) {
-        return getJson(url, {
+        return getRes(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(data || {})
-        }).then(check);
+        }).then(function(res) {
+            return res.data;
+        });
     }
 
     function toast(tipo, msg) {
@@ -210,15 +233,17 @@
     function abrirConversa(id) {
         if (!id) return;
         estado.aberta = id;
-        estado.apos = 0;
         estado.ultimoMarcado = 0;
         estado.renderizadas = {};
+        estado.cursor = 0;
+        estado.primeiroId = 0;
+        estado.temMais = false;
         estado.anexo = null;
         if (els.anexoInput) els.anexoInput.value = '';
         atualizarPreview();
         pararDigitando();
 
-        fecharStream();
+        pararPolling();
         renderLista();
         atualizarHeader();
 
@@ -228,7 +253,7 @@
 
         atualizarThread().then(function() {
             if (estado.aberta === id) {
-                abrirStream(id);
+                iniciarPolling(id);
             }
             carregarConversas();
         });
@@ -238,12 +263,18 @@
         if (!estado.aberta) return Promise.resolve();
 
         var id = estado.aberta;
-        estado.apos = 0;
-        estado.renderizadas = {};
-        estado.ultimoMarcado = 0;
 
-        return get(API + 'mensagens/' + id).then(function(rows) {
+        return getRes(API + 'mensagens/' + id).then(function(res) {
             if (estado.aberta !== id) return;
+
+            var rows = res.data || [];
+            var meta = res.meta || {};
+
+            estado.renderizadas = {};
+            estado.ultimoMarcado = 0;
+            estado.primeiroId = 0;
+            estado.temMais = !!meta.tem_mais;
+            estado.cursor = Math.max(estado.cursor, Number(meta.cursor || 0));
 
             els.msgs.innerHTML = '';
             if (!rows.length) {
@@ -252,6 +283,7 @@
                 appendMensagens(rows, true);
             }
 
+            renderCarregarAntigas();
             marcarLido(id, rows.length ? rows[rows.length - 1].id : 0);
         }).catch(function() {});
     }
@@ -273,6 +305,10 @@
         return null;
     }
 
+    function anexoUrl(m) {
+        return API + 'anexo/' + m.id;
+    }
+
     function montarBalao(m, euMesmo) {
         var autor = '<span class="chat-msg-autor">' + esc(m.remetente_nome || 'Funcionário') + '</span>';
         var hora = '<span class="chat-msg-hora">' + esc(fmtHora(m.criado_em)) + '</span>';
@@ -292,12 +328,12 @@
         if (m.apagado) {
             corpo = '<div class="chat-msg-apagada">\uD83D\uDDD1\uFE0F Mensagem apagada</div>';
         } else if (m.tipo === 'imagem' && m.anexo) {
-            corpo = '<a class="chat-msg-anexo-img" href="' + escAttr(m.anexo) + '" target="_blank" rel="noopener">' +
-                        '<img src="' + escAttr(m.anexo) + '" alt="' + escAttr(m.anexo_nome || 'imagem') + '" loading="lazy">' +
+            corpo = '<a class="chat-msg-anexo-img" href="' + escAttr(anexoUrl(m)) + '" target="_blank" rel="noopener">' +
+                        '<img src="' + escAttr(anexoUrl(m)) + '" alt="' + escAttr(m.anexo_nome || 'imagem') + '" loading="lazy">' +
                     '</a>' +
                     (m.texto ? '<div class="chat-msg-texto">' + esc(m.texto).replace(/\n/g, '<br>') + '</div>' : '');
         } else if (m.tipo === 'arquivo' && m.anexo) {
-            corpo = '<a class="chat-msg-anexo-arq" href="' + esc(m.anexo) + '" target="_blank" rel="noopener">' +
+            corpo = '<a class="chat-msg-anexo-arq" href="' + escAttr(anexoUrl(m)) + '" target="_blank" rel="noopener">' +
                         '<i class="fa-solid fa-file"></i><span>' + esc(m.anexo_nome || 'Arquivo') + '</span>' +
                     '</a>' +
                     (m.texto ? '<div class="chat-msg-texto">' + esc(m.texto).replace(/\n/g, '<br>') + '</div>' : '');
@@ -325,22 +361,43 @@
             '</div>';
     }
 
+    function nomePorCpf(cpf) {
+        var c = getConversa(estado.aberta);
+
+        if (!c || !c.participantes) return '';
+
+        for (var i = 0; i < c.participantes.length; i++) {
+            if (String(c.participantes[i].cpf) === String(cpf)) {
+                return c.participantes[i].nome || '';
+            }
+        }
+
+        return '';
+    }
+
     function reacoesHtml(m) {
         return '<div class="chat-rea-chips">' + m.reacoes.map(function(r) {
             var meu = r.cpfs && r.cpfs.indexOf(EU.cpf) >= 0;
-            return '<span class="chat-rea-chip' + (meu ? ' mine' : '') + '" data-reagir data-emoji="' + esc(r.emoji) +
-                '" title="' + esc((r.cpfs || []).join(', ')) + '">' + esc(r.emoji) + ' ' + r.total + '</span>';
+            var nomes = (r.cpfs || []).map(nomePorCpf).filter(Boolean);
+            var titulo = nomes.length ? ' title="' + escAttr(nomes.join(', ')) + '"' : '';
+            return '<span class="chat-rea-chip' + (meu ? ' mine' : '') + '" data-reagir data-emoji="' + escAttr(r.emoji) +
+                titulo + '>' + esc(r.emoji) + ' ' + r.total + '</span>';
         }).join('') + '</div>';
     }
 
-    function renderMensagem(m) {
+    function renderMensagem(m, antesDe) {
         var id = Number(m.id);
         var euMesmo = String(m.remetente) === String(EU.cpf);
         var div = document.createElement('div');
         div.className = 'chat-msg' + (euMesmo ? ' mine' : '');
         div.setAttribute('data-id', id);
         div.innerHTML = montarBalao(m, euMesmo);
-        els.msgs.appendChild(div);
+
+        if (antesDe) {
+            els.msgs.insertBefore(div, antesDe);
+        } else {
+            els.msgs.appendChild(div);
+        }
 
         var ed = primeiro(div, '[data-editar]');
         if (ed) {
@@ -383,6 +440,7 @@
             var id = Number(m.id);
             if (estado.renderizadas[id]) return;
             estado.renderizadas[id] = true;
+            if (!estado.primeiroId || id < estado.primeiroId) estado.primeiroId = id;
             temNovas = true;
             renderMensagem(m);
         });
@@ -393,6 +451,65 @@
         }
 
         if (scroll) scrollBottom();
+        if (temNovas) renderCarregarAntigas();
+    }
+
+    function renderCarregarAntigas() {
+        var btn = els.msgs.querySelector('.chat-carregar-antigas');
+
+        if (!estado.temMais || !estado.primeiroId) {
+            if (btn) btn.remove();
+            return;
+        }
+
+        if (btn) return;
+
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chat-carregar-antigas btn-novo btn-novo-secondary';
+        btn.textContent = 'Carregar mensagens anteriores';
+        btn.addEventListener('click', carregarAntigas);
+        els.msgs.insertBefore(btn, els.msgs.firstChild);
+    }
+
+    function carregarAntigas() {
+        if (!estado.aberta || !estado.primeiroId) return;
+
+        var id = estado.aberta;
+        var antes = estado.primeiroId;
+        var btn = els.msgs.querySelector('.chat-carregar-antigas');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Carregando...';
+        }
+
+        getRes(API + 'mensagens/' + id + '?antes=' + antes).then(function(res) {
+            if (estado.aberta !== id) return;
+
+            var rows = res.data || [];
+            estado.temMais = !!(res.meta && res.meta.tem_mais);
+
+            var anchor = els.msgs.querySelector('.chat-msg');
+            var alturaAntes = els.msgs.scrollHeight;
+
+            rows.forEach(function(m) {
+                var mid = Number(m.id);
+                if (estado.renderizadas[mid]) return;
+                estado.renderizadas[mid] = true;
+                if (!estado.primeiroId || mid < estado.primeiroId) estado.primeiroId = mid;
+                renderMensagem(m, anchor);
+            });
+
+            els.msgs.scrollTop += els.msgs.scrollHeight - alturaAntes;
+        }).catch(function() {}).finally(function() {
+            renderCarregarAntigas();
+            var b = els.msgs.querySelector('.chat-carregar-antigas');
+            if (b) {
+                b.disabled = false;
+                b.textContent = 'Carregar mensagens anteriores';
+            }
+        });
     }
 
     function abaVisivel() {
@@ -411,84 +528,76 @@
         }).catch(function() {});
     }
 
-    /* ===== SSE ===== */
+    /* ===== ATUALIZAÇÃO (POLLING) ===== */
 
-    function abrirStream(id) {
-        if (!window.EventSource) {
-            iniciarFallback(id);
+    function iniciarPolling(id) {
+        pararPolling();
+        estado.pollAtivo = true;
+        cicloPolling(id);
+    }
+
+    function pararPolling() {
+        estado.pollAtivo = false;
+
+        if (estado.pollTimer) {
+            clearTimeout(estado.pollTimer);
+            estado.pollTimer = null;
+        }
+    }
+
+    function cicloPolling(id) {
+        if (!estado.pollAtivo || estado.aberta !== id) return;
+
+        if (!abaVisivel()) {
+            estado.pollTimer = setTimeout(function() { cicloPolling(id); }, POLL_MS);
             return;
         }
 
-        var source = new EventSource(API + 'stream/' + id);
-        estado.source = source;
+        getRes(API + 'eventos/' + id + '?apos=' + estado.cursor).then(function(res) {
+            if (!estado.pollAtivo || estado.aberta !== id) return;
 
-        function aoEvento(ev) {
-            var data = {};
-            try {
-                data = JSON.parse(ev.data || '{}');
-            } catch (e) {}
+            var dados = res.data || {};
+            estado.cursor = Math.max(estado.cursor, Number(dados.cursor || 0));
 
-            if (Number(data.conversa_id) !== id) return;
+            (dados.eventos || []).forEach(function(ev) {
+                aplicarEvento(id, ev);
+            });
 
-            if (ev.type === 'novidade') {
-                if (data.mensagens && data.mensagens.length) {
-                    var msgs = data.mensagens;
-                    appendMensagens(msgs, true);
-                    marcarLido(id, data.apos || (msgs[msgs.length - 1] || {}).id).then(carregarConversas);
-                } else {
-                    carregarConversas();
-                }
-                return;
+            var digitando = (dados.digitando || []).filter(function(d) { return d && d.nome; });
+            if (digitando.length) {
+                mostrarDigitando(digitando[0].nome + (digitando.length > 1 ? ' e outros' : ''));
             }
-
-            if (ev.type === 'digitando') {
-                if (data.cpf && data.cpf !== EU.cpf && data.nome) {
-                    mostrarDigitando(data.nome);
-                }
-                return;
+        }).catch(function() {}).finally(function() {
+            if (estado.pollAtivo && estado.aberta === id) {
+                estado.pollTimer = setTimeout(function() { cicloPolling(id); }, POLL_MS);
             }
+        });
+    }
 
-            if (ev.type === 'leitura') {
-                if (data.cpf === EU.cpf) return;
-                atualizarThread();
-                return;
-            }
+    function aplicarEvento(id, ev) {
+        var data = ev.dados || {};
 
-            if (ev.type === 'edicao' || ev.type === 'exclusao' || ev.type === 'reacao') {
-                atualizarThread().then(carregarConversas);
-                return;
-            }
+        if (Number(data.conversa_id) !== id) return;
 
-            if (ev.type === 'ping') {
+        if (ev.evento === 'novidade') {
+            if (data.mensagens && data.mensagens.length) {
+                appendMensagens(data.mensagens, true);
+                marcarLido(id, data.apos || (data.mensagens[data.mensagens.length - 1] || {}).id).then(carregarConversas);
+            } else {
                 carregarConversas();
             }
+            return;
         }
 
-        ['novidade', 'digitando', 'leitura', 'edicao', 'exclusao', 'reacao', 'ping'].forEach(function(nome) {
-            source.addEventListener(nome, aoEvento);
-        });
-
-        source.onerror = function() {
-            // EventSource reconecta sozinho; nada a fazer aqui
-        };
-    }
-
-    function fecharStream() {
-        if (estado.source) {
-            estado.source.close();
-            estado.source = null;
+        if (ev.evento === 'leitura') {
+            if (data.cpf === EU.cpf) return;
+            atualizarThread();
+            return;
         }
-        if (estado.fallbackTimer) {
-            clearInterval(estado.fallbackTimer);
-            estado.fallbackTimer = null;
-        }
-    }
 
-    function iniciarFallback(id) {
-        estado.fallbackTimer = setInterval(function() {
-            if (estado.aberta !== id) return;
-            atualizarThread().then(carregarConversas).catch(function() {});
-        }, 5000);
+        if (ev.evento === 'edicao' || ev.evento === 'exclusao' || ev.evento === 'reacao') {
+            atualizarThread().then(carregarConversas);
+        }
     }
 
     function mostrarDigitando(nome) {
@@ -519,7 +628,11 @@
             fd.append('conversa_id', String(estado.aberta));
             if (texto) fd.append('texto', texto);
             fd.append('anexo', arquivo);
-            p = getJson(API + 'anexo', { method: 'POST', body: fd }).then(check);
+            p = getRes(API + 'anexo', {
+                method: 'POST',
+                body: fd,
+                headers: csrfHeaders()
+            }).then(function(res) { return res.data; });
         } else {
             p = enviar('POST', API + 'enviar', {
                 conversa_id: estado.aberta,
@@ -560,7 +673,11 @@
 
         els.enviar.disabled = true;
 
-        getJson(API + 'anexo', { method: 'POST', body: fd }).then(check).then(function(msg) {
+        getRes(API + 'anexo', {
+            method: 'POST',
+            body: fd,
+            headers: csrfHeaders()
+        }).then(function(res) { return res.data; }).then(function(msg) {
             appendMensagens([msg], true);
             carregarConversas();
         }).catch(function() {}).finally(function() {
@@ -837,7 +954,7 @@
 
             if (estado.aberta === id) {
                 atualizarThread().then(function() {
-                    if (estado.aberta === id) abrirStream(id);
+                    if (estado.aberta === id) iniciarPolling(id);
                     carregarConversas();
                 });
             } else {
@@ -860,7 +977,7 @@
         enviar('POST', API + 'apagar', { conversa_id: id }).then(function() {
             toast('success', 'Conversa removida.');
 
-            fecharStream();
+            pararPolling();
 
             if (estado.aberta === id) {
                 estado.aberta = null;

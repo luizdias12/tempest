@@ -1,6 +1,7 @@
 /vendor
 .env
 /logs
+/storage
 /public/files/*
 /public/assets/*
 /test

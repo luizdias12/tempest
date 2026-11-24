@@ -56,7 +56,8 @@
     window.CHAT_EU = {
         cpf: '<?= htmlspecialchars($chatUser['cpf'] ?? '') ?>',
         secao: '<?= htmlspecialchars($chatUser['secao'] ?? '') ?>',
-        nome: '<?= htmlspecialchars($chatUser['nome'] ?? '') ?>'
+        nome: '<?= htmlspecialchars($chatUser['nome'] ?? '') ?>',
+        csrf: '<?= htmlspecialchars($chatUser['csrf'] ?? '') ?>'
     };
 </script>
 <script src="<?= asset('js/chat.js') ?>"></script>

@@ -9,29 +9,88 @@ class ChatModel
 {
     public static function conversas(string $cpf): array
     {
-        $sql = "
-            SELECT c.id, c.tipo, c.titulo, c.criado_por, c.criado_em,
-                (SELECT mx.texto FROM chat_mensagens mx
-                    WHERE mx.conversa_id = c.id AND mx.id > COALESCE(p.limpo_em, 0)
-                    ORDER BY mx.id DESC LIMIT 1) AS ultima_msg,
-                (SELECT mx.criado_em FROM chat_mensagens mx
-                    WHERE mx.conversa_id = c.id AND mx.id > COALESCE(p.limpo_em, 0)
-                    ORDER BY mx.id DESC LIMIT 1) AS ultima_em,
-                (SELECT mx.id FROM chat_mensagens mx
-                    WHERE mx.conversa_id = c.id AND mx.id > COALESCE(p.limpo_em, 0)
-                    ORDER BY mx.id DESC LIMIT 1) AS ultima_id,
-                (SELECT COUNT(*) FROM chat_mensagens mx
-                    WHERE mx.conversa_id = c.id
-                      AND mx.id > GREATEST(COALESCE(p.ultimo_lido, 0), COALESCE(p.limpo_em, 0))
-                      AND mx.cpf <> :cpf2) AS nao_lidas
-            FROM chat_conversas c
-            INNER JOIN chat_participantes p ON p.conversa_id = c.id
-            WHERE p.cpf = :cpf AND p.apagado_em IS NULL
-            ORDER BY COALESCE((SELECT mx.id FROM chat_mensagens mx
-                    WHERE mx.conversa_id = c.id AND mx.id > COALESCE(p.limpo_em, 0)
-                    ORDER BY mx.id DESC LIMIT 1), -1) DESC";
+        $rows = DB::select(
+            "SELECT c.id, c.tipo, c.titulo, c.criado_por, c.criado_em,
+                    c.ultima_mensagem_id, COALESCE(p.limpo_em, 0) AS limpo_em
+             FROM chat_conversas c
+             INNER JOIN chat_participantes p ON p.conversa_id = c.id
+             WHERE p.cpf = :cpf AND p.apagado_em IS NULL
+             ORDER BY c.ultima_mensagem_id IS NULL, c.ultima_mensagem_id DESC",
+            ['cpf' => $cpf],
+            'mysql'
+        );
 
-        return DB::select($sql, ['cpf' => $cpf, 'cpf2' => $cpf], 'mysql');
+        if (!$rows) {
+            return [];
+        }
+
+        $idsMensagem = [];
+        foreach ($rows as $r) {
+            $ultima = (int) ($r['ultima_mensagem_id'] ?? 0);
+
+            if ($ultima > (int) $r['limpo_em']) {
+                $idsMensagem[$ultima] = $ultima;
+            }
+        }
+
+        $mensagens = [];
+        if ($idsMensagem) {
+            $in = implode(',', array_fill(0, count($idsMensagem), '?'));
+            $ultimas = DB::select(
+                "SELECT id, texto, apagado, criado_em FROM chat_mensagens WHERE id IN ({$in})",
+                array_values($idsMensagem),
+                'mysql'
+            );
+
+            foreach ($ultimas as $m) {
+                $mensagens[(int) $m['id']] = $m;
+            }
+        }
+
+        $naoLidas = [];
+        $contagens = DB::select(
+            "SELECT m.conversa_id, COUNT(*) AS total
+             FROM chat_mensagens m
+             INNER JOIN chat_participantes p ON p.conversa_id = m.conversa_id AND p.cpf = :cpf
+             WHERE m.id > GREATEST(COALESCE(p.ultimo_lido, 0), COALESCE(p.limpo_em, 0))
+               AND m.cpf <> :cpf2
+               AND p.apagado_em IS NULL
+             GROUP BY m.conversa_id",
+            ['cpf' => $cpf, 'cpf2' => $cpf],
+            'mysql'
+        );
+
+        foreach ($contagens as $n) {
+            $naoLidas[(int) $n['conversa_id']] = (int) $n['total'];
+        }
+
+        foreach ($rows as &$r) {
+            $ultima = (int) ($r['ultima_mensagem_id'] ?? 0);
+            $msg = $ultima > (int) $r['limpo_em'] ? ($mensagens[$ultima] ?? null) : null;
+
+            $r['ultima_id'] = $msg ? (int) $msg['id'] : null;
+            $r['ultima_em'] = $msg ? $msg['criado_em'] : null;
+            $r['ultima_msg'] = $msg ? (string) $msg['texto'] : '';
+            $r['ultima_apagada'] = $msg ? (int) $msg['apagado'] : 0;
+            $r['nao_lidas'] = $naoLidas[(int) $r['id']] ?? 0;
+        }
+        unset($r);
+
+        return $rows;
+    }
+
+    public static function idsConversas(string $cpf): array
+    {
+        $rows = DB::select(
+            "SELECT c.id
+             FROM chat_conversas c
+             INNER JOIN chat_participantes p ON p.conversa_id = c.id
+             WHERE p.cpf = :cpf AND p.apagado_em IS NULL",
+            ['cpf' => $cpf],
+            'mysql'
+        );
+
+        return array_map(static fn($r) => (int) $r['id'], $rows);
     }
 
     public static function participantes(int $conversaId): array
@@ -80,17 +139,40 @@ class ChatModel
             ['conversa_id' => $conversaId, 'cpf' => $cpf], 'mysql') !== null;
     }
 
-    public static function mensagens(int $conversaId, int $apos = 0, int $limite = 100, ?string $cpf = null): array
+    /**
+     * Página de mensagens da conversa.
+     *
+     * - sem `apos`/`antes`: devolve as últimas `$limite` mensagens (ordem cronológica)
+     * - `apos > 0`: mensagens mais novas que `apos`
+     * - `antes > 0`: página anterior, mais antigas que `antes`
+     *
+     * @return array{mensagens: list<array>, tem_mais: bool}
+     */
+    public static function mensagens(int $conversaId, int $apos = 0, int $limite = 100, ?string $cpf = null, int $antes = 0): array
     {
+        $limite = max(1, $limite);
+
         $sql = "SELECT m.id, m.conversa_id, m.cpf AS remetente, m.texto, m.tipo, m.anexo, m.anexo_nome,
                     m.editado_em, m.apagado, m.criado_em,
                     f.nome AS remetente_nome
                 FROM chat_mensagens m
                 INNER JOIN chat_participantes p ON p.conversa_id = m.conversa_id
                 LEFT JOIN func f ON f.cpf = m.cpf
-                WHERE m.conversa_id = :conversa_id AND m.id > :apos";
+                WHERE m.conversa_id = :conversa_id";
 
-        $params = ['conversa_id' => $conversaId, 'apos' => $apos];
+        $params = ['conversa_id' => $conversaId];
+
+        if ($antes > 0) {
+            $sql .= ' AND m.id < :antes';
+            $params['antes'] = $antes;
+            $ordem = 'DESC';
+        } elseif ($apos > 0) {
+            $sql .= ' AND m.id > :apos';
+            $params['apos'] = $apos;
+            $ordem = 'ASC';
+        } else {
+            $ordem = 'DESC';
+        }
 
         if ($cpf !== null) {
             $sql .= ' AND p.cpf = :cpf AND m.id > COALESCE(p.limpo_em, 0)';
@@ -100,24 +182,28 @@ class ChatModel
             $params['conversa_id2'] = $conversaId;
         }
 
-        $sql .= " ORDER BY m.id ASC";
-
-        if ($limite > 0) {
-            $sql .= ' LIMIT ' . (int) $limite;
-        }
+        $sql .= " ORDER BY m.id {$ordem} LIMIT " . ($limite + 1);
 
         $rows = DB::select($sql, $params, 'mysql');
+        $temMais = count($rows) > $limite;
 
-        if (!$rows) {
-            return [];
+        if ($temMais) {
+            array_pop($rows);
         }
 
-        return self::enriquecer($rows, (int) $conversaId);
+        if ($ordem === 'DESC') {
+            $rows = array_reverse($rows);
+        }
+
+        return [
+            'mensagens' => $rows ? self::enriquecer($rows, (int) $conversaId) : [],
+            'tem_mais' => $temMais,
+        ];
     }
 
     public static function enviar(int $conversaId, string $cpf, string $texto, string $tipo = 'texto', ?string $anexo = null, ?string $anexoNome = null): ?int
     {
-        return DB::insert('chat_mensagens', [
+        $id = DB::insert('chat_mensagens', [
             'conversa_id' => $conversaId,
             'cpf' => $cpf,
             'texto' => $texto,
@@ -125,6 +211,18 @@ class ChatModel
             'anexo' => $anexo,
             'anexo_nome' => $anexoNome,
         ], 'mysql');
+
+        if ($id !== null) {
+            $conn = DB::connect('mysql');
+            $stmt = $conn->prepare(
+                "UPDATE chat_conversas
+                 SET ultima_mensagem_id = GREATEST(COALESCE(ultima_mensagem_id, 0), :mensagem_id)
+                 WHERE id = :conversa_id"
+            );
+            $stmt->execute(['mensagem_id' => $id, 'conversa_id' => $conversaId]);
+        }
+
+        return $id;
     }
 
     public static function mensagem(int $id): ?array
@@ -248,7 +346,7 @@ class ChatModel
     public static function eventos(int $conversaId, int $apos): array
     {
         return DB::select("SELECT id, evento, dados, criado_em FROM chat_eventos
-            WHERE conversa_id = :c AND id > :apos ORDER BY id ASC",
+            WHERE conversa_id = :c AND id > :apos ORDER BY id ASC LIMIT 200",
             ['c' => $conversaId, 'apos' => $apos], 'mysql');
     }
 
@@ -259,6 +357,44 @@ class ChatModel
             ['c' => $conversaId], 'mysql');
 
         return (int) ($row['ultimo'] ?? 0);
+    }
+
+    public static function digitandoAtualizar(int $conversaId, string $cpf): void
+    {
+        $conn = DB::connect('mysql');
+        $stmt = $conn->prepare(
+            "INSERT INTO chat_digitando (conversa_id, cpf, atualizado_em)
+             VALUES (:conversa_id, :cpf, NOW())
+             ON DUPLICATE KEY UPDATE atualizado_em = NOW()"
+        );
+        $stmt->execute(['conversa_id' => $conversaId, 'cpf' => $cpf]);
+    }
+
+    /**
+     * Participantes digitando nos últimos 5 segundos (nunca inclui o próprio usuário).
+     *
+     * @return list<array{cpf: string, nome: string}>
+     */
+    public static function digitandoAtivos(int $conversaId, string $cpf): array
+    {
+        $rows = DB::select(
+            "SELECT d.cpf, COALESCE(NULLIF(TRIM(f.nomesocial), ''), f.nome, '') AS nome
+             FROM chat_digitando d
+             LEFT JOIN func f ON f.cpf = d.cpf
+             WHERE d.conversa_id = :conversa_id
+               AND d.cpf <> :cpf
+               AND d.atualizado_em > (NOW() - INTERVAL 5 SECOND)",
+            ['conversa_id' => $conversaId, 'cpf' => $cpf],
+            'mysql'
+        );
+
+        foreach ($rows as &$r) {
+            $r['cpf'] = (string) $r['cpf'];
+            $r['nome'] = (string) $r['nome'];
+        }
+        unset($r);
+
+        return $rows;
     }
 
     private static function enriquecer(array $rows, int $conversaId): array
@@ -496,9 +632,10 @@ class ChatModel
     {
         $row = DB::first("
             SELECT m.conversa_id, m.cpf AS remetente, m.texto, m.tipo, m.anexo, m.criado_em,
-                f.nome AS remetente_nome
+                f.nome AS remetente_nome, c.titulo AS conversa_titulo, c.tipo AS conversa_tipo
             FROM chat_mensagens m
             INNER JOIN chat_participantes p ON p.conversa_id = m.conversa_id AND p.cpf = :cpf
+            INNER JOIN chat_conversas c ON c.id = m.conversa_id
             LEFT JOIN func f ON f.cpf = m.cpf
             WHERE m.id > GREATEST(COALESCE(p.ultimo_lido, 0), COALESCE(p.limpo_em, 0)) AND m.cpf <> :cpf2 AND p.apagado_em IS NULL
             ORDER BY m.id DESC LIMIT 1",

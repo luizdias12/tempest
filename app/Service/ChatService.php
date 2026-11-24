@@ -11,10 +11,35 @@ class ChatService
 {
     private const MAX_ANEXO = 5242880;
 
+    private const DIR_ANEXO = 'storage/chat';
+
     private const EXTENSOES = [
         'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
         'txt', 'csv', 'zip', 'rar', 'mp3', 'wav', 'mp4',
+    ];
+
+    private const MIMES = [
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'bmp' => 'image/bmp',
+        'webp' => 'image/webp',
+        'pdf' => 'application/pdf',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt' => 'application/vnd.ms-powerpoint',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'txt' => 'text/plain; charset=utf-8',
+        'csv' => 'text/csv; charset=utf-8',
+        'zip' => 'application/zip',
+        'rar' => 'application/vnd.rar',
+        'mp3' => 'audio/mpeg',
+        'wav' => 'audio/wav',
+        'mp4' => 'video/mp4',
     ];
 
     public const EMOJIS_REACAO = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -80,7 +105,9 @@ class ChatService
                 'titulo' => $titulo,
                 'subtitulo' => $sub,
                 'foto' => $foto,
-                'ultima_msg' => (string) CryptoService::descriptografar($r['ultima_msg'] ?? ''),
+                'ultima_msg' => !empty($r['ultima_apagada'])
+                    ? '[Mensagem apagada]'
+                    : (string) CryptoService::descriptografar($r['ultima_msg'] ?? ''),
                 'ultima_em' => $r['ultima_em'] ?? null,
                 'nao_lidas' => (int) ($r['nao_lidas'] ?? 0),
                 'online' => self::conversaOnline($r['tipo'], $pessoas, $cpf),
@@ -118,8 +145,7 @@ class ChatService
         $online = OnlineService::cpfsOnline(array_values($cpfs));
         $mapa = [];
 
-        foreach (ChatModel::conversas($cpf) as $conversa) {
-            $id = (int) $conversa['id'];
+        foreach (ChatModel::idsConversas($cpf) as $id) {
             $mapa[$id] = false;
 
             foreach ($porConversa[$id] ?? [] as $parceiro) {
@@ -133,7 +159,10 @@ class ChatService
         return ['conversas' => $mapa];
     }
 
-    public static function mensagens(int $conversaId, string $cpf, int $apos = 0): array
+    /**
+     * @return array{mensagens: list<array>, tem_mais: bool, cursor: int}
+     */
+    public static function mensagens(int $conversaId, string $cpf, int $apos = 0, int $antes = 0): array
     {
         $cpf = self::cpf($cpf);
 
@@ -141,14 +170,20 @@ class ChatService
             throw new \RuntimeException('Conversa não encontrada.', 404);
         }
 
-        $rows = ChatModel::mensagens((int) $conversaId, max(0, $apos), 100, $cpf);
+        // Cursor antes da leitura: eventos criados durante a consulta são
+        // reentregues no próximo poll e descartados no cliente por id.
+        $cursor = ChatModel::ultimoEventoId((int) $conversaId);
 
-        foreach ($rows as &$m) {
+        $dados = ChatModel::mensagens((int) $conversaId, max(0, $apos), 100, $cpf, max(0, $antes));
+
+        foreach ($dados['mensagens'] as &$m) {
             $m['texto'] = CryptoService::descriptografar((string) ($m['texto'] ?? ''));
         }
         unset($m);
 
-        return $rows;
+        $dados['cursor'] = $cursor;
+
+        return $dados;
     }
 
     public static function enviar(int $conversaId, string $cpf, string $texto, string $tipo = 'texto', ?string $anexo = null, ?string $anexoNome = null): array
@@ -223,12 +258,12 @@ class ChatService
 
         $mime = mime_content_type((string) $file['tmp_name']);
         $safe = substr(sha1((string) $file['name'] . microtime() . random_bytes(16)), 7, 22);
-        $relativo = 'files/chat/' . $safe . '.' . $ext;
-        $destino = basePath('public/' . $relativo);
+        $relativo = 'chat/' . $safe . '.' . $ext;
+        $destino = basePath(self::DIR_ANEXO . '/' . $safe . '.' . $ext);
 
         $dir = dirname($destino);
 
-        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+        if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
             throw new \RuntimeException('Falha ao criar a pasta de arquivos.', 500);
         }
 
@@ -242,11 +277,83 @@ class ChatService
         $tipo = $mime !== false && str_starts_with($mime, 'image/') ? 'imagem' : 'arquivo';
 
         try {
-            return self::enviar($conversaId, $cpf, trim($texto), $tipo, '/' . $relativo, $file['name']);
+            return self::enviar($conversaId, $cpf, trim($texto), $tipo, $relativo, $file['name']);
         } catch (\Throwable $e) {
             @unlink($destino);
             throw $e;
         }
+    }
+
+    /**
+     * Resolve o arquivo de um anexo somente para participantes da conversa.
+     *
+     * @return array{caminho: string, nome: string, mime: string, tamanho: int, inline: bool}
+     */
+    public static function anexo(int $mensagemId, string $cpf): array
+    {
+        $cpf = self::cpf($cpf);
+
+        if ($cpf === null || $mensagemId <= 0) {
+            throw new \RuntimeException('Anexo não encontrado.', 404);
+        }
+
+        $msg = ChatModel::mensagem($mensagemId);
+
+        if (!$msg || (int) ($msg['apagado'] ?? 0) === 1 || empty($msg['anexo'])) {
+            throw new \RuntimeException('Anexo não encontrado.', 404);
+        }
+
+        if (!self::participa((int) $msg['conversa_id'], $cpf)) {
+            throw new \RuntimeException('Anexo não encontrado.', 404);
+        }
+
+        $caminho = self::caminhoAnexo((string) $msg['anexo']);
+
+        if ($caminho === null) {
+            throw new \RuntimeException('Anexo não encontrado.', 404);
+        }
+
+        $mime = self::MIMES[strtolower(pathinfo($caminho, PATHINFO_EXTENSION))] ?? 'application/octet-stream';
+
+        return [
+            'caminho' => $caminho,
+            'nome' => (string) ($msg['anexo_nome'] ?: basename($caminho)),
+            'mime' => $mime,
+            'tamanho' => (int) filesize($caminho),
+            'inline' => str_starts_with($mime, 'image/'),
+        ];
+    }
+
+    private static function caminhoAnexo(string $anexo): ?string
+    {
+        $anexo = str_replace('\\', '/', $anexo);
+
+        if (preg_match('#^/files/chat/[a-f0-9]{22}\.[a-z0-9]{1,10}$#i', $anexo)) {
+            return self::arquivoDentro(basePath('public/files/chat'), basename($anexo));
+        }
+
+        if (preg_match('#^chat/[a-f0-9]{22}\.[a-z0-9]{1,10}$#i', $anexo)) {
+            return self::arquivoDentro(basePath(self::DIR_ANEXO), basename($anexo));
+        }
+
+        return null;
+    }
+
+    private static function arquivoDentro(string $dir, string $arquivo): ?string
+    {
+        $raiz = realpath($dir);
+
+        if ($raiz === false) {
+            return null;
+        }
+
+        $caminho = realpath($raiz . DIRECTORY_SEPARATOR . $arquivo);
+
+        if ($caminho === false || !str_starts_with($caminho, $raiz . DIRECTORY_SEPARATOR)) {
+            return null;
+        }
+
+        return is_file($caminho) ? $caminho : null;
     }
 
     public static function editar(int $conversaId, int $mensagemId, string $cpf, string $texto): array
@@ -348,31 +455,7 @@ class ChatService
             return;
         }
 
-        $row = DB::first("SELECT id FROM chat_eventos
-            WHERE conversa_id = :c AND evento = 'digitando'
-            ORDER BY id DESC LIMIT 1",
-            ['c' => $conversaId], 'mysql');
-
-        if ($row) {
-            $dt = DB::first("SELECT criado_em FROM chat_eventos WHERE id = :id", ['id' => $row['id']], 'mysql');
-
-            if ($dt && (time() - strtotime((string) $dt['criado_em'])) < 1) {
-                return;
-            }
-        }
-
-        $nome = null;
-        $u = DB::first("SELECT f.nome FROM func f WHERE f.cpf = :cpf", ['cpf' => $cpf], 'mysql');
-
-        if ($u) {
-            $nome = $u['nome'];
-        }
-
-        ChatModel::novoEvento((int) $conversaId, 'digitando', [
-            'conversa_id' => (int) $conversaId,
-            'cpf' => $cpf,
-            'nome' => $nome,
-        ]);
+        ChatModel::digitandoAtualizar((int) $conversaId, $cpf);
     }
 
     public static function novaConversa(string $cpfLogado, string $cpfContato): int
@@ -448,16 +531,19 @@ class ChatService
         }
     }
 
-    public static function streamCursor(int $conversaId): int
+    public static function eventos(int $conversaId, string $cpf, int $apos): array
     {
-        return ChatModel::ultimoEventoId((int) $conversaId);
-    }
+        $cpf = self::cpf($cpf);
 
-    public static function eventos(int $conversaId, int $apos): array
-    {
+        if ($cpf === null || $conversaId <= 0 || !self::participa($conversaId, $cpf)) {
+            throw new \RuntimeException('Conversa não encontrada.', 404);
+        }
+
         $rows = ChatModel::eventos((int) $conversaId, max(0, $apos));
+        $cursor = max(0, $apos);
 
         foreach ($rows as &$r) {
+            $cursor = (int) $r['id'];
             $r['dados'] = json_decode((string) ($r['dados'] ?? '{}'), true) ?: [];
 
             if (($r['evento'] ?? '') === 'novidade') {
@@ -473,7 +559,11 @@ class ChatService
         }
         unset($r);
 
-        return $rows;
+        return [
+            'eventos' => $rows,
+            'cursor' => $cursor,
+            'digitando' => ChatModel::digitandoAtivos((int) $conversaId, $cpf),
+        ];
     }
 
     public static function marcarLido(int $conversaId, string $cpf, int $mensagemId): void
@@ -529,13 +619,10 @@ class ChatService
 
         $titulo = 'Nova mensagem';
 
-        if ((int) $ultima['conversa_id'] > 0) {
-            foreach (self::conversas($cpf) as $c) {
-                if ((int) $c['id'] === (int) $ultima['conversa_id']) {
-                    $titulo = $c['titulo'] ?: $titulo;
-                    break;
-                }
-            }
+        if (($ultima['conversa_tipo'] ?? '') === 'grupo' && !empty($ultima['conversa_titulo'])) {
+            $titulo = (string) $ultima['conversa_titulo'];
+        } elseif (!empty($ultima['remetente_nome'])) {
+            $titulo = (string) $ultima['remetente_nome'];
         }
 
         return [
@@ -584,11 +671,6 @@ class ChatService
     private static function participa(int $conversaId, string $cpf): bool
     {
         return ChatModel::ehParticipante($conversaId, $cpf);
-    }
-
-    public static function participaPub(int $conversaId, string $cpf): bool
-    {
-        return self::participa($conversaId, $cpf);
     }
 
     private static function validaPropria(int $conversaId, int $mensagemId, string $cpf): array

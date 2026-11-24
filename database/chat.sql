@@ -1,7 +1,7 @@
 -- ============================================================================
 -- CHAT DA INTRANET
 -- Tabelas: chat_conversas, chat_participantes, chat_mensagens,
---          chat_reacoes, chat_eventos
+--          chat_reacoes, chat_eventos, chat_digitando
 -- Observação: sem FOREIGN KEY real (InnoDB 8.0.46 apresentou bug de DD nesse
 -- caso); a integridade é garantida na camada de aplicação.
 -- Observação: chat_mensagens.texto guarda a mensagem criptografada
@@ -12,9 +12,11 @@ CREATE TABLE IF NOT EXISTS chat_conversas (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     tipo ENUM('direta','grupo') NOT NULL DEFAULT 'direta',
     titulo VARCHAR(255) NULL,
+    ultima_mensagem_id INT UNSIGNED NULL COMMENT 'Denormalização: última mensagem da conversa',
     criado_por VARCHAR(11) NOT NULL,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    KEY idx_conversa_ultima (ultima_mensagem_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS chat_participantes (
@@ -61,5 +63,17 @@ CREATE TABLE IF NOT EXISTS chat_eventos (
     dados TEXT NULL COMMENT 'Payload do evento em JSON',
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_evento_conversa (conversa_id, id)
+    KEY idx_evento_conversa (conversa_id, id),
+    KEY idx_evento_criado (criado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Indicador de "digitando" com TTL: uma linha por participante/conversa,
+-- renovada pelo POST /chat/digitando e expirada pela leitura (5s) e pelo job
+-- cli/chat_reter_eventos.php. Não gera linhas em chat_eventos.
+CREATE TABLE IF NOT EXISTS chat_digitando (
+    conversa_id INT UNSIGNED NOT NULL,
+    cpf VARCHAR(11) NOT NULL,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (conversa_id, cpf),
+    KEY idx_digitando_atualizado (atualizado_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

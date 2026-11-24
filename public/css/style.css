@@ -4141,6 +4141,14 @@ td.valor {
     gap: 8px;
 }
 
+.chat-carregar-antigas {
+    align-self: center;
+    padding: 6px 14px;
+    font-size: 12px;
+    opacity: 0.85;
+    cursor: pointer;
+}
+
 .chat-msg {
     display: flex;
     justify-content: flex-start;
