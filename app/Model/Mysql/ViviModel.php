@@ -22,7 +22,9 @@ class ViviModel
         'consegue', 'conseguir', 'ajudar', 'necessito', 'necessario',
         'necessário', 'existe', 'existem', 'algum', 'alguma', 'alguns',
         'algumas', 'certo', 'certa', 'documento', 'documentos', 'arquivo',
-        'arquivos', 'titulo', 'título', 'informar',
+        'arquivos', 'titulo', 'título', 'informar', 'algo', 'sabe', 'sabem',
+        'saberia', 'conhece', 'conhecem', 'possui', 'possuem', 'teria',
+        'teriam',
     ];
 
     /**
