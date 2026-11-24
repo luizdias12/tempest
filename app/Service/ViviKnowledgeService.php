@@ -737,6 +737,8 @@ class ViviKnowledgeService
         foreach ($trechos as $trecho) {
             $titulo = removeAccents(mb_strtolower((string) ($trecho['titulo'] ?? '')));
             $texto = $titulo . ' ' . removeAccents(mb_strtolower((string) ($trecho['conteudo'] ?? '')));
+            // A categoria ("— DIRETORIO / SETOR") não conta como título do documento.
+            $tituloDocumento = trim(explode(' — ', $titulo, 2)[0]);
             $noTexto = 0;
             $noTitulo = 0;
 
@@ -747,7 +749,7 @@ class ViviKnowledgeService
                     $noTexto++;
                 }
 
-                if (mb_strpos($titulo, $alvo) !== false) {
+                if (preg_match('/(?<![\p{L}\p{N}])' . preg_quote($alvo, '/') . '(?![\p{L}\p{N}])/u', $tituloDocumento) === 1) {
                     $noTitulo++;
                 }
             }

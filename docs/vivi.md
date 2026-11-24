@@ -291,8 +291,8 @@ relacionado, a Vivi não responde apenas “não encontrei”:
 
 A checagem é apenas de existência: título, trecho e quantidade não são enviados ao modelo nem
 exibidos ao usuário. Cada trecho acessível passa por um filtro individual de relevância (60% dos
-termos significativos no texto, ou termo no título com cobertura quase total); trechos fracos não
-são enviados ao modelo nem impedem a checagem de conteúdo restrito.
+termos significativos no texto, ou termo no título do documento — sem a categoria — com cobertura
+quase total); trechos fracos não são enviados ao modelo nem impedem a checagem de conteúdo restrito.
 
 ### Comandos
 
