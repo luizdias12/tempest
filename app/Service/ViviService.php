@@ -435,7 +435,9 @@ class ViviService
      */
     private static function consultaRecuperacao(string $mensagem, array $historico): string
     {
-        if (mb_strlen($mensagem) >= 30) {
+        // Com dois ou mais termos próprios a mensagem já é uma busca completa;
+        // herdar a anterior só faz sentido em acompanhamentos curtos ("e o prazo?").
+        if (count(ViviModel::termosRelevantes($mensagem)) >= 2) {
             return $mensagem;
         }
 
