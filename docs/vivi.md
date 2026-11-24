@@ -287,11 +287,12 @@ relacionado, a Vivi não responde apenas “não encontrei”:
 
 - **anônimo:** informa que a informação exige autenticação e orienta a fazer login em `/login`;
 - **autenticado sem permissão:** informa que o conteúdo não está liberado para a função e
-  orienta a abrir um chamado no Helpdesk.
+  orienta a entrar em contato com o setor de Gestão de Processos.
 
 A checagem é apenas de existência: título, trecho e quantidade não são enviados ao modelo nem
-exibidos ao usuário. Trechos acessíveis que cobrem menos de 60% dos termos significativos da
-pergunta são tratados como contexto fraco e não impedem a checagem de conteúdo restrito.
+exibidos ao usuário. Cada trecho acessível passa por um filtro individual de relevância (60% dos
+termos significativos no texto, ou termo no título com cobertura quase total); trechos fracos não
+são enviados ao modelo nem impedem a checagem de conteúdo restrito.
 
 ### Comandos
 
@@ -332,6 +333,10 @@ php cli/vivi_indexar.php --limpar
 
 - `--limpar` no `vivi_indexar_intranet.php` remove somente as fontes `intranet:doc:*`.
 - `--apenas-geral` indexa apenas os documentos com `geral='S'` (útil para teste).
+- A indexação ignora a categoria **TI / DESENVOLVIMENTO** (lista `CATEGORIAS_IGNORADAS` em
+  `ViviKnowledgeService`). Esses documentos continuam no módulo Documentos, mas não alimentam a
+  Vivi. A indexação completa (sem `--limite`) também remove trechos antigos dessas categorias;
+  execuções parciais não fazem essa limpeza.
 - `--limite=N` processa somente os N primeiros documentos (não remove documentos ausentes).
 - A saída informa documentos, trechos, ignorados, sem texto, embeddings, removidos, erros e o
   modo de busca. Códigos de saída: `0` sucesso, `1` falha geral, `2` concluído com erros por

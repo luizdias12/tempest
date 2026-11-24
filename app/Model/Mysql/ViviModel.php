@@ -21,7 +21,8 @@ class ViviModel
         'vocês', 'senhor', 'senhora', 'quero', 'queria', 'saber', 'poderia',
         'consegue', 'conseguir', 'ajudar', 'necessito', 'necessario',
         'necessário', 'existe', 'existem', 'algum', 'alguma', 'alguns',
-        'algumas', 'certo', 'certa',
+        'algumas', 'certo', 'certa', 'documento', 'documentos', 'arquivo',
+        'arquivos', 'titulo', 'título', 'informar',
     ];
 
     /**

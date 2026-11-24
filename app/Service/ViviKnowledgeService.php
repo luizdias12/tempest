@@ -19,6 +19,12 @@ class ViviKnowledgeService
 {
     private const EXTENSOES = ['md', 'txt', 'pdf', 'docx'];
 
+    /**
+     * Categorias do módulo Documentos que não devem alimentar a Vivi.
+     * Formato: "DIRETORIO/SUBDIRETORIO" em maiúsculas e sem acentos.
+     */
+    private const CATEGORIAS_IGNORADAS = ['TI/DESENVOLVIMENTO'];
+
     private static function env(string $chave, string $padrao = ''): string
     {
         return trim((string) (getenv($chave) ?: ($_ENV[$chave] ?? $padrao)));
@@ -309,7 +315,7 @@ class ViviKnowledgeService
      * Documentos restritos guardam os códigos de função pai de doc_permissao.
      *
      * @param array{reindexar?: bool, apenas_gerais?: bool, limite?: int, onProgress?: callable} $opcoes
-     * @return array{documentos: int, indexados: int, ignorados: int, sem_texto: int, trechos: int, embeddings: int, removidos: int, erros: string[]}
+     * @return array{documentos: int, indexados: int, ignorados: int, excluidos: int, sem_texto: int, trechos: int, embeddings: int, removidos: int, erros: string[]}
      */
     public static function indexarDocumentosIntranet(array $opcoes = []): array
     {
@@ -325,6 +331,7 @@ class ViviKnowledgeService
             'documentos' => count($docs),
             'indexados' => 0,
             'ignorados' => 0,
+            'excluidos' => 0,
             'sem_texto' => 0,
             'trechos' => 0,
             'embeddings' => 0,
@@ -336,6 +343,17 @@ class ViviKnowledgeService
         $total = count($docs);
 
         foreach ($docs as $indice => $doc) {
+            if (self::categoriaIgnorada($doc)) {
+                // Não entra em $ativos: a limpeza de órfãos remove os trechos antigos.
+                $resumo['excluidos']++;
+
+                if (is_callable($onProgress)) {
+                    $onProgress($indice + 1, $total, $doc, 'excluido');
+                }
+
+                continue;
+            }
+
             $idDoc = (int) ($doc['id_doc'] ?? 0);
             $idVersao = (int) ($doc['id_versao'] ?? 0);
 
@@ -412,6 +430,28 @@ class ViviKnowledgeService
         }
 
         return $resumo;
+    }
+
+    /**
+     * Categoria normalizada do documento: "DIRETORIO/SUBDIRETORIO".
+     *
+     * @param array<string, mixed> $doc
+     */
+    private static function categoriaDocumento(array $doc): string
+    {
+        $diretorio = (string) preg_replace('/\s+/', ' ', trim((string) ($doc['diretorio'] ?? '')));
+        $subdiretorio = (string) preg_replace('/\s+/', ' ', trim((string) ($doc['subdiretorio'] ?? '')));
+        $categoria = trim($diretorio . '/' . $subdiretorio, '/');
+
+        return removeAccents(mb_strtoupper($categoria));
+    }
+
+    /**
+     * @param array<string, mixed> $doc
+     */
+    private static function categoriaIgnorada(array $doc): bool
+    {
+        return in_array(self::categoriaDocumento($doc), self::CATEGORIAS_IGNORADAS, true);
     }
 
     /**
@@ -671,41 +711,53 @@ class ViviKnowledgeService
     }
 
     /**
-     * Informa se os trechos recuperados cobrem os termos significativos da consulta.
-     * Resultados fracos (uma única palavra comum, por exemplo) não contam como contexto útil.
+     * Mantém apenas os trechos que cobrem os termos significativos da consulta,
+     * descartando resultados lexicais fracos (documentos técnicos, por exemplo).
+     * Um trecho é aceito ao cobrir 60% dos termos no texto ou ao citar algum
+     * termo no título com cobertura quase total no texto.
      *
      * @param array<int, array<string, mixed>> $trechos
+     * @return array<int, array<string, mixed>>
      */
-    public static function contextoRelevante(string $consulta, array $trechos): bool
+    public static function filtrarRelevantes(string $consulta, array $trechos): array
     {
         if (empty($trechos)) {
-            return false;
+            return [];
         }
 
         $termos = ViviModel::termosRelevantes($consulta);
 
         if (empty($termos)) {
-            return true;
+            return [];
         }
 
-        $melhorCobertura = 0;
+        $minimo = max(1, (int) ceil(count($termos) * 0.6));
+        $filtrados = [];
 
-        foreach (array_slice($trechos, 0, 3) as $trecho) {
-            $texto = removeAccents(mb_strtolower(
-                ($trecho['titulo'] ?? '') . ' ' . ($trecho['conteudo'] ?? '')
-            ));
-            $encontrados = 0;
+        foreach ($trechos as $trecho) {
+            $titulo = removeAccents(mb_strtolower((string) ($trecho['titulo'] ?? '')));
+            $texto = $titulo . ' ' . removeAccents(mb_strtolower((string) ($trecho['conteudo'] ?? '')));
+            $noTexto = 0;
+            $noTitulo = 0;
 
             foreach ($termos as $termo) {
-                if (mb_strpos($texto, removeAccents($termo)) !== false) {
-                    $encontrados++;
+                $alvo = removeAccents($termo);
+
+                if (mb_strpos($texto, $alvo) !== false) {
+                    $noTexto++;
+                }
+
+                if (mb_strpos($titulo, $alvo) !== false) {
+                    $noTitulo++;
                 }
             }
 
-            $melhorCobertura = max($melhorCobertura, $encontrados);
+            if ($noTexto >= $minimo || ($noTitulo >= 1 && $noTexto >= $minimo - 1)) {
+                $filtrados[] = $trecho;
+            }
         }
 
-        return $melhorCobertura >= max(1, (int) ceil(count($termos) * 0.6));
+        return $filtrados;
     }
 
     /**

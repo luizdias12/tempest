@@ -60,11 +60,12 @@ try {
         : 'FULLTEXT (sem modelo de embeddings)';
 
     printf(
-        "[%s] Documentos: %d | Indexados: %d | Ignorados: %d | Sem texto: %d | Trechos: %d | Com embedding: %d | Removidos: %d | Erros: %d | Busca: %s%s\n",
+        "[%s] Documentos: %d | Indexados: %d | Ignorados: %d | Excluídos: %d | Sem texto: %d | Trechos: %d | Com embedding: %d | Removidos: %d | Erros: %d | Busca: %s%s\n",
         date('d-m-Y H:i:s'),
         $resumo['documentos'],
         $resumo['indexados'],
         $resumo['ignorados'],
+        $resumo['excluidos'],
         $resumo['sem_texto'],
         $resumo['trechos'],
         $resumo['embeddings'],
