@@ -8,9 +8,9 @@ use DateTimeZone;
 use Throwable;
 
 /**
- * Consulta dados estruturados da intranet (lojas, gerência e plantão comercial)
- * para responder perguntas que dependem de informação atual, sem indexá-las na
- * base do Vivi.
+ * Consulta dados estruturados da intranet (lojas, gerência, plantão comercial e
+ * contatos/ramais) para responder perguntas que dependem de informação atual,
+ * sem indexá-las na base do Vivi.
  */
 class ViviDadosService
 {
@@ -40,10 +40,110 @@ class ViviDadosService
         7 => 'domingo',
     ];
 
+    private const ALIASES_SETOR = [
+        'ti' => 'TI',
+        't.i' => 'TI',
+        't i' => 'TI',
+        'tecnologia' => 'TI',
+        'tecnologia da informacao' => 'TI',
+        'informatica' => 'TI',
+        'suporte' => 'TI',
+        'rh' => 'Recursos Humanos',
+        'dp' => 'Departamento Pessoal',
+        'financeiro' => 'Administrativo | Financeiro',
+        'comercial' => 'Comercial',
+        'logistica' => 'Logistica',
+        'manutencao' => 'Manutencao',
+    ];
+
+    private static ?array $setoresCache = null;
+
+    /**
+     * Resposta determinística para consultas de dados estruturados.
+     * Evita chamar o provedor de IA para ramais, gerentes e plantões.
+     *
+     * @param array<int, array{role: string, content: string}> $historico
+     */
+    public static function respostaDireta(string $mensagem, array $historico = []): ?string
+    {
+        return self::respostaContato($mensagem, $historico)
+            ?? self::respostaPlantao($mensagem, $historico)
+            ?? self::respostaGerencia($mensagem, $historico);
+    }
+
     /**
      * @param array<int, array{role: string, content: string}> $historico
      */
     public static function fatosGerencia(string $mensagem, array $historico = []): ?string
+    {
+        $consulta = self::consultaGerencia($mensagem, $historico);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        $termo = $consulta['termo'];
+        $lojas = $consulta['lojas'];
+
+        if (empty($lojas)) {
+            return "DADOS ATUAIS DO SISTEMA (consulta direta à base de filiais):\n"
+                . "Nenhuma loja encontrada para o termo \"{$termo}\". "
+                . 'Peça ao usuário o nome ou o código exato da loja antes de responder.';
+        }
+
+        $blocos = [];
+
+        foreach (array_slice($lojas, 0, 5) as $loja) {
+            $blocos[] = self::formatarLoja($loja);
+        }
+
+        $texto = "DADOS ATUAIS DO SISTEMA (consulta direta à base de filiais e gerentes, use como fonte prioritária):\n"
+            . implode("\n", $blocos);
+
+        if (count($lojas) > 5) {
+            $texto .= "\nHá mais lojas com esse termo. Se não for a loja certa, peça ao usuário o código exato.";
+        }
+
+        return $texto;
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $historico
+     */
+    private static function respostaGerencia(string $mensagem, array $historico = []): ?string
+    {
+        $consulta = self::consultaGerencia($mensagem, $historico);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        $termo = $consulta['termo'];
+        $lojas = $consulta['lojas'];
+
+        if (empty($lojas)) {
+            return 'Não encontrei nenhuma loja para "' . $termo . '". '
+                . 'Informe o nome ou o código exato da loja.';
+        }
+
+        $linhas = [count($lojas) === 1 ? 'Gerência da loja:' : 'Gerências encontradas:'];
+
+        foreach (array_slice($lojas, 0, 5) as $loja) {
+            $linhas[] = self::formatarLoja($loja);
+        }
+
+        if (count($lojas) > 5) {
+            $linhas[] = 'Há mais lojas com esse termo. Informe o código exato para refinar.';
+        }
+
+        return implode("\n", $linhas);
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $historico
+     * @return array{termo: string, lojas: array<int, array<string, mixed>>}|null
+     */
+    private static function consultaGerencia(string $mensagem, array $historico = []): ?array
     {
         $termo = self::extrairTermoLoja($mensagem);
 
@@ -73,26 +173,7 @@ class ViviDadosService
             return null;
         }
 
-        if (empty($lojas)) {
-            return "DADOS ATUAIS DO SISTEMA (consulta direta à base de filiais):\n"
-                . "Nenhuma loja encontrada para o termo \"{$termo}\". "
-                . 'Peça ao usuário o nome ou o código exato da loja antes de responder.';
-        }
-
-        $blocos = [];
-
-        foreach (array_slice($lojas, 0, 5) as $loja) {
-            $blocos[] = self::formatarLoja($loja);
-        }
-
-        $texto = "DADOS ATUAIS DO SISTEMA (consulta direta à base de filiais e gerentes, use como fonte prioritária):\n"
-            . implode("\n", $blocos);
-
-        if (count($lojas) > 5) {
-            $texto .= "\nHá mais lojas com esse termo. Se não for a loja certa, peça ao usuário o código exato.";
-        }
-
-        return $texto;
+        return ['termo' => $termo, 'lojas' => $lojas];
     }
 
     /**
@@ -102,6 +183,41 @@ class ViviDadosService
      * @param array<int, array{role: string, content: string}> $historico
      */
     public static function fatosPlantao(string $mensagem, array $historico = []): ?string
+    {
+        $consulta = self::consultaPlantao($mensagem, $historico);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        return 'DADOS ATUAIS DO SISTEMA (escala de plantão comercial; informação pública exibida em /comercial):'
+            . "\n" . implode("\n", self::linhasPlantao($consulta));
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $historico
+     */
+    private static function respostaPlantao(string $mensagem, array $historico = []): ?string
+    {
+        $consulta = self::consultaPlantao($mensagem, $historico);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        return 'Plantão comercial (informação pública exibida em /comercial):'
+            . "\n" . implode("\n", self::linhasPlantao($consulta));
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $historico
+     * @return array{
+     *     periodo: array{tipo: string, inicio: string, fim: string, explicito: bool, rotulo?: string, contexto?: string},
+     *     registros: array<int, array<string, mixed>>,
+     *     hoje: string
+     * }|null
+     */
+    private static function consultaPlantao(string $mensagem, array $historico = []): ?array
     {
         $temIntencao = preg_match('/\b(plant[aã]o|plant[oõ]es|escala\s+comercial)\b/iu', $mensagem) === 1;
         $plural = preg_match('/\b(plant[oõ]es|escala\s+comercial)\b/iu', $mensagem) === 1;
@@ -126,11 +242,29 @@ class ViviDadosService
             return null;
         }
 
-        $hoje = self::hoje()->format('Y-m-d');
-        $cabecalho = 'DADOS ATUAIS DO SISTEMA (escala de plantão comercial; informação pública exibida em /comercial):';
+        return [
+            'periodo' => $periodo,
+            'registros' => $registros,
+            'hoje' => self::hoje()->format('Y-m-d'),
+        ];
+    }
+
+    /**
+     * @param array{
+     *     periodo: array{tipo: string, inicio: string, fim: string, explicito: bool, rotulo?: string, contexto?: string},
+     *     registros: array<int, array<string, mixed>>,
+     *     hoje: string
+     * } $consulta
+     * @return array<int, string>
+     */
+    private static function linhasPlantao(array $consulta): array
+    {
+        $periodo = $consulta['periodo'];
+        $registros = $consulta['registros'];
+        $hoje = $consulta['hoje'];
 
         if ($periodo['tipo'] === 'dia') {
-            $linhas = [$cabecalho];
+            $linhas = [];
             $quando = trim((string) ($periodo['contexto'] ?? ''));
             $semanaNoContexto = in_array($quando, self::DIAS_SEMANA, true);
             $dataFmt = $quando !== ''
@@ -153,13 +287,10 @@ class ViviDadosService
                 $linhas = array_merge($linhas, self::linhasProximosPlantoes($periodo['inicio']));
             }
 
-            return implode("\n", $linhas);
+            return $linhas;
         }
 
-        $linhas = [
-            $cabecalho,
-            'Plantões de ' . ($periodo['rotulo'] ?? self::formatarData($periodo['inicio'])) . ':',
-        ];
+        $linhas = ['Plantões de ' . ($periodo['rotulo'] ?? self::formatarData($periodo['inicio'])) . ':'];
 
         if (empty($registros)) {
             $linhas[] = '- Nenhum plantão cadastrado no período.';
@@ -177,7 +308,156 @@ class ViviDadosService
             }
         }
 
+        return $linhas;
+    }
+
+    /**
+     * Ramal/contatos de um funcionário pelo nome e, opcionalmente, setor.
+     * A base de contatos é pública em /contatos.
+     *
+     * @param array<int, array{role: string, content: string}> $historico
+     */
+    public static function fatosContato(string $mensagem, array $historico = []): ?string
+    {
+        $consulta = self::consultaContato($mensagem, $historico);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        $nome = $consulta['nome'];
+        $setor = $consulta['setor'];
+        $contatos = $consulta['contatos'];
+        $cabecalho = 'DADOS ATUAIS DO SISTEMA (consulta direta à base de contatos da intranet; '
+            . 'informação pública exibida em /contatos):';
+        $filtroSetor = $setor !== null ? ' no setor ' . $setor : '';
+
+        if (empty($contatos)) {
+            return $cabecalho . "\n"
+                . 'Nenhum contato ativo encontrado para "' . $nome . '"' . $filtroSetor . '. '
+                . 'Peça o nome completo ou o setor para refinar a busca.';
+        }
+
+        $linhas = [$cabecalho];
+
+        if (count($contatos) === 1) {
+            $linhas[] = 'Contato encontrado:';
+        } else {
+            $linhas[] = 'Foram encontrados ' . count($contatos) . ' contatos' . $filtroSetor . '. '
+                . 'Se não for a pessoa certa, peça o nome completo ou o setor.';
+        }
+
+        foreach (array_slice($contatos, 0, 5) as $contato) {
+            $linhas[] = self::formatarContato($contato);
+        }
+
+        if (count($contatos) > 5) {
+            $linhas[] = 'Há mais resultados; peça o nome completo ou o setor para refinar.';
+        }
+
         return implode("\n", $linhas);
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $historico
+     */
+    private static function respostaContato(string $mensagem, array $historico = []): ?string
+    {
+        $consulta = self::consultaContato($mensagem, $historico);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        $nome = $consulta['nome'];
+        $setor = $consulta['setor'];
+        $contatos = $consulta['contatos'];
+        $filtroSetor = $setor !== null ? ' no setor ' . $setor : '';
+
+        if (empty($contatos)) {
+            return 'Não encontrei nenhum contato ativo para "' . $nome . '"' . $filtroSetor . '. '
+                . 'Confira o nome ou informe também o setor.';
+        }
+
+        $linhas = [];
+
+        if (count($contatos) === 1) {
+            $linhas[] = 'Encontrei este contato:';
+        } else {
+            $linhas[] = 'Encontrei ' . count($contatos) . ' contatos' . $filtroSetor . '. '
+                . 'Se não for a pessoa certa, informe o nome completo ou o setor:';
+        }
+
+        foreach (array_slice($contatos, 0, 5) as $contato) {
+            $linhas[] = self::formatarContato($contato);
+        }
+
+        if (count($contatos) > 5) {
+            $linhas[] = 'Há mais resultados; informe o nome completo ou o setor para refinar.';
+        }
+
+        return implode("\n", $linhas);
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $historico
+     * @return array{nome: string, setor: ?string, contatos: array<int, array<string, mixed>>}|null
+     */
+    private static function consultaContato(string $mensagem, array $historico = []): ?array
+    {
+        $pedido = self::extrairPedidoContato($mensagem);
+
+        if ($pedido === null) {
+            return null;
+        }
+
+        if ($pedido['nome'] === null && mb_strlen($mensagem) <= 60) {
+            foreach (array_reverse($historico) as $item) {
+                if (($item['role'] ?? '') !== 'user') {
+                    continue;
+                }
+
+                $anterior = self::extrairPedidoContato((string) ($item['content'] ?? ''));
+
+                if ($anterior !== null && $anterior['nome'] !== null) {
+                    $pedido = $anterior;
+                    break;
+                }
+            }
+        }
+
+        if ($pedido['nome'] === null) {
+            return null;
+        }
+
+        try {
+            $contatos = ContatoService::buscarPorNomeSetor($pedido['nome'], $pedido['setor']);
+        } catch (Throwable $e) {
+            Logger::exception($e, ['servico' => 'ViviDadosService', 'etapa' => 'contato']);
+
+            return null;
+        }
+
+        $contatos = array_values(array_filter(
+            $contatos,
+            static fn(array $contato): bool => self::contatoCorresponde($contato, (string) $pedido['nome'])
+        ));
+
+        $alvo = self::normalizarNome((string) $pedido['nome']);
+        usort($contatos, static function (array $a, array $b) use ($alvo): int {
+            $aNome = self::normalizarNome((string) ($a['nome'] ?? ''));
+            $bNome = self::normalizarNome((string) ($b['nome'] ?? ''));
+            $aScore = str_starts_with($aNome, $alvo) ? 0 : 1;
+            $bScore = str_starts_with($bNome, $alvo) ? 0 : 1;
+
+            return $aScore <=> $bScore ?: strcmp($aNome, $bNome);
+        });
+
+        return [
+            'nome' => (string) $pedido['nome'],
+            'setor' => $pedido['setor'],
+            'contatos' => $contatos,
+        ];
     }
 
     /**
@@ -397,6 +677,224 @@ class ViviDadosService
     private static function fuso(): DateTimeZone
     {
         return new DateTimeZone('America/Sao_Paulo');
+    }
+
+    /**
+     * @return array{nome: ?string, setor: ?string}|null
+     */
+    private static function extrairPedidoContato(string $mensagem): ?array
+    {
+        $temContato = preg_match('/\b(ramal|telefone|fone|corporativo|contato|e-?mail)\b/iu', $mensagem) === 1;
+        $temBusca = preg_match('/\b(busque|buscar|procure|procurar|localize|localizar|quem\s+[eé])\b/iu', $mensagem) === 1;
+
+        if (!$temContato && !$temBusca) {
+            return null;
+        }
+
+        $padroes = [];
+
+        if ($temContato) {
+            $padroes[] = '/\b(?:ramal|telefone|fone|corporativo|contato|e-?mail)\s+(?:d[aeo]s?\s+)?(.+)$/iu';
+        }
+
+        if ($temBusca) {
+            $padroes[] = '/\b(?:busque|buscar|procure|procurar|localize|localizar)\s+(?:por\s+|o\s+|a\s+)?(.+)$/iu';
+            $padroes[] = '/\bquem\s+[eé]\s+(?:o\s+|a\s+)?(.+)$/iu';
+        }
+
+        $capturado = null;
+
+        foreach ($padroes as $padrao) {
+            if (preg_match($padrao, $mensagem, $m)) {
+                $capturado = $m[1];
+                break;
+            }
+        }
+
+        if ($capturado === null) {
+            return ['nome' => null, 'setor' => null];
+        }
+
+        $texto = preg_replace('/[?!.,;]+/u', ' ', $capturado) ?? $capturado;
+        $texto = preg_replace('/\b(por favor|obrigado|obrigada|valeu)\b.*$/iu', '', $texto) ?? $texto;
+        $texto = trim(preg_replace('/\s+/u', ' ', $texto) ?? $texto);
+        $partes = preg_split('/\s+/u', $texto) ?: [];
+
+        for ($i = count($partes) - 1; $i >= 1; $i--) {
+            if (!in_array(mb_strtolower($partes[$i - 1]), ['da', 'do', 'de', 'das', 'dos'], true)) {
+                continue;
+            }
+
+            $nome = trim(implode(' ', array_slice($partes, 0, $i - 1)));
+            $setorTexto = trim(implode(' ', array_slice($partes, $i)));
+
+            if ($nome === '' || $setorTexto === '') {
+                continue;
+            }
+
+            $setor = self::resolverSetor($setorTexto);
+
+            if ($setor !== null) {
+                return ['nome' => self::limparNome($nome), 'setor' => $setor];
+            }
+        }
+
+        if (!$temContato) {
+            return null;
+        }
+
+        return ['nome' => self::limparNome($texto), 'setor' => null];
+    }
+
+    private static function limparNome(string $nome): ?string
+    {
+        $nome = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $nome) ?? $nome;
+        $nome = trim(preg_replace('/\s+/u', ' ', $nome) ?? $nome);
+        $nome = trim(preg_replace('/^(?:o|a|os|as|de|da|do|das|dos)\s+/iu', '', $nome) ?? $nome);
+
+        if ($nome === '' || mb_strlen($nome) < 2) {
+            return null;
+        }
+
+        if (preg_match(
+            '/\b(gerente|subgerente|sub\s*gerente|loja|filial|plant[aã]o|plant[oõ]es|comprador|'
+            . 'equipe|setor|departamento|suporte|pessoa|funcion[aá]rio|colaborador|'
+            . 'telefone|telefones|ramal|ramais|contato|contatos|corporativo|fone|fones|'
+            . 'e-?mail|e-?mails|funciona|significa|serve|cadastr\w*|atualiz\w*|alterar|trocar|'
+            . 'empresa|intranet|sistema|geral|dele|dela|deles|delas|deste|desta|desse|dessa)\b/iu',
+            $nome
+        )) {
+            return null;
+        }
+
+        return mb_substr($nome, 0, 80);
+    }
+
+    private static function resolverSetor(string $texto): ?string
+    {
+        $termo = self::normalizarNome($texto);
+
+        if ($termo === '') {
+            return null;
+        }
+
+        if (isset(self::ALIASES_SETOR[$termo])) {
+            return self::ALIASES_SETOR[$termo];
+        }
+
+        $encontrados = [];
+
+        foreach (self::setoresContato() as $setor) {
+            $nome = self::normalizarNome((string) ($setor['setor'] ?? ''));
+
+            if ($nome === '') {
+                continue;
+            }
+
+            if ($nome === $termo) {
+                return (string) $setor['setor'];
+            }
+
+            foreach (preg_split('/\s*\|\s*/', $nome) ?: [] as $segmento) {
+                if ($segmento !== '' && $segmento === $termo) {
+                    $encontrados[(string) $setor['setor']] = (string) $setor['setor'];
+                }
+            }
+        }
+
+        return count($encontrados) === 1 ? array_values($encontrados)[0] : null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private static function setoresContato(): array
+    {
+        if (self::$setoresCache !== null) {
+            return self::$setoresCache;
+        }
+
+        try {
+            self::$setoresCache = ContatoService::listarSetores();
+        } catch (Throwable $e) {
+            Logger::exception($e, ['servico' => 'ViviDadosService', 'etapa' => 'setores_contato']);
+            self::$setoresCache = [];
+        }
+
+        return self::$setoresCache;
+    }
+
+    /**
+     * @param array<string, mixed> $contato
+     */
+    private static function contatoCorresponde(array $contato, string $nome): bool
+    {
+        $alvo = self::normalizarNome(
+            trim((string) ($contato['nome'] ?? '')) . ' ' . trim((string) ($contato['nomesocial'] ?? ''))
+        );
+        $termos = array_values(array_filter(
+            preg_split('/[^\p{L}\p{N}]+/u', self::normalizarNome($nome)) ?: [],
+            static fn(string $termo): bool => $termo !== ''
+        ));
+
+        if (empty($termos)) {
+            return true;
+        }
+
+        foreach ($termos as $termo) {
+            if (!preg_match('/(?:^|\s)' . preg_quote($termo, '/') . '(?:$|\s)/u', $alvo)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function normalizarNome(string $texto): string
+    {
+        $texto = removeAccents(mb_strtolower($texto));
+        $texto = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $texto) ?? $texto;
+
+        return trim(preg_replace('/\s+/u', ' ', $texto) ?? $texto);
+    }
+
+    /**
+     * @param array<string, mixed> $contato
+     */
+    private static function formatarContato(array $contato): string
+    {
+        $registro = trim((string) ($contato['nome'] ?? ''));
+        $social = trim((string) ($contato['nomesocial'] ?? ''));
+        $nome = $social !== '' ? $social : $registro;
+        $nome = initcap($nome);
+
+        if ($social !== '' && mb_strtoupper($social) !== mb_strtoupper($registro)) {
+            $nome .= ' (registro: ' . initcap($registro) . ')';
+        }
+
+        $setor = trim((string) ($contato['setor'] ?? ''));
+        $ramal = trim((string) ($contato['ramal'] ?? ''));
+        $corporativo = trim((string) ($contato['corporativo'] ?? ''));
+        $email = trim((string) ($contato['email'] ?? ''));
+        $dados = [];
+
+        if ($ramal !== '') {
+            $dados[] = 'ramal ' . $ramal;
+        } else {
+            $dados[] = 'sem ramal cadastrado';
+        }
+
+        if ($corporativo !== '') {
+            $dados[] = 'corporativo ' . $corporativo;
+        }
+
+        if ($email !== '') {
+            $dados[] = 'e-mail ' . $email;
+        }
+
+        return '- ' . $nome
+            . ($setor !== '' ? ' — ' . $setor : '')
+            . ' — ' . implode(', ', $dados);
     }
 
     private static function extrairTermoLoja(string $mensagem): ?string

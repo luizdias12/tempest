@@ -8,6 +8,39 @@ use Throwable;
 
 class ViviModel
 {
+    private const PALAVRAS_IGNORADAS = [
+        'como', 'onde', 'qual', 'quais', 'quando', 'porque', 'para', 'sobre',
+        'esse', 'essa', 'isso', 'este', 'esta', 'meu', 'minha', 'seu', 'sua',
+        'dos', 'das', 'com', 'sem', 'que', 'nao', 'não', 'mais', 'muito',
+        'pode', 'posso', 'fazer', 'faço', 'faco', 'tenho', 'preciso',
+        'gostaria', 'favor', 'ajuda', 'informacao', 'informação',
+        'informacoes', 'informações', 'funciona', 'funcionam', 'quem',
+        'tem', 'ter', 'sao', 'são', 'está', 'esta', 'aqui', 'ali', 'por',
+        'tudo', 'bem', 'bom', 'boa', 'dia', 'tarde', 'noite', 'hoje', 'agora',
+        'ola', 'olá', 'oi', 'obrigado', 'obrigada', 'voce', 'você', 'voces',
+        'vocês', 'senhor', 'senhora', 'quero', 'queria', 'saber', 'poderia',
+        'consegue', 'conseguir', 'ajudar', 'necessito', 'necessario',
+        'necessário', 'existe', 'existem', 'algum', 'alguma', 'alguns',
+        'algumas', 'certo', 'certa',
+    ];
+
+    /**
+     * Extrai os termos significativos de uma pergunta para busca restrita.
+     *
+     * @return string[]
+     */
+    public static function termosRelevantes(string $texto): array
+    {
+        $palavras = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($texto)) ?: [];
+        $palavras = array_values(array_unique(array_filter(
+            $palavras,
+            static fn(string $palavra): bool => mb_strlen($palavra) >= 4
+                && !in_array($palavra, self::PALAVRAS_IGNORADAS, true)
+        )));
+
+        return array_slice($palavras, 0, 6);
+    }
+
     /**
      * Monta o filtro de visibilidade dos trechos.
      *
@@ -103,6 +136,84 @@ class ViviModel
             $parametros,
             'mysql'
         );
+    }
+
+    /**
+     * Verifica se há trechos restritos relacionados ao termo, sem devolver conteúdo.
+     * Usado para orientar login/permissão em vez de dizer que nada foi encontrado.
+     */
+    public static function existeConteudoRestrito(
+        string $termo,
+        bool $somentePublico,
+        ?int $codfuncaoPai = null
+    ): bool {
+        $termo = trim($termo);
+
+        if ($termo === '') {
+            return false;
+        }
+
+        if ($somentePublico) {
+            $restricao = 'publico = 0';
+            $parametrosBase = [];
+        } else {
+            $restricao = 'publico = 0 AND acesso_geral = 0 AND permissoes IS NOT NULL';
+            $parametrosBase = [];
+
+            if ($codfuncaoPai !== null) {
+                $restricao .= ' AND FIND_IN_SET(:codfuncao_pai, permissoes) = 0';
+                $parametrosBase['codfuncao_pai'] = (string) $codfuncaoPai;
+            }
+        }
+
+        $palavras = self::termosRelevantes($termo);
+
+        if (empty($palavras)) {
+            return false;
+        }
+
+        $parametros = $parametrosBase;
+        $parametros['termo'] = '+' . implode(' +', $palavras);
+
+        try {
+            $encontrado = DB::first(
+                "SELECT 1 AS encontrado
+                 FROM vivi_conhecimento
+                 WHERE MATCH(titulo, conteudo) AGAINST (:termo IN BOOLEAN MODE)
+                   AND {$restricao}
+                 LIMIT 1",
+                $parametros,
+                'mysql'
+            );
+
+            if ($encontrado !== null) {
+                return true;
+            }
+        } catch (Throwable $e) {
+            Logger::warning('Vivi: checagem FULLTEXT de conteúdo restrito falhou, tentando LIKE', [
+                'erro' => $e->getMessage(),
+            ]);
+        }
+
+        $condicoes = [];
+        $parametros = $parametrosBase;
+
+        foreach ($palavras as $indice => $palavra) {
+            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $palavra) . '%';
+            $condicoes[] = "(titulo LIKE :titulo{$indice} OR conteudo LIKE :conteudo{$indice})";
+            $parametros["titulo{$indice}"] = $like;
+            $parametros["conteudo{$indice}"] = $like;
+        }
+
+        return DB::first(
+            'SELECT 1 AS encontrado
+             FROM vivi_conhecimento
+             WHERE ' . implode(' AND ', $condicoes) . "
+               AND {$restricao}
+             LIMIT 1",
+            $parametros,
+            'mysql'
+        ) !== null;
     }
 
     /**

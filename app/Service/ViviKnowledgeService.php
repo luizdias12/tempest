@@ -645,6 +645,70 @@ class ViviKnowledgeService
     }
 
     /**
+     * Informa se existe conteúdo relacionado que o visitante/usuário não pode acessar,
+     * sem retornar título, trecho ou quantidade.
+     */
+    public static function existeConteudoRestrito(
+        string $pergunta,
+        bool $somentePublico,
+        ?int $codfuncaoPai = null
+    ): bool {
+        $pergunta = trim($pergunta);
+
+        if ($pergunta === '') {
+            return false;
+        }
+
+        try {
+            return ViviModel::existeConteudoRestrito($pergunta, $somentePublico, $codfuncaoPai);
+        } catch (Throwable $e) {
+            Logger::warning('Vivi: não foi possível verificar conteúdo restrito', [
+                'erro' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Informa se os trechos recuperados cobrem os termos significativos da consulta.
+     * Resultados fracos (uma única palavra comum, por exemplo) não contam como contexto útil.
+     *
+     * @param array<int, array<string, mixed>> $trechos
+     */
+    public static function contextoRelevante(string $consulta, array $trechos): bool
+    {
+        if (empty($trechos)) {
+            return false;
+        }
+
+        $termos = ViviModel::termosRelevantes($consulta);
+
+        if (empty($termos)) {
+            return true;
+        }
+
+        $melhorCobertura = 0;
+
+        foreach (array_slice($trechos, 0, 3) as $trecho) {
+            $texto = removeAccents(mb_strtolower(
+                ($trecho['titulo'] ?? '') . ' ' . ($trecho['conteudo'] ?? '')
+            ));
+            $encontrados = 0;
+
+            foreach ($termos as $termo) {
+                if (mb_strpos($texto, removeAccents($termo)) !== false) {
+                    $encontrados++;
+                }
+            }
+
+            $melhorCobertura = max($melhorCobertura, $encontrados);
+        }
+
+        return $melhorCobertura >= max(1, (int) ceil(count($termos) * 0.6));
+    }
+
+    /**
      * Recupera trechos relevantes: embeddings quando disponíveis,
      * com fallback para FULLTEXT/LIKE.
      *

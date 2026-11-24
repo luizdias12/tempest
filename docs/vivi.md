@@ -44,7 +44,7 @@ Widget (vivi.js)
 | `app/Service/ViviService.php` | Regras de negócio, rate limit, sanitização e prompt do sistema. |
 | `app/Service/ViviAiService.php` | Cliente HTTP do provedor de IA (chat e embeddings). |
 | `app/Service/ViviKnowledgeService.php` | Indexação, chunking contextual, embeddings e recuperação de trechos. |
-| `app/Service/ViviDadosService.php` | Consulta ao vivo de lojas/gerência e plantão comercial (dados públicos). |
+| `app/Service/ViviDadosService.php` | Consulta ao vivo de lojas/gerência, plantão comercial e contatos/ramais (dados públicos). |
 | `app/Model/Mysql/ViviModel.php` | Consultas e gravações nas tabelas da Vivi. |
 | `app/View/partials/vivi.php` | Markup do widget. |
 | `public/js/vivi.js` | Comportamento do widget (envio, histórico, status, retry, feedback). |
@@ -225,17 +225,18 @@ Resposta esperada:
 | `VIVI_MODEL` | — | ID do modelo de chat. |
 | `VIVI_EMBED_MODEL` | vazio | Modelo de embeddings; vazio usa FULLTEXT. |
 | `VIVI_TIMEOUT` | `60` | Timeout (s) das chamadas de chat. |
-| `VIVI_TOP_K` | `5` | Trechos recuperados por pergunta (1 a 10). |
+| `VIVI_TOP_K` | `3` | Trechos recuperados por pergunta (1 a 10). |
 | `VIVI_MAX_MSG` | `1000` | Tamanho máximo da mensagem do usuário (mín. 100). |
-| `VIVI_MAX_TOKENS` | `700` | Máximo de tokens da resposta (mín. 50). |
+| `VIVI_MAX_TOKENS` | `350` | Máximo de tokens da resposta (mín. 50). |
 | `VIVI_TEMPERATURA` | `0.2` | Temperatura do modelo. |
-| `VIVI_MAX_CONTEXTO` | `6000` | Máximo de caracteres de contexto enviados ao modelo. |
-| `VIVI_MAX_RESPOSTA` | `2000` | Truncamento da resposta final (mín. 200). |
+| `VIVI_MAX_CONTEXTO` | `3000` | Máximo de caracteres de contexto enviados ao modelo. |
+| `VIVI_MAX_RESPOSTA` | `1500` | Truncamento da resposta final (mín. 200). |
 | `VIVI_MAX_CHUNKS_BUSCA` | `1500` | Trechos considerados na busca vetorial (100 a 10.000). |
 | `VIVI_SCORE_MIN` | `0.25` | Similaridade mínima para aceitar um trecho vetorial. |
 | `VIVI_RATE_IP_MIN` | `60` | Limite por minuto por IP (mín. 10). |
 | `VIVI_RATE_MIN` | `12` | Limite por minuto por usuário/sessão. |
-| `VIVI_RATE_DIA` | `300` | Limite por 24 h por usuário/sessão. |
+| `VIVI_RATE_DIA` | `60` | Limite por 24 h por usuário/sessão para qualquer mensagem. |
+| `VIVI_RATE_IA_DIA` | `120` | Teto global de 24 h para chamadas ao provedor de IA; consultas diretas não consomem. |
 
 ---
 
@@ -280,6 +281,17 @@ Resposta esperada:
 > Use `--publico` somente em conteúdo que pode ser lido por qualquer visitante.
 > A indexação da intranet **nunca** marca documentos como públicos; visitantes anônimos não
 > recebem trechos de documentos, mesmo os marcados como gerais.
+
+Quando a busca não encontra conteúdo acessível **relevante**, mas existe conteúdo restrito
+relacionado, a Vivi não responde apenas “não encontrei”:
+
+- **anônimo:** informa que a informação exige autenticação e orienta a fazer login em `/login`;
+- **autenticado sem permissão:** informa que o conteúdo não está liberado para a função e
+  orienta a abrir um chamado no Helpdesk.
+
+A checagem é apenas de existência: título, trecho e quantidade não são enviados ao modelo nem
+exibidos ao usuário. Trechos acessíveis que cobrem menos de 60% dos termos significativos da
+pergunta são tratados como contexto fraco e não impedem a checagem de conteúdo restrito.
 
 ### Comandos
 
@@ -405,9 +417,10 @@ a Vivi consulta o MySQL **na hora da pergunta**:
    termo não bater direto, tenta remover palavras genéricas (`loja`, `shopping`,
    `supermercado`) e depois cada palavra. Quando o CPF do gerente não existe em `func`, o nome
    é exibido a partir de `usuarios.usuario`.
-3. O resultado entra no prompt como bloco **DADOS ATUAIS DO SISTEMA**, com prioridade sobre o
-   contexto indexado para lojas, gerentes e contatos. A resposta é montada só com esses dados;
-   se nada for encontrado, a Vivi pede o nome ou código exato.
+3. Quando a pergunta é só de gerência, `ViviDadosService::respostaDireta()` monta a resposta
+   diretamente, sem chamar o provedor de IA. Se a pergunta misturar outro assunto, o resultado
+   entra no prompt como bloco **DADOS ATUAIS DO SISTEMA**, com prioridade sobre o contexto
+   indexado. Se nada for encontrado, a Vivi pede o nome ou código exato.
 
 Regras de segurança:
 
@@ -416,10 +429,11 @@ Regras de segurança:
 - O bloco não inclui CPF. Contatos corporativos (telefone, ramal, e-mail) são os mesmos já
   exibidos na tela **Regional**.
 - Como é consulta ao vivo, mudanças feitas em `/regional` refletem imediatamente, sem
-  reindexação. Os nomes e contatos entram no prompt enviado ao provedor de IA, como qualquer
-  outro contexto.
+  reindexação. Nas consultas diretas, os nomes e contatos não são enviados ao provedor de IA;
+  em perguntas mistas, entram no prompt como qualquer outro contexto.
 - O rate limit do chat continua valendo para anônimos (60 mensagens/minuto por IP, 12/minuto
-  por sessão e 300/dia por sessão).
+  por sessão e 60/dia por sessão). Além disso, há um teto global de 120 chamadas de IA por dia;
+  consultas diretas de ramal, gerente e plantão não consomem esse teto.
 
 Diagnóstico (somente leitura):
 
@@ -453,9 +467,10 @@ Como muda com frequência, também é consultada na hora, sem indexação:
 3. `ComercialModel::plantoesPorData/plantoesPorPeriodo` juntam `escalacom` a `func` pelo CPF
    do comprador. Se o dia consultado é futuro e não tem registro, a resposta inclui os dois
    próximos plantões cadastrados.
-4. O bloco **DADOS ATUAIS DO SISTEMA** tem prioridade sobre o contexto indexado. O CPF do
-   comprador não é enviado; aparecem apenas nome, data e feriado, os mesmos dados de
-   `/comercial`.
+4. Quando a pergunta é só de plantão, `ViviDadosService::respostaDireta()` responde sem chamar
+   a IA. Em perguntas mistas, o bloco **DADOS ATUAIS DO SISTEMA** tem prioridade sobre o
+   contexto indexado. O CPF do comprador não é enviado; aparecem apenas nome, data e feriado,
+   os mesmos dados de `/comercial`.
 
 Assim como lojas/gerentes, o plantão é respondido também para **visitantes anônimos**, porque
 a escala já é pública em `/comercial`.
@@ -471,6 +486,34 @@ php cli/vivi_verificar_plantao.php "e no próximo sábado?" --anterior="Quem est
 
 A saída mostra o bloco que seria enviado ao modelo, ou “Nenhuma consulta de plantão foi
 disparada”. Para corrigir a escala, use `/comercial/gestao` (perfil comercial).
+
+### Ramais e contatos de funcionários (dados públicos)
+
+Perguntas como “Qual o ramal do Luiz da TI?” também consultam o MySQL na hora:
+
+1. `ViviService` detecta pedidos de contato (`ramal`, `telefone`, `contato`, `e-mail`,
+   `busque por`, `quem é`) e extrai o nome e, quando presente, o setor
+   (`Luiz da TI`, `Ana Luiza Farace`, `Luiz da Silva`, `Rafael do comercial`).
+   Para verbos genéricos de busca, a consulta só dispara quando há um setor reconhecido;
+   acompanhamentos curtos (“e o ramal dele?”) usam a última pergunta com nome no histórico.
+2. `ContatoService::buscarPorNomeSetor()` consulta `usuarios` (`ativo='S'`), `func`
+   e `setor`, considerando apenas quem tem ramal, e-mail ou telefone corporativo.
+   A comparação de nome é por palavra completa: “Luiz” não confunde com “Luiza”.
+3. O setor pode ser o nome exato de `setor` ou um apelido comum (`TI`, `tecnologia`,
+   `informática`, `suporte`, `RH`, `DP`, `financeiro`). Sem setor, a Vivi lista até
+   cinco resultados e pede o nome completo ou o setor para refinar.
+4. Quando a pergunta é só de contato/ramal, `ViviDadosService::respostaDireta()` responde sem
+   chamar a IA. Em perguntas mistas, o resultado entra no prompt como bloco **DADOS ATUAIS DO
+   SISTEMA**, com prioridade sobre o contexto indexado. O bloco mostra nome, setor, ramal,
+   telefone corporativo e e-mail; **CPF não é enviado**.
+
+Assim como a tela `/contatos`, a consulta é pública e funciona para visitantes anônimos.
+Como é consulta ao vivo, alterações feitas no perfil do usuário refletem imediatamente,
+sem reindexação.
+
+> Na tela `/contatos`, o filtro **Nome** procura apenas no nome do funcionário. Para achar
+> “Rafael do Comercial”, informe `Rafael` em **Nome** e selecione `Comercial` em **Setor**;
+> o campo Nome não interpreta o trecho “do Comercial”.
 
 ### Feedback e lacunas
 
@@ -693,9 +736,10 @@ Cabeçalhos de resposta: `Cache-Control: no-store` e `X-Content-Type-Options: no
 | --- | --- | --- |
 | “A Vivi está temporariamente indisponível…” (503) | Tabelas ausentes, falha no MySQL do rate limit ou erro 4xx/5xx do provedor. | Veja `logs/AAAA-MM-DD.log`, confirme as tabelas e o status do provedor. |
 | “A Vivi ainda não foi configurada…” (503) | `VIVI_BASE_URL`/`VIVI_MODEL` vazios ou provedor remoto sem `VIVI_API_KEY`. | Preencha o `.env` e confirme em `/vivi/status`. |
-| “A Vivi atingiu o limite de uso do provedor…” (429) | Cota do provedor (RPM/TPM/RPD/TPD). | Aguarde; revise os limites no console; ajuste `VIVI_RATE_*`. |
+| “A Vivi atingiu o limite de uso do provedor…” (429) | Cota do provedor (RPM/TPM/RPD/TPD). | Aguarde; consultas de ramal, gerente e plantão continuam funcionando sem IA; revise os limites no console e ajuste `VIVI_RATE_*`. |
 | “Muitas mensagens em pouco tempo…” (429) | Rate limit local. | Aguarde 60 s. |
 | “Limite diário de mensagens atingido…” (429) | Limite de 24 h. | Aguarde ou ajuste `VIVI_RATE_DIA`. |
+| “A Vivi atingiu o limite diário de respostas com IA…” (429) | Teto global `VIVI_RATE_IA_DIA`. | Aguarde a janela de 24 h; consultas diretas continuam disponíveis; aumente o teto se o provedor permitir. |
 | “Sua mensagem é muito longa…” (422) | Acima de `VIVI_MAX_MSG`. | Reduza o texto ou aumente a variável. |
 | “Envie a mensagem em JSON.” (415) | `Content-Type` incorreto. | Envie `application/json`. |
 | Respostas dizem que não encontrou | Base vazia, documento privado para anônimo/função sem acesso ou pergunta fora da base. | Rode `php cli/vivi_indexar_intranet.php`; confira a permissão do documento no módulo Documentos. |
@@ -728,6 +772,7 @@ Cabeçalhos de resposta: `Cache-Control: no-store` e `X-Content-Type-Options: no
 - [ ] Perguntas de navegação testadas com `php cli/vivi_verificar_busca.php`.
 - [ ] Perguntas de loja/gerente testadas com `php cli/vivi_verificar_gerencia.php`.
 - [ ] Perguntas de plantão comercial testadas com `php cli/vivi_verificar_plantao.php`.
+- [ ] Perguntas de ramal testadas com nome e setor (ex.: “ramal do Luiz da TI”).
 - [ ] Conteúdo público revisado (sem dados sensíveis).
 - [ ] Documentos restritos testados com um usuário sem permissão e com um usuário permitido.
 - [ ] Timeouts do PHP-FPM/nginx acima de 75 s.
@@ -751,10 +796,12 @@ Cabeçalhos de resposta: `Cache-Control: no-store` e `X-Content-Type-Options: no
   avalie um índice vetorial dedicado.
 - Rate limit em janela fixa; atrás de NAT/proxy, o IP pode ser compartilhado.
 - Sem interface web de indexação; operação via CLI.
+- A checagem de conteúdo restrito é apenas de existência; termos muito genéricos podem gerar
+  falso positivo, mas título, trecho e quantidade nunca são expostos.
 - Sem citação de fontes na resposta (o contexto é usado, mas não há links por trecho).
-- Dados estruturados cobrem loja → gerente/subgerente e plantão comercial por dia, semana ou
-  mês. Outras consultas (aniversariantes, férias, estoque) exigiriam novos resolvedores ou
-  tool calling no provedor.
+- Dados estruturados cobrem loja → gerente/subgerente, plantão comercial por dia, semana ou
+  mês e contatos/ramais por nome + setor. Outras consultas (aniversariantes, férias, estoque)
+  exigiriam novos resolvedores ou tool calling no provedor.
 
 Melhorias possíveis: streaming, painel de administração da base, citações com fonte, OCR para
 PDFs digitalizados, métricas de uso, filtros de categoria na indexação e tool calling para
