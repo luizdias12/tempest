@@ -337,6 +337,9 @@ php cli/vivi_indexar.php --limpar
   `ViviKnowledgeService`). Esses documentos continuam no módulo Documentos, mas não alimentam a
   Vivi. A indexação completa (sem `--limite`) também remove trechos antigos dessas categorias;
   execuções parciais não fazem essa limpeza.
+- Documentos em pastas com `visibilidade='restrito'` também ficam fora do índice da Vivi, já que
+  só o criador da pasta pode vê-los. A cada execução, os trechos antigos desses documentos são
+  removidos imediatamente (fonte `intranet:doc:{id}:*`), sem esperar a indexação completa.
 - `--limite=N` processa somente os N primeiros documentos (não remove documentos ausentes).
 - A saída informa documentos, trechos, ignorados, sem texto, embeddings, removidos, erros e o
   modo de busca. Códigos de saída: `0` sucesso, `1` falha geral, `2` concluído com erros por

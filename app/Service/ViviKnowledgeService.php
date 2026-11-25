@@ -343,7 +343,15 @@ class ViviKnowledgeService
         $total = count($docs);
 
         foreach ($docs as $indice => $doc) {
-            if (self::categoriaIgnorada($doc)) {
+            $idDoc = (int) ($doc['id_doc'] ?? 0);
+            $idVersao = (int) ($doc['id_versao'] ?? 0);
+            $pastaRestrita = ($doc['visibilidade'] ?? 'publico') === 'restrito';
+
+            if (self::categoriaIgnorada($doc) || $pastaRestrita) {
+                if ($pastaRestrita && $idDoc > 0) {
+                    $resumo['removidos'] += ViviModel::deletarPorFontePrefixo("intranet:doc:{$idDoc}:");
+                }
+
                 // Não entra em $ativos: a limpeza de órfãos remove os trechos antigos.
                 $resumo['excluidos']++;
 
@@ -353,9 +361,6 @@ class ViviKnowledgeService
 
                 continue;
             }
-
-            $idDoc = (int) ($doc['id_doc'] ?? 0);
-            $idVersao = (int) ($doc['id_versao'] ?? 0);
 
             if ($idDoc <= 0 || $idVersao <= 0) {
                 continue;

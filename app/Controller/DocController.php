@@ -146,6 +146,10 @@ class DocController extends BaseController
     public function gestaoView(Request $request): void
     {
         try {
+            if (session_status() === PHP_SESSION_ACTIVE && empty($_SESSION['csrf_documentos'])) {
+                $_SESSION['csrf_documentos'] = bin2hex(random_bytes(32));
+            }
+
             $idDir = max(0, (int) $request->query('id_dir', 0));
             $idSubdir = max(0, (int) $request->query('id_subdir', 0));
             $nome = trim((string) $request->query('nome', ''));
@@ -167,6 +171,7 @@ class DocController extends BaseController
                 'filtroSubdir' => $idSubdir,
                 'filtroNome' => $nome,
                 'filtroFuncao' => $idFuncao,
+                'csrf' => $_SESSION['csrf_documentos'] ?? '',
                 'title' => 'Gestão de Documentos'
             ]);
         } catch (Throwable $e) {
@@ -179,7 +184,10 @@ class DocController extends BaseController
     public function diretorio(Request $request): void
     {
         $this->acaoGestao($request, function () use ($request): string {
-            return DocService::criarDiretorio((string) $request->post('nome', ''));
+            return DocService::criarDiretorio(
+                (string) $request->post('nome', ''),
+                $request->post('visibilidade', 'publico') === 'restrito'
+            );
         }, 'criar_diretorio');
     }
 
@@ -302,6 +310,11 @@ class DocController extends BaseController
     public function upload(Request $request): void
     {
         try {
+            if (!$this->validarCsrfDocumentos($request)) {
+                AlertManager::add('error', 'Sessão expirada. Recarregue a página e tente novamente.');
+                redirect('/documentos/gestao');
+                return;
+            }
 
             $idDir = (int) $request->post('id_dir', 0);
             $idSubdir = (int) $request->post('id_subdir', 0);
@@ -315,7 +328,13 @@ class DocController extends BaseController
                 return;
             }
 
-            if (!$geral && empty($funcoes)) {
+            if (!DocService::podeGerirDiretorio($idDir)) {
+                AlertManager::add('error', 'Diretório ou subdiretório inválido.');
+                redirect('/documentos/gestao');
+                return;
+            }
+
+            if (!DocService::diretorioRestrito($idDir) && !$geral && empty($funcoes)) {
                 AlertManager::add('error', 'Selecione ao menos uma função para o documento.');
                 redirect('/documentos/gestao');
                 return;
@@ -359,6 +378,17 @@ class DocController extends BaseController
                 return;
             }
 
+            if (!$this->validarCsrfDocumentos($request)) {
+                if ($json) {
+                    Response::json(['success' => false, 'message' => 'Sessão expirada. Recarregue a página.'], 403);
+                    return;
+                }
+
+                AlertManager::add('error', 'Sessão expirada. Recarregue a página e tente novamente.');
+                redirect('/documentos/gestao');
+                return;
+            }
+
             $mensagem = $acao();
 
             $this->logAcao($request, $acaoNome, $mensagem, $request->post());
@@ -381,6 +411,24 @@ class DocController extends BaseController
         }
 
         redirect('/documentos/gestao');
+    }
+
+    private function validarCsrfDocumentos(Request $request): bool
+    {
+        $token = $request->post('_csrf', '');
+
+        if (!is_string($token)) {
+            $token = '';
+        }
+
+        if ($token === '') {
+            $token = $request->header('X-CSRF-Token', '');
+            $token = is_string($token) ? $token : '';
+        }
+
+        $sessao = (string) ($_SESSION['csrf_documentos'] ?? '');
+
+        return $token !== '' && $sessao !== '' && hash_equals($sessao, $token);
     }
 
     private function logAcao(Request $request, string $acao, string $mensagem, array $contexto = []): void

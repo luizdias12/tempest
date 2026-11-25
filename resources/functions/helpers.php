@@ -478,6 +478,7 @@ if (!function_exists('localPorIp')) {
             '38' => 'Vila Jaraguá',
             '39' => 'Uberville',
             '40' => 'Anápolis 2',
+            '41' => 'Pouso Alegre',
             '100' => 'Arvoredo - VM',
             '101' => 'Arvoredo - VM',
             '112' => 'Pedro II - Callcenter',

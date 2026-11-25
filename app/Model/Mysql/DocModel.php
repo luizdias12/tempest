@@ -9,33 +9,52 @@ class DocModel
     public static function arvore(?int $codfuncaoPai, string $cpf): array
     {
         $visibilidade = "(
-            doc.geral = 'S'
-            OR EXISTS (
-                SELECT 1
-                FROM doc_permissao dp
-                WHERE dp.id_doc = doc.id_doc
-                AND dp.codfuncao = :pai
+            (
+                dir.visibilidade = 'publico'
+                AND (
+                    doc.geral = 'S'
+                    OR EXISTS (
+                        SELECT 1
+                        FROM doc_permissao dp
+                        WHERE dp.id_doc = doc.id_doc
+                        AND dp.codfuncao = :pai
+                    )
+                )
+            )
+            OR (
+                dir.visibilidade = 'restrito'
+                AND dir.criador_cpf = :cpfDono
             )
         )";
 
         $diretorios = DB::select("
-            SELECT d.id, d.nome
-            FROM doc_diretorio d
-            WHERE d.ativo = 1
+            SELECT dir.id, dir.nome, dir.visibilidade
+            FROM doc_diretorio dir
+            WHERE dir.ativo = 1
+              AND (
+                  dir.visibilidade = 'publico'
+                  OR dir.criador_cpf = :cpfDono
+              )
               AND EXISTS (
                   SELECT 1
                   FROM doc_documento doc
-                  WHERE doc.id_dir = d.id
+                  WHERE doc.id_dir = dir.id
                     AND doc.ativo = 1
                     AND {$visibilidade}
               )
-            ORDER BY d.exibicao, d.nome
-        ", ['pai' => $codfuncaoPai], 'mysql');
+            ORDER BY dir.exibicao, dir.nome
+        ", ['pai' => $codfuncaoPai, 'cpfDono' => $cpf], 'mysql');
 
         $subdiretorios = DB::select("
             SELECT s.id, s.nome, s.id_dir
             FROM doc_subdiretorio s
+            JOIN doc_diretorio dir ON dir.id = s.id_dir
             WHERE s.ativo = 1
+              AND dir.ativo = 1
+              AND (
+                  dir.visibilidade = 'publico'
+                  OR dir.criador_cpf = :cpfDono
+              )
               AND EXISTS (
                   SELECT 1
                   FROM doc_documento doc
@@ -44,7 +63,7 @@ class DocModel
                     AND {$visibilidade}
               )
             ORDER BY s.exibicao, s.nome
-        ", ['pai' => $codfuncaoPai], 'mysql');
+        ", ['pai' => $codfuncaoPai, 'cpfDono' => $cpf], 'mysql');
 
         $docs = DB::select("
             SELECT
@@ -68,11 +87,12 @@ class DocModel
                     AND a.id_versao < doc.id_versao_atual
                 )) AS atualizado
             FROM doc_documento doc
+            JOIN doc_diretorio dir ON dir.id = doc.id_dir
             JOIN doc_versao v ON v.id = doc.id_versao_atual
             WHERE doc.ativo = 1
               AND {$visibilidade}
             ORDER BY doc.titulo
-        ", ['pai' => $codfuncaoPai, 'cpf' => $cpf], 'mysql');
+        ", ['pai' => $codfuncaoPai, 'cpf' => $cpf, 'cpfDono' => $cpf], 'mysql');
 
         $arvore = [];
 
@@ -80,6 +100,7 @@ class DocModel
             $arvore[$dir['id']] = [
                 'id' => (int) $dir['id'],
                 'nome' => $dir['nome'],
+                'restrito' => ($dir['visibilidade'] ?? 'publico') === 'restrito',
                 'qt_novo' => 0,
                 'qt_atualizado' => 0,
                 'subdirs' => [],
@@ -175,20 +196,62 @@ class DocModel
         ", ['doc' => $idDoc, 'versao' => $idVersao], 'mysql');
     }
 
-    public static function temPermissao(int $idDoc, ?int $codfuncaoPai): bool
+    public static function diretorioPorId(int $idDir): ?array
+    {
+        return DB::first("
+            SELECT id, nome, visibilidade, criador_cpf
+            FROM doc_diretorio
+            WHERE id = :id
+              AND ativo = 1
+        ", ['id' => $idDir], 'mysql');
+    }
+
+    public static function subdiretorioPorId(int $idSubdir): ?array
+    {
+        return DB::first("
+            SELECT id, id_dir, nome
+            FROM doc_subdiretorio
+            WHERE id = :id
+              AND ativo = 1
+        ", ['id' => $idSubdir], 'mysql');
+    }
+
+    public static function diretorioDoDocumento(int $idDoc): ?array
+    {
+        return DB::first("
+            SELECT dir.id, dir.nome, dir.visibilidade, dir.criador_cpf
+            FROM doc_documento doc
+            JOIN doc_diretorio dir ON dir.id = doc.id_dir
+            WHERE doc.id_doc = :id
+              AND doc.ativo = 1
+        ", ['id' => $idDoc], 'mysql');
+    }
+
+    public static function temPermissao(int $idDoc, ?int $codfuncaoPai, ?string $cpf = null): bool
     {
         $row = DB::first("
             SELECT 1
             FROM doc_documento doc
+            JOIN doc_diretorio dir ON dir.id = doc.id_dir
             WHERE doc.id_doc = :id
+              AND doc.ativo = 1
               AND (
-                  doc.geral = 'S'
-                  OR EXISTS (
-                      SELECT 1 FROM doc_permissao dp
-                      WHERE dp.id_doc = doc.id_doc AND dp.codfuncao = :pai
+                  (
+                      dir.visibilidade = 'restrito'
+                      AND dir.criador_cpf = :cpfDono
+                  )
+                  OR (
+                      dir.visibilidade = 'publico'
+                      AND (
+                          doc.geral = 'S'
+                          OR EXISTS (
+                              SELECT 1 FROM doc_permissao dp
+                              WHERE dp.id_doc = doc.id_doc AND dp.codfuncao = :pai
+                          )
+                      )
                   )
               )
-        ", ['id' => $idDoc, 'pai' => $codfuncaoPai], 'mysql');
+        ", ['id' => $idDoc, 'pai' => $codfuncaoPai, 'cpfDono' => $cpf ?? ''], 'mysql');
 
         return $row !== null;
     }
@@ -262,36 +325,40 @@ class DocModel
         return $row['id_doc'] !== null ? (int) $row['id_doc'] : null;
     }
 
-    public static function listarDiretorios(): array
+    public static function listarDiretorios(?string $cpf = null): array
     {
         return DB::select("
-            SELECT id, nome
+            SELECT id, nome, visibilidade
             FROM doc_diretorio
             WHERE ativo = 1
+              AND (visibilidade = 'publico' OR criador_cpf = :cpfDono)
             ORDER BY exibicao, nome
-        ", [], 'mysql');
+        ", ['cpfDono' => $cpf ?? ''], 'mysql');
     }
 
-    public static function listarSubdiretorios(?int $idDir = null): array
+    public static function listarSubdiretorios(?int $idDir = null, ?string $cpf = null): array
     {
         $sql = "
-            SELECT id, id_dir, nome
-            FROM doc_subdiretorio
-            WHERE ativo = 1
+            SELECT s.id, s.id_dir, s.nome
+            FROM doc_subdiretorio s
+            JOIN doc_diretorio dir ON dir.id = s.id_dir
+            WHERE s.ativo = 1
+              AND dir.ativo = 1
+              AND (dir.visibilidade = 'publico' OR dir.criador_cpf = :cpfDono)
         ";
-        $params = [];
+        $params = ['cpfDono' => $cpf ?? ''];
 
         if ($idDir !== null) {
-            $sql .= " AND id_dir = :dir";
+            $sql .= " AND s.id_dir = :dir";
             $params['dir'] = $idDir;
         }
 
-        $sql .= " ORDER BY exibicao, nome";
+        $sql .= " ORDER BY s.exibicao, s.nome";
 
         return DB::select($sql, $params, 'mysql');
     }
 
-    public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null, ?int $idFuncao = null): array
+    public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null, ?int $idFuncao = null, ?string $cpf = null): array
     {
         $sql = "
             SELECT
@@ -302,6 +369,7 @@ class DocModel
                 doc.id_dir,
                 doc.id_subdir,
                 d.nome AS diretorio,
+                d.visibilidade,
                 s.nome AS subdiretorio,
                 v.versao,
                 v.rotulo,
@@ -313,9 +381,10 @@ class DocModel
             JOIN doc_subdiretorio s ON s.id = doc.id_subdir
             JOIN doc_versao v ON v.id = doc.id_versao_atual
             WHERE doc.ativo = 1
+              AND (d.visibilidade = 'publico' OR d.criador_cpf = :cpfDono)
         ";
 
-        $params = [];
+        $params = ['cpfDono' => $cpf ?? ''];
 
         if ($idDir > 0) {
             $sql .= " AND doc.id_dir = :dir";
@@ -370,6 +439,7 @@ class DocModel
                 d.id_dir,
                 d.id_subdir,
                 COALESCE(dir.nome, '') AS diretorio,
+                COALESCE(dir.visibilidade, 'publico') AS visibilidade,
                 COALESCE(sub.nome, '') AS subdiretorio,
                 d.id_versao_atual,
                 v.id AS id_versao,
@@ -397,13 +467,15 @@ class DocModel
         return DB::select($sql, [], 'mysql');
     }
 
-    public static function permissoesPorDocumento(): array
+    public static function permissoesPorDocumento(?string $cpf = null): array
     {
         $docs = DB::select("
-            SELECT id_doc, geral
-            FROM doc_documento
-            WHERE ativo = 1
-        ", [], 'mysql');
+            SELECT doc.id_doc, doc.geral
+            FROM doc_documento doc
+            JOIN doc_diretorio dir ON dir.id = doc.id_dir
+            WHERE doc.ativo = 1
+              AND (dir.visibilidade = 'publico' OR dir.criador_cpf = :cpfDono)
+        ", ['cpfDono' => $cpf ?? ''], 'mysql');
 
         $perms = DB::select("
             SELECT id_doc, codfuncao
@@ -430,7 +502,7 @@ class DocModel
         return $out;
     }
 
-    public static function versoesPorDocumento(): array
+    public static function versoesPorDocumento(?string $cpf = null): array
     {
         $rows = DB::select("
             SELECT
@@ -445,9 +517,11 @@ class DocModel
                 (v.id = doc.id_versao_atual) AS atual
             FROM doc_versao v
             JOIN doc_documento doc ON doc.id_doc = v.id_doc
+            JOIN doc_diretorio dir ON dir.id = doc.id_dir
             WHERE doc.ativo = 1
+              AND (dir.visibilidade = 'publico' OR dir.criador_cpf = :cpfDono)
             ORDER BY v.id_doc, v.versao DESC
-        ", [], 'mysql');
+        ", ['cpfDono' => $cpf ?? ''], 'mysql');
 
         $out = [];
 
@@ -571,9 +645,12 @@ class DocModel
     {
         $stmt = DB::connect('mysql')->prepare("
             INSERT IGNORE INTO doc_permissao (id_doc, codfuncao)
-            SELECT id_doc, :destino
-            FROM doc_permissao
-            WHERE codfuncao = :origem
+            SELECT dp.id_doc, :destino
+            FROM doc_permissao dp
+            JOIN doc_documento doc ON doc.id_doc = dp.id_doc
+            JOIN doc_diretorio dir ON dir.id = doc.id_dir
+            WHERE dp.codfuncao = :origem
+              AND dir.visibilidade = 'publico'
         ");
 
         $stmt->execute(['destino' => (string) $funcaoDestino, 'origem' => (string) $funcaoOrigem]);
@@ -672,10 +749,12 @@ class DocModel
         return (int) ($row['total'] ?? 0);
     }
 
-    public static function criarDiretorio(string $nome): ?int
+    public static function criarDiretorio(string $nome, string $visibilidade = 'publico', ?string $cpf = null): ?int
     {
         return DB::insert('doc_diretorio', [
             'nome' => $nome,
+            'visibilidade' => $visibilidade,
+            'criador_cpf' => $cpf,
             'exibicao' => $nome,
             'ativo' => 1,
         ], 'mysql');

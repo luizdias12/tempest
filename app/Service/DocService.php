@@ -89,7 +89,79 @@ class DocService
 
     public static function permitido(int $idDoc): bool
     {
-        return DocModel::temPermissao($idDoc, self::codfuncaoPai());
+        return DocModel::temPermissao($idDoc, self::codfuncaoPai(), AuthService::getUserCpf());
+    }
+
+    public static function podeGerirDocumento(int $idDoc): bool
+    {
+        $dir = DocModel::diretorioDoDocumento($idDoc);
+
+        return $dir !== null && self::podeGerirRegistroDiretorio($dir);
+    }
+
+    public static function podeGerirDiretorio(int $idDir): bool
+    {
+        $dir = DocModel::diretorioPorId($idDir);
+
+        return $dir !== null && self::podeGerirRegistroDiretorio($dir);
+    }
+
+    public static function podeExcluirDiretorio(int $idDir): bool
+    {
+        $dir = DocModel::diretorioPorId($idDir);
+
+        if ($dir === null) {
+            return false;
+        }
+
+        if (($dir['visibilidade'] ?? 'publico') === 'restrito') {
+            return self::podeGerirRegistroDiretorio($dir);
+        }
+
+        return AuthService::hasPermission('ti');
+    }
+
+    public static function podeExcluirSubdiretorio(int $idSubdir): bool
+    {
+        $sub = DocModel::subdiretorioPorId($idSubdir);
+
+        return $sub !== null && self::podeExcluirDiretorio((int) $sub['id_dir']);
+    }
+
+    public static function diretorioRestrito(int $idDir): bool
+    {
+        $dir = DocModel::diretorioPorId($idDir);
+
+        return $dir !== null && ($dir['visibilidade'] ?? 'publico') === 'restrito';
+    }
+
+    private static function podeGerirRegistroDiretorio(array $dir): bool
+    {
+        if (($dir['visibilidade'] ?? 'publico') !== 'restrito') {
+            return true;
+        }
+
+        $cpf = AuthService::getUserCpf();
+
+        return $cpf !== null && $cpf !== '' && (string) ($dir['criador_cpf'] ?? '') === $cpf;
+    }
+
+    private static function exigirGestaoDocumento(int $idDoc): void
+    {
+        if (!self::podeGerirDocumento($idDoc)) {
+            throw new RuntimeException('Documento não encontrado.');
+        }
+    }
+
+    private static function exigirEdicaoPermissoes(int $idDoc): void
+    {
+        self::exigirGestaoDocumento($idDoc);
+
+        $dir = DocModel::diretorioDoDocumento($idDoc);
+
+        if ($dir !== null && ($dir['visibilidade'] ?? 'publico') === 'restrito') {
+            throw new RuntimeException('Documentos de pasta restrita não usam permissões por função.');
+        }
     }
 
     public static function abrir(int $idDoc): ?array
@@ -131,7 +203,7 @@ class DocService
     {
         $doc = DocModel::documentoComVersao($idDoc);
 
-        if ($doc === null) {
+        if ($doc === null || !self::podeGerirDocumento($idDoc)) {
             return null;
         }
 
@@ -155,6 +227,10 @@ class DocService
     public static function abrirVersaoAdmin(int $idDoc, int $idVersao): ?array
     {
         if ($idDoc <= 0 || $idVersao <= 0) {
+            return null;
+        }
+
+        if (!self::podeGerirDocumento($idDoc)) {
             return null;
         }
 
@@ -204,6 +280,11 @@ class DocService
         }
 
         $dirs = self::diretoriosParaCaminho($idDir, $idSubdir);
+
+        if ($dirs['restrito']) {
+            $geral = false;
+            $funcoes = [];
+        }
 
         $relativo = 'documentos/' . $dirs['diretorio'] . '/' . $dirs['subdiretorio'] . '/' . $nomeArquivo;
         $absoluto = self::caminhoAbsoluto($relativo);
@@ -290,6 +371,8 @@ class DocService
             throw new RuntimeException('Documento não encontrado.');
         }
 
+        self::exigirGestaoDocumento($idDoc);
+
         $arquivo = self::validarArquivo($file);
         $nomeArquivo = $arquivo['nome'];
 
@@ -336,12 +419,19 @@ class DocService
 
     public static function listarDiretorios(): array
     {
-        return DocModel::listarDiretorios();
+        $diretorios = DocModel::listarDiretorios(AuthService::getUserCpf());
+
+        foreach ($diretorios as &$dir) {
+            $dir['restrito'] = ($dir['visibilidade'] ?? 'publico') === 'restrito';
+        }
+        unset($dir);
+
+        return $diretorios;
     }
 
     public static function listarSubdiretorios(?int $idDir = null): array
     {
-        return DocModel::listarSubdiretorios($idDir);
+        return DocModel::listarSubdiretorios($idDir, AuthService::getUserCpf());
     }
 
     public static function listarFuncoes(): array
@@ -368,11 +458,12 @@ class DocService
 
     public static function listarDocumentosAdmin(?int $idDir = null, ?int $idSubdir = null, ?string $nome = null, ?int $idFuncao = null): array
     {
-        $documentos = DocModel::listarDocumentosAdmin($idDir, $idSubdir, $nome, $idFuncao);
+        $documentos = DocModel::listarDocumentosAdmin($idDir, $idSubdir, $nome, $idFuncao, AuthService::getUserCpf());
 
         foreach ($documentos as &$doc) {
             $doc['existe'] = is_file(self::caminhoAbsoluto($doc['caminho']));
             $doc['tamanho_texto'] = self::formatarTamanho((int) $doc['tamanho']);
+            $doc['restrito'] = ($doc['visibilidade'] ?? 'publico') === 'restrito';
         }
         unset($doc);
 
@@ -381,12 +472,12 @@ class DocService
 
     public static function permissoesPorDocumento(): array
     {
-        return DocModel::permissoesPorDocumento();
+        return DocModel::permissoesPorDocumento(AuthService::getUserCpf());
     }
 
     public static function versoesPorDocumento(): array
     {
-        $versoes = DocModel::versoesPorDocumento();
+        $versoes = DocModel::versoesPorDocumento(AuthService::getUserCpf());
 
         foreach ($versoes as &$lista) {
             foreach ($lista as &$versao) {
@@ -407,6 +498,8 @@ class DocService
 
     public static function adicionarPermissao(int $idDoc, string $codfuncao): string
     {
+        self::exigirEdicaoPermissoes($idDoc);
+
         if (!DocModel::adicionarPermissao($idDoc, $codfuncao)) {
             throw new RuntimeException('Documento inválido ou função não informada.');
         }
@@ -416,6 +509,8 @@ class DocService
 
     public static function removerPermissao(int $idDoc, string $codfuncao): string
     {
+        self::exigirEdicaoPermissoes($idDoc);
+
         if (!DocModel::removerPermissao($idDoc, $codfuncao)) {
             throw new RuntimeException('Documento inválido ou função não informada.');
         }
@@ -425,6 +520,8 @@ class DocService
 
     public static function alternarGeral(int $idDoc, bool $geral): string
     {
+        self::exigirEdicaoPermissoes($idDoc);
+
         if (!DocModel::alternarGeral($idDoc, $geral)) {
             throw new RuntimeException('Documento inválido.');
         }
@@ -449,11 +546,15 @@ class DocService
 
     public static function restaurarVersao(int $idDoc, int $idVersao): bool
     {
+        self::exigirGestaoDocumento($idDoc);
+
         return DocModel::restaurarVersao($idDoc, $idVersao);
     }
 
     public static function excluirVersao(int $idDoc, int $idVersao): string
     {
+        self::exigirGestaoDocumento($idDoc);
+
         $info = DocModel::versaoInfo($idDoc, $idVersao);
 
         if ($info === null) {
@@ -479,6 +580,8 @@ class DocService
 
     public static function excluirDocumento(int $idDoc): bool
     {
+        self::exigirGestaoDocumento($idDoc);
+
         $doc = DocModel::documentoComVersao($idDoc);
 
         if ($doc === null) {
@@ -498,36 +601,40 @@ class DocService
         return true;
     }
 
-    public static function criarDiretorio(string $nome): string
+    public static function criarDiretorio(string $nome, bool $restrito = false): string
     {
-        $nome = trim($nome);
+        $nome = self::validarNomePasta($nome, 'do diretório');
+        $cpf = AuthService::getUserCpf();
+        $visibilidade = $restrito ? 'restrito' : 'publico';
 
-        if ($nome === '') {
-            throw new RuntimeException('Informe o nome do diretório.');
+        if ($restrito && ($cpf === null || $cpf === '')) {
+            throw new RuntimeException('Não foi possível identificar o criador da pasta.');
         }
 
         if (DocModel::diretorioExiste($nome)) {
-            throw new RuntimeException("Já existe um diretório chamado {$nome}.");
+            throw new RuntimeException('Não foi possível criar a pasta com esse nome.');
         }
 
-        if (DocModel::criarDiretorio($nome) === null) {
+        if (DocModel::criarDiretorio($nome, $visibilidade, $cpf) === null) {
             throw new RuntimeException('Erro ao criar o diretório.');
         }
 
-        return "Diretório {$nome} criado com sucesso.";
+        return $restrito
+            ? "Diretório {$nome} criado com acesso restrito a você."
+            : "Diretório {$nome} criado com sucesso.";
     }
 
     public static function criarSubdiretorio(int $idDir, string $nome): string
     {
-        $nome = trim($nome);
-
         if ($idDir <= 0) {
             throw new RuntimeException('Selecione o diretório da subpasta.');
         }
 
-        if ($nome === '') {
-            throw new RuntimeException('Informe o nome da subpasta.');
+        if (!self::podeGerirDiretorio($idDir)) {
+            throw new RuntimeException('Diretório não encontrado.');
         }
+
+        $nome = self::validarNomePasta($nome, 'da subpasta');
 
         if (DocModel::subdiretorioExiste($idDir, $nome)) {
             throw new RuntimeException("Já existe uma subpasta chamada {$nome} neste diretório.");
@@ -540,8 +647,31 @@ class DocService
         return "Subpasta {$nome} criada com sucesso.";
     }
 
+    private static function validarNomePasta(string $nome, string $alvo): string
+    {
+        $nome = trim($nome);
+
+        if ($nome === '') {
+            throw new RuntimeException("Informe o nome {$alvo}.");
+        }
+
+        if (mb_strlen($nome) > 100) {
+            throw new RuntimeException("O nome {$alvo} deve ter no máximo 100 caracteres.");
+        }
+
+        if (!preg_match('/^[\p{L}\p{N}][\p{L}\p{N} _\-().]*$/u', $nome)) {
+            throw new RuntimeException("O nome {$alvo} contém caracteres não permitidos. Use letras, números, espaços, hífen, sublinhado, ponto e parênteses.");
+        }
+
+        return $nome;
+    }
+
     public static function excluirDiretorio(int $idDir): string
     {
+        if (!self::podeExcluirDiretorio($idDir)) {
+            throw new RuntimeException('Diretório não encontrado.');
+        }
+
         if (!DocModel::excluirDiretorio($idDir)) {
             throw new RuntimeException('Não é possível excluir: o diretório possui documentos.');
         }
@@ -551,6 +681,10 @@ class DocService
 
     public static function excluirSubdiretorio(int $idSubdir): string
     {
+        if (!self::podeExcluirSubdiretorio($idSubdir)) {
+            throw new RuntimeException('Subpasta não encontrada.');
+        }
+
         if (!DocModel::excluirSubdiretorio($idSubdir)) {
             throw new RuntimeException('Não é possível excluir: a subpasta possui documentos.');
         }
@@ -576,28 +710,35 @@ class DocService
 
     private static function diretoriosParaCaminho(int $idDir, int $idSubdir): array
     {
-        $dir = null;
-        $sub = null;
+        $dir = DocModel::diretorioPorId($idDir);
+        $sub = DocModel::subdiretorioPorId($idSubdir);
 
-        foreach (DocModel::listarDiretorios() as $d) {
-            if ((int) $d['id'] === $idDir) {
-                $dir = $d['nome'];
-                break;
-            }
-        }
-
-        foreach (DocModel::listarSubdiretorios($idDir) as $s) {
-            if ((int) $s['id'] === $idSubdir) {
-                $sub = $s['nome'];
-                break;
-            }
-        }
-
-        if ($dir === null || $sub === null) {
+        if (
+            $dir === null
+            || $sub === null
+            || (int) $sub['id_dir'] !== $idDir
+            || !self::podeGerirRegistroDiretorio($dir)
+        ) {
             throw new RuntimeException('Diretório ou subdiretório inválido.');
         }
 
-        return ['diretorio' => $dir, 'subdiretorio' => $sub];
+        foreach ([$dir['nome'], $sub['nome']] as $segmento) {
+            if (
+                $segmento === ''
+                || str_contains($segmento, '/')
+                || str_contains($segmento, '\\')
+                || str_contains($segmento, "\0")
+                || str_contains($segmento, '..')
+            ) {
+                throw new RuntimeException('Nome de diretório ou subpasta inválido.');
+            }
+        }
+
+        return [
+            'diretorio' => $dir['nome'],
+            'subdiretorio' => $sub['nome'],
+            'restrito' => ($dir['visibilidade'] ?? 'publico') === 'restrito',
+        ];
     }
 
     public static function caminhoAbsoluto(string $caminhoRelativo): string

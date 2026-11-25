@@ -1,5 +1,9 @@
 Options -Indexes
 
+# Documentos são entregues somente via PHP (/documentos/abrir e /documentos/visualizar)
+RewriteEngine On
+RewriteRule ^documentos(/|$) - [F,L]
+
 <FilesMatch "\.(php|phtml|php3|php4|php5|php7|pl|py|cgi|sh|asp|aspx|jsp)$">
     Require all denied
 </FilesMatch>

@@ -14,6 +14,9 @@
             <summary>
                 <i class="fa-solid fa-folder"></i>
                 <span class="doc-dir-nome"><?= htmlspecialchars($dir['nome']) ?></span>
+                <?php if (!empty($dir['restrito'])): ?>
+                    <span class="badge badge-pill badge-info">Restrito</span>
+                <?php endif; ?>
                 <?php if ($dir['qt_novo'] > 0): ?>
                     <span class="badge badge-pill badge-warning">Novo <?= $dir['qt_novo'] ?></span>
                 <?php endif; ?>

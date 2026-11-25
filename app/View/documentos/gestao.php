@@ -10,6 +10,7 @@ use App\Service\DocService;
  * @var array $funcoes
  * @var array $permissoes
  * @var array $versoes
+ * @var string $csrf
  */
 ?>
 
@@ -29,7 +30,7 @@ use App\Service\DocService;
         <select name="id_dir" id="filtro-dir">
             <option value="">Todos os diretórios</option>
             <?php foreach ($diretorios as $dir): ?>
-                <option value="<?= (int) $dir['id'] ?>" <?= (int) $dir['id'] === (int) ($filtroDir ?? 0) ? 'selected' : '' ?>><?= htmlspecialchars($dir['nome']) ?></option>
+                <option value="<?= (int) $dir['id'] ?>" <?= (int) $dir['id'] === (int) ($filtroDir ?? 0) ? 'selected' : '' ?>><?= htmlspecialchars($dir['nome']) ?><?= !empty($dir['restrito']) ? ' (restrito)' : '' ?></option>
             <?php endforeach; ?>
         </select>
         <label for="filtro-subdir">Subpasta:</label>
@@ -86,7 +87,9 @@ use App\Service\DocService;
                         <?php if (!$doc['existe']): ?>
                             <span class="badge badge-pill badge-error">Sem arquivo</span>
                         <?php endif; ?>
-                        <?php if ($doc['geral'] === 'S'): ?>
+                        <?php if (!empty($doc['restrito'])): ?>
+                            <span class="badge badge-pill badge-info">Restrito</span>
+                        <?php elseif ($doc['geral'] === 'S'): ?>
                             <span class="badge badge-pill badge-info">Geral</span>
                         <?php endif; ?>
                     </td>
@@ -101,13 +104,16 @@ use App\Service\DocService;
                         <button type="button" class="btn-doc btn-doc-versao" data-modal-open="modal-nova-versao" data-id-doc="<?= (int) $doc['id_doc'] ?>" data-titulo="<?= htmlspecialchars($doc['titulo'], ENT_QUOTES) ?>">
                             <i class="fa-solid fa-arrow-up"></i> Nova versão
                         </button>
-                        <button type="button" class="btn-doc btn-doc-perm" data-perm-toggle="<?= (int) $doc['id_doc'] ?>">
-                            <i class="fa-solid fa-user-shield"></i> Permissões
-                        </button>
+                        <?php if (empty($doc['restrito'])): ?>
+                            <button type="button" class="btn-doc btn-doc-perm" data-perm-toggle="<?= (int) $doc['id_doc'] ?>">
+                                <i class="fa-solid fa-user-shield"></i> Permissões
+                            </button>
+                        <?php endif; ?>
                         <button type="button" class="btn-doc btn-doc-versoes" data-modal-open="modal-versoes" data-id-doc="<?= (int) $doc['id_doc'] ?>" data-titulo="<?= htmlspecialchars($doc['titulo'], ENT_QUOTES) ?>">
                             <i class="fa-solid fa-clock-rotate-left"></i> Versões
                         </button>
                         <form method="POST" action="/documentos/excluir-documento" class="doc-form-inline" onsubmit="return confirm('Excluir o documento e todas as suas versões?');">
+                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
                             <input type="hidden" name="id_doc" value="<?= (int) $doc['id_doc'] ?>">
                             <button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i> Excluir</button>
                         </form>
@@ -138,24 +144,39 @@ use App\Service\DocService;
     </table>
 </div>
 
-<?php if (AuthService::hasPermission('ti')): ?>
+<?php
+$isTi = AuthService::hasPermission('ti');
+$temPastaRestrita = !empty(array_filter($diretorios, fn($d) => !empty($d['restrito'])));
+?>
+<?php if ($isTi || $temPastaRestrita): ?>
 <div class="doc-acoes-dirs">
     <?php foreach ($diretorios as $dir): ?>
+        <?php $podeExcluirPasta = !empty($dir['restrito']) || $isTi; ?>
         <div class="doc-dir-admin">
             <i class="fa-solid fa-folder"></i> <?= htmlspecialchars($dir['nome']) ?>
-            <form method="POST" action="/documentos/excluir-diretorio" class="doc-form-inline" onsubmit="return confirm('Excluir o diretório? (só é possível se estiver vazio)');">
-                <input type="hidden" name="id" value="<?= (int) $dir['id'] ?>">
-                <button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i></button>
-            </form>            <?php $subs = array_filter($subdiretorios, fn($s) => (int) $s['id_dir'] === (int) $dir['id']); ?>
+            <?php if (!empty($dir['restrito'])): ?>
+                <span class="badge badge-pill badge-info">Restrito</span>
+            <?php endif; ?>
+            <?php if ($podeExcluirPasta): ?>
+                <form method="POST" action="/documentos/excluir-diretorio" class="doc-form-inline" onsubmit="return confirm('Excluir o diretório? (só é possível se estiver vazio)');">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
+                    <input type="hidden" name="id" value="<?= (int) $dir['id'] ?>">
+                    <button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i></button>
+                </form>
+            <?php endif; ?>
+            <?php $subs = array_filter($subdiretorios, fn($s) => (int) $s['id_dir'] === (int) $dir['id']); ?>
             <?php if (!empty($subs)): ?>
                 <div class="doc-dir-admin-subs">
                     <?php foreach ($subs as $sub): ?>
                         <div>
                             <i class="fa-solid fa-folder-open"></i> <?= htmlspecialchars($sub['nome']) ?>
-                            <form method="POST" action="/documentos/excluir-subdiretorio" class="doc-form-inline" onsubmit="return confirm('Excluir a subpasta? (só é possível se estiver vazia)');">
-                                <input type="hidden" name="id" value="<?= (int) $sub['id'] ?>">
-                                <button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i></button>
-                            </form>
+                            <?php if ($podeExcluirPasta): ?>
+                                <form method="POST" action="/documentos/excluir-subdiretorio" class="doc-form-inline" onsubmit="return confirm('Excluir a subpasta? (só é possível se estiver vazia)');">
+                                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
+                                    <input type="hidden" name="id" value="<?= (int) $sub['id'] ?>">
+                                    <button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i></button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -167,11 +188,12 @@ use App\Service\DocService;
 
 <?php ob_start(); ?>
     <form method="POST" action="/documentos/upload" enctype="multipart/form-data" class="doc-upload-form">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
         <label>Diretório:
             <select name="id_dir" id="doc-id-dir" required>
                 <option value="">Selecione...</option>
                 <?php foreach ($diretorios as $dir): ?>
-                    <option value="<?= (int) $dir['id'] ?>"><?= htmlspecialchars($dir['nome']) ?></option>
+                    <option value="<?= (int) $dir['id'] ?>" data-restrito="<?= !empty($dir['restrito']) ? '1' : '0' ?>"><?= htmlspecialchars($dir['nome']) ?><?= !empty($dir['restrito']) ? ' (restrito)' : '' ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
@@ -202,6 +224,7 @@ use App\Service\DocService;
             <small>Digite para filtrar e clique na função para adicionar. Clique no × para remover.</small>
         </label>
         <div id="doc-funcoes-hidden"></div>
+        <p id="doc-restrito-aviso" class="doc-perm-titulo" hidden>Pasta restrita: somente você verá os documentos enviados aqui. Permissões por função não se aplicam.</p>
         <button type="submit" class="btn">Enviar documento</button>
     </form>
 <?php $content = ob_get_clean(); ?>
@@ -214,8 +237,15 @@ use App\Service\DocService;
 
 <?php ob_start(); ?>
     <form method="POST" action="/documentos/diretorio" class="doc-upload-form">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
         <label>Nome do diretório:
             <input type="text" name="nome" required maxlength="100" placeholder="Ex.: TREINAMENTOS MARKETING">
+        </label>
+        <label>Visibilidade:
+            <select name="visibilidade">
+                <option value="publico">Público (outros usuários da gestão podem ver)</option>
+                <option value="restrito">Restrito a mim (somente você vê e gerencia)</option>
+            </select>
         </label>
         <button type="submit" class="btn">Criar diretório</button>
     </form>
@@ -229,11 +259,12 @@ use App\Service\DocService;
 
 <?php ob_start(); ?>
     <form method="POST" action="/documentos/subdiretorio" class="doc-upload-form">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
         <label>Diretório:
             <select name="id_dir" id="doc-sub-id-dir" required>
                 <option value="">Selecione...</option>
                 <?php foreach ($diretorios as $dir): ?>
-                    <option value="<?= (int) $dir['id'] ?>"><?= htmlspecialchars($dir['nome']) ?></option>
+                    <option value="<?= (int) $dir['id'] ?>"><?= htmlspecialchars($dir['nome']) ?><?= !empty($dir['restrito']) ? ' (restrito)' : '' ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
@@ -252,6 +283,7 @@ use App\Service\DocService;
 
 <?php ob_start(); ?>
     <form method="POST" action="/documentos/nova-versao" enctype="multipart/form-data" class="doc-upload-form">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
         <input type="hidden" name="id_doc" id="nversao-id-doc">
         <p id="nversao-titulo" class="doc-perm-titulo"></p>
         <label>Arquivo (máx. 100 MB):
@@ -310,6 +342,7 @@ use App\Service\DocService;
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var csrfDoc = <?= json_encode($csrf ?? '') ?>;
     var permissoes = <?= json_encode($permissoes, JSON_UNESCAPED_UNICODE) ?>;
     var versoes = <?= json_encode($versoes, JSON_UNESCAPED_UNICODE) ?>;
 
@@ -317,6 +350,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var subSel = document.getElementById('doc-id-subdir');
     var geralChk = document.getElementById('doc-upload-geral');
     var funcoesLabel = document.getElementById('doc-funcoes-label');
+    var geralLabel = geralChk ? geralChk.closest('label') : null;
+    var restritoAviso = document.getElementById('doc-restrito-aviso');
 
     if (dirSel && subSel) {
         function filtrarSubdiretorios() {
@@ -365,13 +400,29 @@ document.addEventListener('DOMContentLoaded', function() {
         filtrarFiltroSubdirs();
     }
 
-    if (geralChk && funcoesLabel) {
-        function alternarFuncoes() {
-            funcoesLabel.style.display = geralChk.checked ? 'none' : 'block';
-        }
-        geralChk.addEventListener('change', alternarFuncoes);
-        alternarFuncoes();
+    function pastaSelecionadaRestrita() {
+        if (!dirSel || dirSel.selectedIndex < 0) return false;
+
+        return dirSel.options[dirSel.selectedIndex].getAttribute('data-restrito') === '1';
     }
+
+    function atualizarControlesAcesso() {
+        var restrito = pastaSelecionadaRestrita();
+
+        if (geralLabel) geralLabel.style.display = restrito ? 'none' : '';
+        if (funcoesLabel) funcoesLabel.style.display = restrito || (geralChk && geralChk.checked) ? 'none' : 'block';
+        if (restritoAviso) restritoAviso.hidden = !restrito;
+    }
+
+    if (geralChk) {
+        geralChk.addEventListener('change', atualizarControlesAcesso);
+    }
+
+    if (dirSel) {
+        dirSel.addEventListener('change', atualizarControlesAcesso);
+    }
+
+    atualizarControlesAcesso();
 
     var funcoesLista = <?= json_encode($funcoes, JSON_UNESCAPED_UNICODE) ?>;
     var funcoesMap = {};
@@ -403,6 +454,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function postAcao(url, dados, okCallback) {
+        dados._csrf = csrfDoc;
+
         fetch(url, {
             method: 'POST',
             headers: {
@@ -632,6 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             var dados = new URLSearchParams(new FormData(formCopiar));
+            dados.append('_csrf', csrfDoc);
 
             fetch(formCopiar.action, {
                 method: 'POST',
@@ -679,12 +733,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<i class="fa-solid fa-eye"></i> Ver</a>' : '';
                 var restaurar = v.atual ? '' :
                     '<form method="POST" action="/documentos/versao" class="doc-form-inline">' +
+                    '<input type="hidden" name="_csrf" value="' + escHtml(csrfDoc) + '">' +
                     '<input type="hidden" name="id_doc" value="' + idDoc + '">' +
                     '<input type="hidden" name="id_versao" value="' + v.id + '">' +
                     '<button type="submit" class="btn-doc"><i class="fa-solid fa-rotate-left"></i> Tornar atual</button>' +
                     '</form>';
                 var excluir = v.atual ? '' :
                     '<form method="POST" action="/documentos/versao/excluir" class="doc-form-inline" onsubmit="return confirm(\'Excluir esta versão? O arquivo será removido se nenhuma outra versão usar o mesmo caminho.\');">' +
+                    '<input type="hidden" name="_csrf" value="' + escHtml(csrfDoc) + '">' +
                     '<input type="hidden" name="id_doc" value="' + idDoc + '">' +
                     '<input type="hidden" name="id_versao" value="' + v.id + '">' +
                     '<button type="submit" class="btn-doc btn-doc-danger"><i class="fa-solid fa-trash"></i> Excluir</button>' +

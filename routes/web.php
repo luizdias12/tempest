@@ -173,7 +173,7 @@ $router->group('/sla', function ($router) {
 $router->group('/documentos', function ($router) {
     $router->get('/', [DocController::class, 'indexView']);
     $router->get('/abrir/{id}', [DocController::class, 'abrir']);
-    $router->get('/visualizar/{id}', [DocController::class, 'visualizar']);
+    $router->get('/visualizar/{id}', [DocController::class, 'visualizar'], ['gestaoRole']);
     $router->get('/versao/visualizar/{idDoc}/{idVersao}', [DocController::class, 'visualizarVersao'], ['gestaoRole']);
 
     //Ações de gestão (auth + gestaoRole)
