@@ -18,7 +18,7 @@ class FilialModel extends DB
     public static function todas(): ?array
     {
         return QueryBuilder::table('gfilial')
-            ->select('codfilial', 'vilnomefilial')
+            ->select('codfilial', 'idintegracao', 'vilnomefilial')
             ->orderBy('vilnomefilial', 'ASC')
             ->get();
     }

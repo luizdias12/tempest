@@ -162,14 +162,7 @@ if (!function_exists('handleAttach')) {
             return '';
         }
 
-        $filename = ltrim($filename, '/');
-        $parts = explode('/', $filename);
-
-        if (isset($parts[1]) && (int) $parts[1] === $id) {
-            return 'http://192.168.101.16:8082/' . $filename;
-        }
-
-        return '/' . $filename;
+        return '/' . ltrim($filename, '/');
     }
 }
 

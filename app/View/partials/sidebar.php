@@ -101,6 +101,9 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                         <div class="sidebar-dropdown-menu">
                             <a href="/financ/holerite"><i class="fa-solid fa-money-bill"></i> Holerite</a>
                         </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/unimed"><i class="fa-solid fa-hospital"></i> Extrato Unimed</a>
+                        </div>
                     </div>
                     <div class="sidebar-dropdown">
                         <a href="#" class="sidebar-dropdown-toggle">
@@ -122,9 +125,12 @@ $isProcesso = AuthService::hasPermission('gestao de processos');
                             <span class="sidebar-dropdown-label"><i class="fa-solid fa-sliders"></i> Configurações</span>
                             <i class="fa-solid fa-chevron-right sidebar-dropdown-chevron"></i>
                         </a>
-                        <!-- Gestao do Caroussel do Home -->
+                        <!-- Gestao do RH -->
                         <div class="sidebar-dropdown-menu">
                             <a href="/carousel/gestao"><i class="fa-solid fa-images"></i> Gestão do Home</a>
+                        </div>
+                        <div class="sidebar-dropdown-menu">
+                            <a href="/importacao/unimed"><i class="fa-solid fa-file-import"></i> Importação de Arquivos (Unimed)</a>
                         </div>
                         <?php if (AuthService::isOwner()): ?>
                             <div class="sidebar-dropdown-menu">

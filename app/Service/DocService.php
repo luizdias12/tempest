@@ -601,6 +601,177 @@ class DocService
         return true;
     }
 
+    public static function moverDocumento(int $idDoc, int $idDir, int $idSubdir): string
+    {
+        $doc = DocModel::documentoComVersao($idDoc);
+
+        if ($doc === null) {
+            throw new RuntimeException('Documento não encontrado.');
+        }
+
+        self::exigirGestaoDocumento($idDoc);
+
+        if ($idDir <= 0 || $idSubdir <= 0) {
+            throw new RuntimeException('Selecione o diretório e a subpasta de destino.');
+        }
+
+        if ((int) $doc['id_dir'] === $idDir && (int) $doc['id_subdir'] === $idSubdir) {
+            throw new RuntimeException('O documento já está neste diretório.');
+        }
+
+        $destino = self::diretoriosParaCaminho($idDir, $idSubdir);
+        $destinoRel = 'documentos/' . $destino['diretorio'] . '/' . $destino['subdiretorio'];
+        $destinoAbs = self::caminhoAbsoluto($destinoRel);
+
+        if (!is_dir($destinoAbs) && !mkdir($destinoAbs, 0755, true) && !is_dir($destinoAbs)) {
+            throw new RuntimeException('Falha ao criar a pasta de destino.');
+        }
+
+        $versoes = DocModel::versoesCaminhos($idDoc);
+
+        if (empty($versoes)) {
+            throw new RuntimeException('Documento sem versões registradas.');
+        }
+
+        $plano = [];
+        $nomesUsados = [];
+        $mapaAntigos = [];
+
+        foreach ($versoes as $versao) {
+            $antigo = (string) $versao['caminho'];
+
+            if (isset($mapaAntigos[$antigo])) {
+                $plano[] = [
+                    'id' => (int) $versao['id'],
+                    'antigo' => $antigo,
+                    'novo' => $mapaAntigos[$antigo]['novo'],
+                    'nome_destino' => $mapaAntigos[$antigo]['nome_destino'],
+                ];
+                continue;
+            }
+
+            $nomeDestino = self::nomeDisponivelEmDestino($destinoAbs, basename($antigo), $nomesUsados);
+            $nomesUsados[] = $nomeDestino;
+
+            $item = [
+                'id' => (int) $versao['id'],
+                'antigo' => $antigo,
+                'novo' => $destinoRel . '/' . $nomeDestino,
+                'nome_destino' => $nomeDestino,
+            ];
+
+            $mapaAntigos[$antigo] = $item;
+            $plano[] = $item;
+        }
+
+        $movidos = [];
+
+        try {
+            foreach ($plano as $item) {
+                $antigoAbs = self::caminhoAbsoluto($item['antigo']);
+
+                if (!is_file($antigoAbs)) {
+                    continue;
+                }
+
+                $novoAbs = $destinoAbs . '/' . $item['nome_destino'];
+
+                if (DocModel::versoesComMesmoCaminhoDeOutroDoc($item['antigo'], $idDoc) > 0) {
+                    if (!copy($antigoAbs, $novoAbs)) {
+                        throw new RuntimeException('Falha ao copiar o arquivo ' . $item['nome_destino'] . '.');
+                    }
+
+                    $movidos[] = ['tipo' => 'copiado', 'de' => $antigoAbs, 'para' => $novoAbs];
+                    continue;
+                }
+
+                if (!rename($antigoAbs, $novoAbs)) {
+                    throw new RuntimeException('Falha ao mover o arquivo ' . $item['nome_destino'] . '.');
+                }
+
+                $movidos[] = ['tipo' => 'movido', 'de' => $antigoAbs, 'para' => $novoAbs];
+            }
+
+            $pdo = DB::connect('mysql');
+            $pdo->beginTransaction();
+
+            if (!DocModel::moverDocumento($idDoc, $idDir, $idSubdir)) {
+                throw new RuntimeException('Falha ao atualizar o documento.');
+            }
+
+            foreach ($plano as $item) {
+                if (!DocModel::atualizarCaminhoVersao($item['id'], $item['novo'])) {
+                    throw new RuntimeException('Falha ao atualizar o caminho das versões.');
+                }
+            }
+
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            self::reverterMovimentoArquivos($movidos);
+
+            if ($e instanceof RuntimeException) {
+                throw $e;
+            }
+
+            throw new RuntimeException('Não foi possível migrar o documento.');
+        }
+
+        $mensagem = "Documento movido para {$destino['diretorio']} / {$destino['subdiretorio']}.";
+
+        if ($destino['restrito']) {
+            $mensagem .= ' Atenção: a pasta de destino é restrita, então somente o criador da pasta verá o documento.';
+        } else {
+            $semAcesso = $doc['geral'] !== 'S' && DocModel::contarPermissoes($idDoc) === 0;
+
+            if ($semAcesso) {
+                $mensagem .= ' O documento está sem permissões e não aparecerá na área Documentos até ser definido como Geral ou receber funções.';
+            }
+        }
+
+        return $mensagem;
+    }
+
+    private static function nomeDisponivelEmDestino(string $destinoAbs, string $nome, array $usados): string
+    {
+        $base = pathinfo($nome, PATHINFO_FILENAME);
+        $ext = pathinfo($nome, PATHINFO_EXTENSION);
+
+        if ($base === '' || $base === '.') {
+            $base = 'arquivo';
+        }
+
+        $tentativa = 0;
+
+        do {
+            $sufixo = $tentativa === 0 ? '' : ($tentativa === 1 ? '_migrado' : '_migrado' . $tentativa);
+            $candidato = $ext !== '' ? "{$base}{$sufixo}.{$ext}" : "{$base}{$sufixo}";
+            $tentativa++;
+        } while (in_array($candidato, $usados, true) || is_file($destinoAbs . '/' . $candidato));
+
+        return $candidato;
+    }
+
+    private static function reverterMovimentoArquivos(array $movidos): void
+    {
+        foreach (array_reverse($movidos) as $item) {
+            if ($item['tipo'] === 'movido') {
+                if (is_file($item['para']) && !is_file($item['de'])) {
+                    @rename($item['para'], $item['de']);
+                }
+
+                continue;
+            }
+
+            if (is_file($item['para'])) {
+                @unlink($item['para']);
+            }
+        }
+    }
+
     public static function criarDiretorio(string $nome, bool $restrito = false): string
     {
         $nome = self::validarNomePasta($nome, 'do diretório');

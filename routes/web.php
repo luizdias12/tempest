@@ -14,6 +14,7 @@ use App\Controller\FuncionarioController;
 use App\Controller\HelpdeskController;
 use App\Controller\SlaController;
 use App\Controller\HomeController;
+use App\Controller\ImportacaoController;
 use App\Controller\LogController;
 use App\Controller\OnlineController;
 use App\Controller\PfdependController;
@@ -22,6 +23,7 @@ use App\Controller\RelatorioController;
 use App\Controller\ComercialController;
 use App\Controller\EsocialController;
 use App\Controller\TAFController;
+use App\Controller\UnimedController;
 use App\Controller\ViviController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ComercialRoleMiddleware;
@@ -104,6 +106,12 @@ $router->group('/comercial', function ($router) {
 $router->group('/financ', function ($router) {
     $router->get('/holerite', [FinancController::class, 'holeriteView']);
     $router->get('/holerite/pdf', [FinancController::class, 'holeritePdf']);
+}, ['auth']);
+
+//UnimedController (extrato de cooparticipação do plano de saúde)
+$router->group('/unimed', function ($router) {
+    $router->get('/', [UnimedController::class, 'indexView']);
+    $router->get('/consulta', [UnimedController::class, 'consulta']);
 }, ['auth']);
 
 //EsocialController (visualização de dados do eSocial)
@@ -191,6 +199,14 @@ $router->group('/documentos', function ($router) {
     $router->post('/versao', [DocController::class, 'versao'], ['gestaoRole']);
     $router->post('/versao/excluir', [DocController::class, 'excluirVersao'], ['gestaoRole']);
     $router->post('/excluir-documento', [DocController::class, 'excluirDocumento'], ['gestaoRole']);
+    $router->post('/mover', [DocController::class, 'moverDocumento'], ['gestaoRole']);
+}, ['auth']);
+
+/*----------------------------------- GRUPO /importacao (auth + gestaoRole) -----------------------------------*/
+
+$router->group('/importacao', function ($router) {
+    $router->get('/unimed', [ImportacaoController::class, 'unimedView'], ['rh']);
+    $router->post('/unimed', [ImportacaoController::class, 'importarUnimed'], ['rh']);
 }, ['auth']);
 
 /*----------------------------------- GRUPO /logger (auth) -----------------------------------*/

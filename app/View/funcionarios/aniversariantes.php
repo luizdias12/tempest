@@ -47,8 +47,8 @@ $aniversarioHoje = $nascimento->format('m-d') === date('m-d');
             <select id="filial" name="filial">
                 <option value="">Selecione a filial</option>
                 <?php foreach ($filiais as $fil): ?>
-                    <option value="<?= htmlspecialchars($fil['codfilial']) ?>" <?= (((string) $filial === (string) $fil['codfilial'])) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars(initcap($fil['vilnomefilial'] . " - " . $fil['codfilial'])) ?>
+                    <option value="<?= htmlspecialchars($fil['idintegracao']) ?>" <?= (((string) $filial === (string) $fil['idintegracao'])) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars(initcap($fil['vilnomefilial'] . " - " . $fil['idintegracao'])) ?>
                     </option>
             <?php endforeach;
             endif; ?>

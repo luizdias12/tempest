@@ -37,7 +37,7 @@ class ChatModel
         if ($idsMensagem) {
             $in = implode(',', array_fill(0, count($idsMensagem), '?'));
             $ultimas = DB::select(
-                "SELECT id, texto, apagado, criado_em FROM chat_mensagens WHERE id IN ({$in})",
+                "SELECT id, texto, apagado, criado_em, tipo, anexo_nome FROM chat_mensagens WHERE id IN ({$in})",
                 array_values($idsMensagem),
                 'mysql'
             );
@@ -71,6 +71,8 @@ class ChatModel
             $r['ultima_id'] = $msg ? (int) $msg['id'] : null;
             $r['ultima_em'] = $msg ? $msg['criado_em'] : null;
             $r['ultima_msg'] = $msg ? (string) $msg['texto'] : '';
+            $r['ultima_tipo'] = $msg ? (string) $msg['tipo'] : 'texto';
+            $r['ultima_anexo_nome'] = $msg ? (string) ($msg['anexo_nome'] ?? '') : '';
             $r['ultima_apagada'] = $msg ? (int) $msg['apagado'] : 0;
             $r['nao_lidas'] = $naoLidas[(int) $r['id']] ?? 0;
         }

@@ -14,6 +14,7 @@
     var AVISO_DIAS = 30;
 
     var totalAtual = 0;
+    var primeiraChecagem = true;
     var ultimaChave = null;
     var ultimaNotif = 0;
     var pediuPermissao = false;
@@ -34,13 +35,19 @@
     function dispararNotificacao(data) {
         if (!(window.Notification && Notification.permission === 'granted')) return;
         if (!data.ultima) return;
-        if (naPaginaChat()) return;
+
+        var u = data.ultima;
+
+        // Na página do chat e com a aba visível, só notifica se a conversa ativa for outra.
+        if (!document.hidden && naPaginaChat()) {
+            var ativa = document.querySelector('.chat-conv.ativa');
+            if (!ativa || ativa.getAttribute('data-id') === String(u.conversa_id)) return;
+        }
 
         var agora = Date.now();
         if (agora - ultimaNotif < COOLDOWN) return;
         ultimaNotif = agora;
 
-        var u = data.ultima;
         var corpo = u.remetente + ': ' + (u.texto || (u.tipo === 'imagem' ? '[Imagem]' : '[Mensagem]'));
 
         try {
@@ -178,10 +185,11 @@
                 var u = d.ultima || null;
                 var chave = u ? (u.conversa_id + '|' + (u.criado_em || '')) : null;
 
-                if (totalAtual > 0 && total > totalAtual && chave && chave !== ultimaChave) {
+                if (!primeiraChecagem && total > totalAtual && chave && chave !== ultimaChave) {
                     dispararNotificacao(d);
                 }
 
+                primeiraChecagem = false;
                 totalAtual = total;
                 ultimaChave = chave;
             })
@@ -202,9 +210,12 @@
                 if (result === 'denied') {
                     verificarPermissao();
                 }
+                if (result === 'default') {
+                    pediuPermissao = false;
+                }
             });
         } catch (e) {
-            /* ignora */
+            pediuPermissao = false;
         }
     }
 
@@ -213,8 +224,8 @@
         checar();
         setInterval(checar, INTERVALO);
 
-        document.addEventListener('pointerdown', pedirPermissao, { once: true });
-        document.addEventListener('click', pedirPermissao, { once: true });
+        document.addEventListener('click', pedirPermissao);
+        document.addEventListener('keydown', pedirPermissao);
     }
 
     document.addEventListener('visibilitychange', function() {

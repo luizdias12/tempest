@@ -1,6 +1,19 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
 
+$https = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+    || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+    || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => $https,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
+
 session_start();
 
 require_once __DIR__ . '/../vendor/autoload.php';

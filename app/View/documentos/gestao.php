@@ -112,6 +112,9 @@ use App\Service\DocService;
                         <button type="button" class="btn-doc btn-doc-versoes" data-modal-open="modal-versoes" data-id-doc="<?= (int) $doc['id_doc'] ?>" data-titulo="<?= htmlspecialchars($doc['titulo'], ENT_QUOTES) ?>">
                             <i class="fa-solid fa-clock-rotate-left"></i> Versões
                         </button>
+                        <button type="button" class="btn-doc btn-doc-mover" data-modal-open="modal-mover" data-id-doc="<?= (int) $doc['id_doc'] ?>" data-id-dir="<?= (int) $doc['id_dir'] ?>" data-id-subdir="<?= (int) $doc['id_subdir'] ?>" data-titulo="<?= htmlspecialchars($doc['titulo'], ENT_QUOTES) ?>">
+                            <i class="fa-solid fa-folder-tree"></i> Mover
+                        </button>
                         <form method="POST" action="/documentos/excluir-documento" class="doc-form-inline" onsubmit="return confirm('Excluir o documento e todas as suas versões?');">
                             <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
                             <input type="hidden" name="id_doc" value="<?= (int) $doc['id_doc'] ?>">
@@ -297,6 +300,39 @@ $temPastaRestrita = !empty(array_filter($diretorios, fn($d) => !empty($d['restri
 <?php component('modal', [
     'id' => 'modal-nova-versao',
     'title' => 'Nova versão do documento',
+    'content' => $content,
+]); ?>
+
+<?php ob_start(); ?>
+    <form method="POST" action="/documentos/mover" class="doc-upload-form" onsubmit="return confirm('Mover o documento e todas as suas versões?');">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf ?? '') ?>">
+        <input type="hidden" name="id_doc" id="mover-id-doc">
+        <p id="mover-titulo" class="doc-perm-titulo"></p>
+        <label>Novo diretório:
+            <select name="id_dir" id="mover-id-dir" required>
+                <option value="">Selecione...</option>
+                <?php foreach ($diretorios as $dir): ?>
+                    <option value="<?= (int) $dir['id'] ?>" data-restrito="<?= !empty($dir['restrito']) ? '1' : '0' ?>"><?= htmlspecialchars($dir['nome']) ?><?= !empty($dir['restrito']) ? ' (restrito)' : '' ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Nova subpasta:
+            <select name="id_subdir" id="mover-id-subdir" required>
+                <option value="">Selecione o diretório primeiro...</option>
+                <?php foreach ($subdiretorios as $sub): ?>
+                    <option value="<?= (int) $sub['id'] ?>" data-id-dir="<?= (int) $sub['id_dir'] ?>"><?= htmlspecialchars($sub['nome']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <p class="doc-perm-titulo">O arquivo e todas as versões são movidos. As permissões e o acesso atual são mantidos.</p>
+        <p id="mover-restrito-aviso" class="doc-perm-titulo" hidden>Atenção: a pasta de destino é restrita — somente o criador da pasta verá o documento.</p>
+        <button type="submit" class="btn">Mover documento</button>
+    </form>
+<?php $content = ob_get_clean(); ?>
+
+<?php component('modal', [
+    'id' => 'modal-mover',
+    'title' => 'Mover documento',
     'content' => $content,
 ]); ?>
 
@@ -755,6 +791,57 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             document.getElementById('versoes-lista').innerHTML = html;
+        });
+    });
+
+    var moverDirSel = document.getElementById('mover-id-dir');
+    var moverSubSel = document.getElementById('mover-id-subdir');
+    var moverRestritoAviso = document.getElementById('mover-restrito-aviso');
+
+    function filtrarSubdiretoriosMover() {
+        if (!moverDirSel || !moverSubSel) return;
+
+        var dir = moverDirSel.value;
+        var atual = moverSubSel.value;
+        var valido = false;
+        var options = moverSubSel.querySelectorAll('option[data-id-dir]');
+
+        for (var i = 0; i < options.length; i++) {
+            if (options[i].getAttribute('data-id-dir') === dir) {
+                options[i].style.display = '';
+                if (options[i].value === atual) valido = true;
+            } else {
+                options[i].style.display = 'none';
+            }
+        }
+
+        if (!valido) moverSubSel.value = '';
+    }
+
+    function atualizarAvisoMover() {
+        if (!moverDirSel || moverDirSel.selectedIndex < 0) return;
+
+        var restrito = moverDirSel.options[moverDirSel.selectedIndex].getAttribute('data-restrito') === '1';
+        if (moverRestritoAviso) moverRestritoAviso.hidden = !restrito;
+    }
+
+    if (moverDirSel && moverSubSel) {
+        moverDirSel.addEventListener('change', function() {
+            filtrarSubdiretoriosMover();
+            atualizarAvisoMover();
+        });
+        filtrarSubdiretoriosMover();
+        atualizarAvisoMover();
+    }
+
+    document.querySelectorAll('[data-modal-open="modal-mover"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('mover-id-doc').value = btn.getAttribute('data-id-doc');
+            document.getElementById('mover-titulo').textContent = btn.getAttribute('data-titulo');
+            moverDirSel.value = btn.getAttribute('data-id-dir');
+            filtrarSubdiretoriosMover();
+            moverSubSel.value = btn.getAttribute('data-id-subdir');
+            atualizarAvisoMover();
         });
     });
 });

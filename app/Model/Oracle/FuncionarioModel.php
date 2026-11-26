@@ -230,7 +230,7 @@ class FuncionarioModel extends DB
             ->orderBy('p.nome', 'ASC');
 
         if (!empty($codfilial)) {
-            $query->where('f.codfilial', $codfilial);
+            $query->where('g.idintegracao', $codfilial);
             return $query->get();
         } else {
             return [];

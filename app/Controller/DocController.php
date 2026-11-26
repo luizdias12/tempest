@@ -307,6 +307,17 @@ class DocController extends BaseController
         }, 'excluir_documento');
     }
 
+    public function moverDocumento(Request $request): void
+    {
+        $this->acaoGestao($request, function () use ($request): string {
+            return DocService::moverDocumento(
+                (int) $request->post('id_doc', 0),
+                (int) $request->post('id_dir', 0),
+                (int) $request->post('id_subdir', 0)
+            );
+        }, 'mover_documento');
+    }
+
     public function upload(Request $request): void
     {
         try {

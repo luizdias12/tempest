@@ -105,9 +105,7 @@ class ChatService
                 'titulo' => $titulo,
                 'subtitulo' => $sub,
                 'foto' => $foto,
-                'ultima_msg' => !empty($r['ultima_apagada'])
-                    ? '[Mensagem apagada]'
-                    : (string) CryptoService::descriptografar($r['ultima_msg'] ?? ''),
+                'ultima_msg' => self::previewUltimaMensagem($r),
                 'ultima_em' => $r['ultima_em'] ?? null,
                 'nao_lidas' => (int) ($r['nao_lidas'] ?? 0),
                 'online' => self::conversaOnline($r['tipo'], $pessoas, $cpf),
@@ -116,6 +114,29 @@ class ChatService
         }
 
         return $lista;
+    }
+
+    /**
+     * Texto exibido na lista de conversas para a última mensagem.
+     * Anexos sem legenda não têm texto, então recebem um rótulo próprio.
+     */
+    private static function previewUltimaMensagem(array $r): string
+    {
+        if (!empty($r['ultima_apagada'])) {
+            return '[Mensagem apagada]';
+        }
+
+        $texto = trim((string) CryptoService::descriptografar($r['ultima_msg'] ?? ''));
+
+        if ($texto !== '') {
+            return $texto;
+        }
+
+        return match ((string) ($r['ultima_tipo'] ?? 'texto')) {
+            'imagem' => '[Imagem]',
+            'arquivo' => '[Arquivo]' . (($r['ultima_anexo_nome'] ?? '') !== '' ? ' ' . $r['ultima_anexo_nome'] : ''),
+            default => '',
+        };
     }
 
     /**

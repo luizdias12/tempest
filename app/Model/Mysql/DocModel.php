@@ -196,6 +196,55 @@ class DocModel
         ", ['doc' => $idDoc, 'versao' => $idVersao], 'mysql');
     }
 
+    public static function versoesCaminhos(int $idDoc): array
+    {
+        return DB::select("
+            SELECT id, caminho
+            FROM doc_versao
+            WHERE id_doc = :id
+            ORDER BY versao
+        ", ['id' => $idDoc], 'mysql');
+    }
+
+    public static function versoesComMesmoCaminhoDeOutroDoc(string $caminho, int $idDoc): int
+    {
+        $row = DB::first("
+            SELECT COUNT(*) AS total
+            FROM doc_versao
+            WHERE caminho = :caminho
+              AND id_doc <> :doc
+        ", ['caminho' => $caminho, 'doc' => $idDoc], 'mysql');
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public static function contarPermissoes(int $idDoc): int
+    {
+        $row = DB::first("
+            SELECT COUNT(*) AS total
+            FROM doc_permissao
+            WHERE id_doc = :doc
+        ", ['doc' => $idDoc], 'mysql');
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public static function moverDocumento(int $idDoc, int $idDir, int $idSubdir): bool
+    {
+        return DB::update('doc_documento', 'id_doc', $idDoc, [
+            'id_dir' => $idDir,
+            'id_subdir' => $idSubdir,
+            'dt_alteracao' => date('Y-m-d H:i:s'),
+        ], 'mysql');
+    }
+
+    public static function atualizarCaminhoVersao(int $idVersao, string $caminho): bool
+    {
+        return DB::update('doc_versao', 'id', $idVersao, [
+            'caminho' => $caminho,
+        ], 'mysql');
+    }
+
     public static function diretorioPorId(int $idDir): ?array
     {
         return DB::first("

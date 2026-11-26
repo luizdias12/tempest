@@ -1,0 +1,101 @@
+.snowflakes,
+.lights {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 9000;
+}
+
+.snowflake {
+    position: absolute;
+    top: -20px;
+    animation: floco-cair linear infinite;
+}
+
+.snowflake > .inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+    animation: floco-balanco ease-in-out infinite;
+    animation-duration: var(--sway-duracao, 12s);
+}
+
+@keyframes floco-cair {
+    to {
+        transform: translateY(105vh);
+    }
+}
+
+@keyframes floco-balanco {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(var(--sway, 0));
+    }
+}
+
+.lights .bulb {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.natal-santa {
+    position: fixed;
+    top: 20%;
+    left: 0;
+    width: 200px;
+    pointer-events: none;
+    z-index: 9001;
+    opacity: 0;
+}
+
+.natal-ho {
+    position: fixed;
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    font: 700 75px/1 "Arial Black", Arial, sans-serif;
+    color: #ff3333;
+    text-shadow: 0 0 20px #fff, 0 0 40px #f00;
+    pointer-events: none;
+    z-index: 9002;
+    opacity: 0;
+}
+
+@keyframes natal-voar {
+    0%   { opacity: 0; transform: translateX(-600px); }
+    8%   { opacity: 1; transform: translateX(-100px); }
+    92%  { opacity: 1; transform: translateX(calc(100vw + 100px)); }
+    100% { opacity: 0; transform: translateX(calc(100vw + 600px)); }
+}
+
+@keyframes natal-hohoho {
+    0%, 100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+    15%, 85% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    50%      { opacity: 1; transform: translateX(-50%) translateY(-20px) scale(1); }
+}
+
+@media (max-width: 768px) {
+    .natal-santa {
+        width: 120px;
+    }
+
+    .natal-ho {
+        font-size: 42px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .snowflakes,
+    .lights,
+    .natal-santa,
+    .natal-ho {
+        display: none;
+    }
+}
