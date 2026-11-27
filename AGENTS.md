@@ -20,7 +20,7 @@ Intranet PHP MVC custom ("Tempest") **sem framework** — sem artisan, sem migra
 - **Models** são classes de **métodos estáticos** agrupados por conexão: `App\Model\Mysql\*`, `App\Model\Oracle\*`, `App\Model\Consinco\*`. Alguns métodos usam `DB::*`, outros `QueryBuilder::table('view', 'connection')`.
 - **Services** (`App\Service\*`) também são classes de métodos estáticos com regras de negócio; controllers chamam services, nunca models diretamente.
 - **Views**: ficam em `app/View/<modulo>/` (não em `resources/views`). `view('path', $params, $layout)` resolve `app/View/{path}.php` com layout default `layouts/main` (também `layouts/print`). Helpers (`component`, `partial`, `renderComponent`, `asset`, `dd/dump`, `jsonResponse`, `pagination`, `initcap`, `maskCpf`, etc.) são auto-carregados de `resources/functions/helpers.php` via composer `files`.
-- **Schema**: sem migrations. Referência das tabelas de chat MySQL: `database/chat.sql`; carousel e demais tabelas são criadas manualmente nos DBs legados.
+- **Schema**: sem migrations. `database/schema_mysql.sql` é o dump de estrutura (só DDL, sem dados, escopo tempest-only) das tabelas MySQL do projeto, gerado do banco de produção — serve para montar uma base nova; os `database/*.sql` antigos seguem como registro dos scripts aplicados em bases já existentes. Ficam de fora: tabelas legadas, `tbl_extrato_unimed`, bases Oracle (RM/Consinco) e os arquivos de `public/files/`.
 
 ## Módulos e integrações
 
