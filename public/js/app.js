@@ -210,32 +210,55 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.addEventListener("submit", function (e) {
     var form = e.target;
-    if (!form || !form.classList || !form.classList.contains("filter-form"))
+    if (!form || !form.classList) return;
+
+    var ehFiltro = form.classList.contains("filter-form");
+    var ehAcao = form.hasAttribute("data-carregando");
+
+    if (!ehFiltro && !ehAcao) return;
+
+    // evita duplo envio (duplo clique ou Enter durante o envio)
+    if (form.dataset.enviando === "1") {
+      e.preventDefault();
       return;
+    }
+
+    form.dataset.enviando = "1";
 
     var btn = form.querySelector('button[type="submit"]');
     if (btn) {
       btn.dataset.originalHtml = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML =
-        '<span class="btn-spinner" aria-hidden="true"></span> Carregando...';
+        '<span class="btn-spinner" aria-hidden="true"></span> ' +
+        (form.getAttribute("data-carregando-rotulo") || "Carregando...");
     }
 
-    var wrapper = document.querySelector(".table-wrapper");
-    if (wrapper) {
-      wrapper.classList.add("is-loading");
-      wrapper.setAttribute("aria-busy", "true");
+    if (ehFiltro) {
+      var wrapper = document.querySelector(".table-wrapper");
+      if (wrapper) {
+        wrapper.classList.add("is-loading");
+        wrapper.setAttribute("aria-busy", "true");
+      }
     }
   });
 
   window.addEventListener("pageshow", function () {
     document
-      .querySelectorAll('.filter-form button[type="submit"]')
+      .querySelectorAll(
+        '.filter-form button[type="submit"], [data-carregando] button[type="submit"]'
+      )
       .forEach(function (btn) {
         if (btn.dataset.originalHtml === undefined) return;
         btn.disabled = false;
         btn.innerHTML = btn.dataset.originalHtml;
         delete btn.dataset.originalHtml;
+      });
+
+    document
+      .querySelectorAll("form[data-carregando], form.filter-form")
+      .forEach(function (form) {
+        delete form.dataset.enviando;
       });
 
     document

@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Model\Mysql\ImportacaoUnimedModel;
+use DateTime;
 use RuntimeException;
 
 class ImportacaoUnimedService
@@ -204,23 +205,27 @@ class ImportacaoUnimedService
 
     private static function converterData(string $valor, string $rotulo): ?string
     {
-        $valor = trim($valor);
+        $valor = trim($valor ?? '');
 
-        if ($valor === '') {
-            return null;
+        if ($valor === '' || $valor === '00000000' || $valor === '0000000000') {
+            return '0000-00-00';
         }
 
-        $partes = explode('/', $valor);
+        $formatos = ['!d/m/Y', '!dmY'];
 
-        if (
-            count($partes) !== 3
-            || !ctype_digit($partes[0]) || !ctype_digit($partes[1]) || !ctype_digit($partes[2])
-            || !checkdate((int) $partes[1], (int) $partes[0], (int) $partes[2])
-        ) {
-            throw new RuntimeException($rotulo . ' inválida: ' . $valor . '.');
+        foreach ($formatos as $formato) {
+            $data = DateTime::createFromFormat($formato, $valor);
+
+            if ($data !== false) {
+                $esperado = $formato === '!dmY' ? 'dmY' : 'd/m/Y';
+
+                if ($data->format($esperado) === $valor) {
+                    return $data->format('Y-m-d');
+                }
+            }
         }
 
-        return sprintf('%04d-%02d-%02d', (int) $partes[2], (int) $partes[1], (int) $partes[0]);
+        throw new RuntimeException($rotulo . ' inválida: ' . $valor . '.');
     }
 
     private static function converterValor(string $valor): string

@@ -15,7 +15,7 @@
     <span>Antes de importar, verifique se o arquivo da Unimed está no layout 176 (campos separados por <strong>;</strong>).</span>
 </div>
 
-<form method="POST" action="/importacao/unimed" enctype="multipart/form-data" class="chamado-form">
+<form method="POST" action="/importacao/unimed" enctype="multipart/form-data" class="chamado-form" data-carregando data-carregando-rotulo="Importando...">
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
     <div class="chamado-form-row">

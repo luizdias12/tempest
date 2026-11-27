@@ -32,12 +32,6 @@ class ImportacaoController extends BaseController
 
     public function importarUnimed(Request $request): void
     {
-        if (!AuthService::hasPermission('ti')) {
-            AlertManager::add('error', 'Acesso não permitido.');
-            redirect('/');
-            return;
-        }
-
         if (!$this->validarCsrf($request)) {
             AlertManager::add('error', 'Sessão expirada. Recarregue a página e tente novamente.');
             redirect('/importacao/unimed');

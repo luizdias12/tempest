@@ -505,7 +505,8 @@ class AuthService
         return self::hasPermission('ti')
             || self::hasPermission('lideres rh')
             || self::getUserCpf() == '11820308669'
-            || self::getUserCpf() == '18106448606';
+            || self::getUserCpf() == '18106448606'
+            || self::getUserCpf() == '10180688642';
     }
     public static function canManageEsocial(): bool
     {
