@@ -16,6 +16,7 @@ class FinancService
     {
         return FinancModel::valorBaseFgts($chapa, $mescomp, $anocomp, $periodo);
     }
+    
     public static function totaisHolerite(string $chapa, int $mescomp, int $anocomp, int $periodo): array|null
     {
         $proventos = self::valoresHolerite($chapa, $mescomp, $anocomp, $periodo, 'P');
