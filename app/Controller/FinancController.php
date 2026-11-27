@@ -11,8 +11,6 @@ use App\Core\Request;
 use App\Service\AuthService;
 use App\Service\FinancService;
 
-use DateTime;
-
 class FinancController extends BaseController
 {
     public function totaisHolerite(Request $request, string $chapa, int $mescomp, int $anocomp, int $periodo): array
@@ -41,20 +39,12 @@ class FinancController extends BaseController
             $anocomp = (int) $request->query('anocomp', date('Y'));
             $periodo = (int) $request->query('periodo', 3);
 
-            $dataPagamento = DateTime::createFromFormat(
-                'Y-n-j',
-                "$anocomp-$mescomp-1"
-            );
-
-            if (!$dataPagamento) {
+            if (!checkdate($mescomp, 1, $anocomp) || !in_array($periodo, [2, 3], true)) {
                 ErrorHandler::handle(400, 'Competência inválida.');
                 return;
             }
 
-            $dataPagamento->modify('+1 month');
-
-            $dataReferencia = $dataPagamento->format('Ymd');
-            $libera = FinancService::holeriteLiberado($dataReferencia, 31);
+            $libera = FinancService::holeriteLiberado($mescomp, $anocomp, $periodo, 31);
 
             if (!$libera) {
                 ErrorHandler::handle(403, 'Competência não liberada.');
@@ -106,20 +96,12 @@ class FinancController extends BaseController
             $anocomp = (int) $request->query('anocomp', date('Y'));
             $periodo = (int) $request->query('periodo', 3);
 
-            $dataPagamento = DateTime::createFromFormat(
-                'Y-n-j',
-                "$anocomp-$mescomp-1"
-            );
-
-            if (!$dataPagamento) {
+            if (!checkdate($mescomp, 1, $anocomp) || !in_array($periodo, [2, 3], true)) {
                 ErrorHandler::handle(400, 'Competência inválida.');
                 return;
             }
 
-            $dataPagamento->modify('+1 month');
-
-            $dataReferencia = $dataPagamento->format('Ymd');
-            $libera = FinancService::holeriteLiberado($dataReferencia, 31);
+            $libera = FinancService::holeriteLiberado($mescomp, $anocomp, $periodo, 31);
 
             $funcionario = [
                 'nome' => $user['name'] ?? '',

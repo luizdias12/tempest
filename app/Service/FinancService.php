@@ -37,16 +37,55 @@ class FinancService
         ];
     }
 
-    public static function holeriteLiberado(string $dataref, int $codsecao): bool
+    public static function holeriteLiberado(int $mescomp, int $anocomp, int $periodo, int $codsecao = 31): bool
     {
-        $quintoDiaUtil = FinancModel::obterQuintoDiaUtil($dataref, $codsecao);
+        $liberacao = self::dataLiberacaoHolerite($mescomp, $anocomp, $periodo, $codsecao);
 
-        if (!$quintoDiaUtil) {
+        if ($liberacao === null) {
             return false;
         }
 
-        $liberacao = new DateTime($quintoDiaUtil['quinto_dia_util']);
+        return new DateTime('today') >= $liberacao;
+    }
 
-        return new DateTime() >= $liberacao;
+    private static function dataLiberacaoHolerite(int $mescomp, int $anocomp, int $periodo, int $codsecao): ?DateTime
+    {
+        if (!checkdate($mescomp, 1, $anocomp)) {
+            return null;
+        }
+
+        // 13º salário: 1ª parcela em 30/11 e 2ª em 20/12, antecipando para o dia útil anterior
+        if ($periodo === 2) {
+            $dia = match ($mescomp) {
+                11 => 30,
+                12 => 20,
+                default => null,
+            };
+
+            if ($dia === null) {
+                return null;
+            }
+
+            $referencia = sprintf('%04d%02d%02d', $anocomp, $mescomp, $dia);
+            $diaUtil = FinancModel::diaUtilAnteriorOuIgual($referencia, $codsecao);
+
+            return $diaUtil ? new DateTime($diaUtil) : null;
+        }
+
+        // Folha mensal: 5º dia útil do mês seguinte à competência
+        if ($periodo === 3) {
+            $dataPagamento = new DateTime(sprintf('%04d-%02d-01', $anocomp, $mescomp));
+            $dataPagamento->modify('+1 month');
+
+            $quintoDiaUtil = FinancModel::obterQuintoDiaUtil($dataPagamento->format('Ymd'), $codsecao);
+
+            if (!$quintoDiaUtil) {
+                return null;
+            }
+
+            return new DateTime($quintoDiaUtil['quinto_dia_util']);
+        }
+
+        return null;
     }
 }

@@ -46,6 +46,36 @@ class FinancModel extends DB
         return $result;
     }
 
+    public static function diaUtilAnteriorOuIgual(string $dataref, int $codsecao): ?string
+    {
+        $resultado = DB::select(
+            "
+            SELECT TO_CHAR(MAX(d.dia), 'YYYY-MM-DD') AS dia_util
+            FROM (
+                SELECT TRUNC(TO_DATE(:data_referencia, 'YYYYMMDD')) - LEVEL + 1 AS dia
+                FROM dual
+                CONNECT BY LEVEL <= 10
+            ) d
+            WHERE TRUNC(d.dia) - TRUNC(d.dia, 'IW') < 5
+            AND NOT EXISTS (
+                    SELECT 1
+                    FROM GFERIADO f
+                    JOIN GCALEND c ON c.CODIGO = f.CODCALENDARIO
+                    JOIN PSECAO s ON s.CODCALENDARIO = c.CODIGO
+                    WHERE TRUNC(f.DIAFERIADO) = TRUNC(d.dia)
+                    AND f.FERIADO = 'T'
+                    AND s.CODIGO = :secao
+            )
+        ",
+            [
+                'data_referencia' => $dataref,
+                'secao' => $codsecao
+            ]
+        );
+
+        return $resultado[0]['dia_util'] ?? null;
+    }
+
     public static function obterQuintoDiaUtil(string $dataref, int $codsecao): array|null
     {
         $quintoDiaUtil = DB::select(
